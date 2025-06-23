@@ -2,10 +2,14 @@
 import { Pool } from 'pg';
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false, // needed for Google Cloud SQL with SSL
-    },
+  host: process.env.PGHOST,
+  port: process.env.PGPORT,
+  database: process.env.PGDATABASE,
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  ssl: {
+    rejectUnauthorized: false, // required for Google Cloud SQL SSL
+  },
 });
 
 export default pool;
