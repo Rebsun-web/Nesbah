@@ -28,14 +28,6 @@ export default function ApprovedLeadReaction({ user }) {
 
   if (!Array.isArray(approvedOffers)) return null;
 
-  if (approvedOffers.length === 0) {
-    return (
-      <div className="mx-auto max-w-7xl text-center text-sm text-gray-500 pt-6">
-        No approved offers found for this business user.
-      </div>
-    );
-  }
-
   return (
       <div className="mx-auto max-w-7xl">
         <div className="space-y-4 pt-6">

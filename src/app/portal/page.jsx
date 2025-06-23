@@ -93,7 +93,7 @@ function BusinessPortal() {
                 <div className="grid grid-cols-1 gap-6">
                   <BusinessInformation businessInfo={businessInfo} />
                 </div>
-                <div className="mx-auto max-w-7xl py-6">
+                <div className="mx-auto max-w-7xl py-2">
                   <YourApplication user={userInfo} />
                     <ApprovedLeadReaction user={userInfo} />
                       <RejectionReaction user={userInfo} />
