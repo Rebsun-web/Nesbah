@@ -52,7 +52,7 @@ function BankPortal() {
             <div className="min-h-full">
                 <div className="pt-10">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                        <Heading>Good afternoon</Heading>
+                        <Heading>Welcome to Nesbah</Heading>
                     </div>
                     <main>
                         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

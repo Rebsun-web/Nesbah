@@ -52,8 +52,6 @@ function BankHistoryPage (){
                     <LeadsHistoryTable data={leads}/>
                 </div>
             </div>
-
-            {/* 🟨 Container 3 (Tabs + Form) */}
         </div>
     )
 }

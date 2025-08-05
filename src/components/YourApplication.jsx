@@ -75,23 +75,22 @@ export default function YourApplication({ user }) {
                   </h2>
                   <span
                       className="inline-flex items-center rounded-full bg-red-300 px-3 py-1 text-sm font-medium text-red-800">
-              ⏳ {formatDuration(elapsedTimes[app.application_id] || 0)}
+              {elapsedTimes[app.application_id] >= 432000
+                ? 'Expired'
+                : `⏳ ${formatDuration(elapsedTimes[app.application_id] || 0)}`}
             </span>
                 </div>
 
                 <div className="bg-gray-50 px-4 py-5 sm:p-6 space-y-2">
-                  <p className="text-sm text-gray-600">
-                    <strong>Status:</strong> {app.status}
-                    {app.status === 'accepted' && (
-                        <span className="block text-green-600 text-semibold mt-1">
-                      One of our bank partner will contact you shortly
-                    </span>
-                    )}
-                  </p>
-                  <p className="text-sm text-gray-600"><strong>CR Number:</strong> {app.cr_number}</p>
-                  <p className="text-sm text-gray-600"><strong>Notes:</strong> {app.notes}</p>
                   <p className="text-sm text-gray-600"><strong>Submitted
                     At:</strong> {new Date(app.submitted_at).toLocaleString()}</p>
+                  <p className="text-sm text-gray-600"><strong>CR Number:</strong> {app.cr_number}</p>
+                  <p className="text-sm text-gray-600"><strong>Number of POS
+                    device:</strong> {app.number_of_pos_devices}</p>
+                  <p className="text-sm text-gray-600"><strong>City of operation:</strong> {app.city_of_operation}</p>
+                  <p className="text-sm text-gray-600"><strong>Contact person:</strong> {app.contact_person}</p>
+                  <p className="text-sm text-gray-600"><strong>Mobile number:</strong> {app.contact_person_number}</p>
+                  <p className="text-sm text-gray-600"><strong>Notes:</strong> {app.notes}</p>
                   <p className="text-sm text-gray-600"><strong>Own POS
                     System:</strong> {app.own_pos_system ? 'Yes' : 'No'}</p>
 

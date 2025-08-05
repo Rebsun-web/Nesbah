@@ -34,7 +34,9 @@ export async function GET(req, { params }) {
 
         let appQuery = `
             SELECT
-                pa.application_id, pa.notes, pa.uploaded_document, pa.uploaded_filename, pa.uploaded_mimetype, pa.own_pos_system, pa.submitted_at,
+                pa.application_id, pa.notes, pa.uploaded_document, pa.uploaded_filename, pa.uploaded_mimetype,
+                pa.contact_person, pa.contact_person_number, pa.number_of_pos_devices, pa.city_of_operation,
+                pa.own_pos_system, pa.submitted_at,
                 bu.trade_name, bu.registration_status, bu.cr_number, bu.cr_national_number,
                 bu.form_name, bu.issue_date_gregorian,
                 bu.address, bu.sector,

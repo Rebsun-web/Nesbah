@@ -10,18 +10,17 @@ import {
     MenuItems,
 } from '@headlessui/react'
 import { Bars3Icon, BellIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 
 const user = {
     name: 'Tom Cook',
     email: 'tom@example.com',
-    imageUrl:
-        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
+    imageUrl: '/logo/blank_profile.png',
 }
 
 const navigation = [
-    { name: 'Dashboard', href: '/bankPortal', current: true },
-    { name: 'History', href: '/bankPortal/bankHistory', current: false },
+    { name: 'Dashboard', href: '/bankPortal' },
+    { name: 'History', href: '/bankPortal/bankHistory' },
 ]
 
 const userNavigation = [,
@@ -34,6 +33,7 @@ function classNames(...classes) {
 
 export default function BankNavbar() {
     const router = useRouter()
+    const pathname = usePathname()
 
     const handleNavigation = (item) => {
         if (item.action === 'logout') {
@@ -65,21 +65,24 @@ export default function BankNavbar() {
                             />
                         </div>
                         <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
-                            {navigation.map((item) => (
-                                <a
-                                    key={item.name}
-                                    href={item.href}
-                                    aria-current={item.current ? 'page' : undefined}
-                                    className={classNames(
-                                        item.current
-                                            ? 'bg-gray-900 text-white'
-                                            : 'text-gray-300 hover:bg-gray-700 hover:text-white',
-                                        'rounded-md px-3 py-2 text-sm font-medium',
-                                    )}
-                                >
-                                    {item.name}
-                                </a>
-                            ))}
+                            {navigation.map((item) => {
+                                const isActive = pathname === item.href
+                                return (
+                                    <a
+                                        key={item.name}
+                                        href={item.href}
+                                        aria-current={isActive ? 'page' : undefined}
+                                        className={classNames(
+                                            isActive
+                                                ? 'bg-purple-700 text-white'
+                                                : 'text-gray-300 hover:bg-white-200 hover:text-white',
+                                            'rounded-md px-3 py-2 text-sm font-medium',
+                                        )}
+                                    >
+                                        {item.name}
+                                    </a>
+                                )
+                            })}
                         </div>
                     </div>
                     <div className="flex items-center">
@@ -116,22 +119,25 @@ export default function BankNavbar() {
 
             <DisclosurePanel className="md:hidden">
                 <div className="space-y-1 px-2 pb-3 pt-2 sm:px-3">
-                    {navigation.map((item) => (
-                        <DisclosureButton
-                            key={item.name}
-                            as="a"
-                            href={item.href}
-                            aria-current={item.current ? 'page' : undefined}
-                            className={classNames(
-                                item.current
-                                    ? 'bg-gray-900 text-white'
-                                    : 'text-gray-300 hover:bg-gray-700 hover:text-white',
-                                'block rounded-md px-3 py-2 text-base font-medium',
-                            )}
-                        >
-                            {item.name}
-                        </DisclosureButton>
-                    ))}
+                    {navigation.map((item) => {
+                        const isActive = pathname === item.href
+                        return (
+                            <DisclosureButton
+                                key={item.name}
+                                as="a"
+                                href={item.href}
+                                aria-current={isActive ? 'page' : undefined}
+                                className={classNames(
+                                    isActive
+                                        ? 'bg-gray-900 text-white'
+                                        : 'text-gray-300 hover:bg-gray-700 hover:text-white',
+                                    'block rounded-md px-3 py-2 text-base font-medium',
+                                )}
+                            >
+                                {item.name}
+                            </DisclosureButton>
+                        )
+                    })}
                 </div>
                 <div className="border-t border-gray-700 pb-3 pt-4">
                     <div className="flex items-center px-5 sm:px-6">

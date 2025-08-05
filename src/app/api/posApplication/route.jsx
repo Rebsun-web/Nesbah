@@ -11,7 +11,11 @@ export async function POST(req) {
             uploaded_document,
             uploaded_filename,
             uploaded_mimetype,
-            own_pos_system
+            own_pos_system,
+            contact_person,
+            contact_person_number,
+            number_of_pos_devices,
+            city_of_operation
         } = body;
 
         const submitted_at = new Date(); // capture submit time
@@ -39,12 +43,14 @@ export async function POST(req) {
                     (user_id, status, submitted_at, notes, uploaded_document, own_pos_system, uploaded_filename, uploaded_mimetype,
                      trade_name, cr_number, cr_national_number, legal_form, registration_status, 
                      issue_date, city, activities, contact_info, has_ecommerce, store_url, 
-                     cr_capital, cash_capital, management_structure, management_names)
+                     cr_capital, cash_capital, management_structure, management_names,
+                     contact_person, contact_person_number, number_of_pos_devices, city_of_operation)
                 VALUES 
                     ($1, 'submitted', $2, $3, $4, $5, $21, $22,
                      $6, $7, $8, $9, $10,
                      $11, $12, $13, $14, $15, $16,
-                     $17, $18, $19, $20)
+                     $17, $18, $19, $20,
+                     $23, $24, $25, $26)
                 RETURNING application_id
                 `,
                 [
@@ -69,7 +75,11 @@ export async function POST(req) {
                     business.management_structure,
                     business.management_names,
                     uploaded_filename || null,
-                    uploaded_mimetype || null
+                    uploaded_mimetype || null,
+                    contact_person || null,
+                    contact_person_number || null,
+                    number_of_pos_devices || null,
+                    city_of_operation || null
                 ]
             );
 

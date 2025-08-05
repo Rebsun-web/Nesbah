@@ -18,6 +18,7 @@ import {
   ChevronLeftIcon,
 } from '@heroicons/react/16/solid'
 import LeadPurchasedModal from '@/components/LeadPurchasedModal';
+import ExitLead from '@/components/ExitLead';
 import RejectLeadSlide from '@/components/RejectLeadSlide';
 import OfferSentModal from '@/components/OfferSentModal';
 
@@ -111,11 +112,24 @@ export default function LeadPage({ params }) {
 
     const result = await res.json();
     if (result.success) {
-      setShowPurchasedModal(true);
+      setIsPurchased(true);
+      if (submittedOffer) {
+        setShowPurchasedModal(true);
+      }
     } else {
       console.error('❌ Failed to mark lead as purchased:', result.message);
     }
   }
+  // Handle back button click: always show exit modal if lead is purchased and no offer submitted
+  const handleBackClick = () => {
+    if (isPurchased && !submittedOffer) {
+      setShowRejectedModal(true);
+    } else {
+      // Add a key-changing trick to force rerender
+      const timestamp = new Date().getTime();
+      router.push(`${window.location.pathname}?t=${timestamp}`);
+    }
+  };
 
   const handleIgnore = async () => {
     if (!bankUser?.user_id) return;
@@ -225,7 +239,19 @@ export default function LeadPage({ params }) {
     <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
       <div className="max-lg:hidden">
         <button
-          onClick={() => router.back()}
+          type="button"
+          onClick={handleBackClick}
+          className="inline-flex items-center gap-2 text-sm/6 text-zinc-500"
+        >
+          <ChevronLeftIcon className="size-4 fill-zinc-400" />
+          Back
+        </button>
+      </div>
+      <div className="lg:hidden">
+        <button
+          key={`back-${isPurchased}-${!!submittedOffer}-${showRejectedModal}`}
+          type="button"
+          onClick={handleBackClick}
           className="inline-flex items-center gap-2 text-sm/6 text-zinc-500"
         >
           <ChevronLeftIcon className="size-4 fill-zinc-400" />
@@ -306,10 +332,16 @@ export default function LeadPage({ params }) {
             {application.own_pos_system ? 'Yes' : 'No'}
           </DescriptionDetails>
 
+          <DescriptionTerm>Number of POS device</DescriptionTerm>
+          <DescriptionDetails>{application.number_of_pos_devices}</DescriptionDetails>
+
+          <DescriptionTerm>City of operations</DescriptionTerm>
+          <DescriptionDetails>{application.city_of_operation}</DescriptionDetails>
+
           <DescriptionTerm>Notes</DescriptionTerm>
           <DescriptionDetails>{application.notes}</DescriptionDetails>
 
-          <DescriptionTerm>eCommerce</DescriptionTerm>
+          <DescriptionTerm>Has eCommerce?</DescriptionTerm>
           <DescriptionDetails>
             {application.has_ecommerce ? 'Yes' : 'No'}{' '}
             {application.store_url ? `(${application.store_url})` : ''}
@@ -335,14 +367,25 @@ export default function LeadPage({ params }) {
         <Subheading>Contact Information</Subheading>
         <Divider className="mt-4" />
         <DescriptionList>
+
+          <DescriptionTerm>Contact person</DescriptionTerm>
+          <DescriptionDetails>
+            {isPurchased ? application.contact_person || 'N/A' : 'Hidden'}
+          </DescriptionDetails>
+
+          <DescriptionTerm>Mobile number 1</DescriptionTerm>
+          <DescriptionDetails>
+            {isPurchased ? application.contact_person_number || 'N/A' : 'Hidden'}
+          </DescriptionDetails>
+
+          <DescriptionTerm>Mobile number 2</DescriptionTerm>
+          <DescriptionDetails>
+            {isPurchased ? contactInfo.mobileNo || 'N/A' : 'Hidden'}
+          </DescriptionDetails>
+
           <DescriptionTerm>Email</DescriptionTerm>
           <DescriptionDetails>
             {isPurchased ? contactInfo.email || 'N/A' : 'Hidden'}
-          </DescriptionDetails>
-
-          <DescriptionTerm>Mobile</DescriptionTerm>
-          <DescriptionDetails>
-            {isPurchased ? contactInfo.mobileNo || 'N/A' : 'Hidden'}
           </DescriptionDetails>
 
           <DescriptionTerm>Phone</DescriptionTerm>
@@ -607,6 +650,15 @@ export default function LeadPage({ params }) {
       )}
       {showOfferSentModal && (
         <OfferSentModal onClose={() => setShowOfferSentModal(false)} />
+      )}
+      {showRejectedModal && (
+        <ExitLead
+          onClose={() => setShowRejectedModal(false)}
+          onConfirmLeave={() => {
+            setShowRejectedModal(false);
+            setTimeout(() => router.back(), 10);
+          }}
+        />
       )}
     </div>
   )

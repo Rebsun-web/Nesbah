@@ -16,7 +16,6 @@ import ApprovedLeadReaction from '@/components/ApprovedLeadReaction'
 
 const tabs = [
     { name: 'Point of service (POS)', value: 'pos' },
-    { name: 'Service 2', value: 'Service 2' },
 ]
 
 function classNames(...classes) {
@@ -98,69 +97,65 @@ function BusinessPortal() {
                     <ApprovedLeadReaction user={userInfo} />
                       <RejectionReaction user={userInfo} />
                 </div>
+                {!hasApplication && (
                 <div className="bg-white pb-10 pt-5">
                   <div className="mx-auto max-w-7xl pt-2">
-                    {!hasApplication ? (
-                      <>
-                        <header className="mb-3">
-                          <h2 className="text-2xl font-semibold tracking-tight text-purple-900">
-                            Apply for a service
-                          </h2>
-                        </header>
+                    <header className="mb-3">
+                      <h2 className="text-2xl font-semibold tracking-tight text-purple-900">
+                        Apply for a service
+                      </h2>
+                    </header>
 
-                        {/* Tabs: Mobile */}
-                        <div className="mb-6 grid grid-cols-1 sm:hidden">
-                          <select
-                            value={
-                              tabs.find((tab) => tab.value === activeTab)?.name
-                            }
-                            aria-label="Select a tab"
-                            onChange={(e) => {
-                              const selected = tabs.find(
-                                (t) => t.name === e.target.value,
-                              )
-                              if (selected) setActiveTab(selected.value)
-                            }}
-                            className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pl-3 pr-8 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline-indigo-600"
+                    {/* Tabs: Mobile */}
+                    <div className="mb-6 grid grid-cols-1 sm:hidden">
+                      <select
+                        value={
+                          tabs.find((tab) => tab.value === activeTab)?.name
+                        }
+                        aria-label="Select a tab"
+                        onChange={(e) => {
+                          const selected = tabs.find(
+                            (t) => t.name === e.target.value,
+                          )
+                          if (selected) setActiveTab(selected.value)
+                        }}
+                        className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pl-3 pr-8 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline-indigo-600"
+                      >
+                        {tabs.map((tab) => (
+                          <option key={tab.name}>{tab.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon
+                        aria-hidden="true"
+                        className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end fill-gray-500"
+                      />
+                    </div>
+
+                    {/* Tabs: Desktop */}
+                    <div className="mb-6 hidden sm:block">
+                      <nav aria-label="Tabs" className="flex space-x-4">
+                        {tabs.map((tab) => (
+                          <button
+                            key={tab.name}
+                            onClick={() => setActiveTab(tab.value)}
+                            className={classNames(
+                              activeTab === tab.value
+                                ? 'bg-[#1E1851] text-white'
+                                : 'text-gray-500 hover:text-gray-700',
+                              'rounded-md px-3 py-2 text-sm font-medium',
+                            )}
                           >
-                            {tabs.map((tab) => (
-                              <option key={tab.name}>{tab.name}</option>
-                            ))}
-                          </select>
-                          <ChevronDownIcon
-                            aria-hidden="true"
-                            className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end fill-gray-500"
-                          />
-                        </div>
+                            {tab.name}
+                          </button>
+                        ))}
+                      </nav>
+                    </div>
 
-                        {/* Tabs: Desktop */}
-                        <div className="mb-6 hidden sm:block">
-                          <nav aria-label="Tabs" className="flex space-x-4">
-                            {tabs.map((tab) => (
-                              <button
-                                key={tab.name}
-                                onClick={() => setActiveTab(tab.value)}
-                                className={classNames(
-                                  activeTab === tab.value
-                                    ? 'bg-[#1E1851] text-white'
-                                    : 'text-gray-500 hover:text-gray-700',
-                                  'rounded-md px-3 py-2 text-sm font-medium',
-                                )}
-                              >
-                                {tab.name}
-                              </button>
-                            ))}
-                          </nav>
-                        </div>
-
-                        {/* Render Active Tab Content */}
-                        <div>{renderForm()}</div>
-                      </>
-                    ) : (
-                      <ApplicationLimit />
-                    )}
+                    {/* Render Active Tab Content */}
+                    <div>{renderForm()}</div>
                   </div>
                 </div>
+                )}
               </div>
             </main>
           </div>

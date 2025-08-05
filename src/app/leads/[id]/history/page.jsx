@@ -146,6 +146,12 @@ export default function LeadPage({ params }) {
                         {application.own_pos_system ? 'Yes' : 'No'}
                     </DescriptionDetails>
 
+                    <DescriptionTerm>Number of POS device</DescriptionTerm>
+                    <DescriptionDetails>{application.number_of_pos_devices}</DescriptionDetails>
+
+                    <DescriptionTerm>City of operations</DescriptionTerm>
+                    <DescriptionDetails>{application.city_of_operation}</DescriptionDetails>
+
                     <DescriptionTerm>Notes</DescriptionTerm>
                     <DescriptionDetails>{application.notes}</DescriptionDetails>
 
@@ -175,14 +181,24 @@ export default function LeadPage({ params }) {
                 <Subheading>Contact Information</Subheading>
                 <Divider className="mt-4" />
                 <DescriptionList>
+                    <DescriptionTerm>Contact person</DescriptionTerm>
+                    <DescriptionDetails>
+                        {isPurchased ? application.contact_person || 'N/A' : 'Hidden'}
+                    </DescriptionDetails>
+
+                    <DescriptionTerm>Mobile number 1</DescriptionTerm>
+                    <DescriptionDetails>
+                        {isPurchased ? application.contact_person_number || 'N/A' : 'Hidden'}
+                    </DescriptionDetails>
+
+                    <DescriptionTerm>Mobile number 2</DescriptionTerm>
+                    <DescriptionDetails>
+                        {isPurchased ? contactInfo.mobileNo || 'N/A' : 'Hidden'}
+                    </DescriptionDetails>
+
                     <DescriptionTerm>Email</DescriptionTerm>
                     <DescriptionDetails>
                         {isPurchased ? contactInfo.email || 'N/A' : 'Hidden'}
-                    </DescriptionDetails>
-
-                    <DescriptionTerm>Mobile</DescriptionTerm>
-                    <DescriptionDetails>
-                        {isPurchased ? contactInfo.mobileNo || 'N/A' : 'Hidden'}
                     </DescriptionDetails>
 
                     <DescriptionTerm>Phone</DescriptionTerm>

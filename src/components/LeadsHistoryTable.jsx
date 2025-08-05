@@ -57,7 +57,7 @@ export default function LeadsHistoryTable({ data }) {
                             <TableCell className="text-start" >POS Application</TableCell>
                             <TableCell className="text-start">
                                 {lead.purchased_by && lead.purchased_by.length > 0
-                                    ? 'Purchased'
+                                    ? 'Approved'
                                     : 'Opened'}
                             </TableCell>
                         </TableRow>

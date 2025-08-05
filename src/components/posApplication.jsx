@@ -15,6 +15,11 @@ export function PosApplication({ user, onSuccess}) {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [base64File, setBase64File] = useState(null);
 
+  const [contactPerson, setContactPerson] = useState('');
+  const [contactPersonNumber, setContactPersonNumber] = useState('');
+  const [numberOfPos, setNumberOfPos] = useState('');
+  const [cityOfOperation, setCityOfOperation] = useState('');
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     setUploadedFile(file);
@@ -47,6 +52,10 @@ export function PosApplication({ user, onSuccess}) {
       uploaded_filename: base64File?.name || null,
       uploaded_mimetype: base64File?.type || null,
       own_pos_system: ownPosSystem === 'yes',
+      contact_person: contactPerson,
+      contact_person_number: contactPersonNumber,
+      number_of_pos_devices: numberOfPos,
+      city_of_operation: cityOfOperation,
     };
 
     try {
@@ -110,7 +119,8 @@ export function PosApplication({ user, onSuccess}) {
                     CR national number
                   </label>
                   <div className="mt-2">
-                    <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                    <div
+                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
                       <input
                           id="cr_national_number"
                           name="cr_national_number"
@@ -129,7 +139,8 @@ export function PosApplication({ user, onSuccess}) {
                     Trade name
                   </label>
                   <div className="mt-2">
-                    <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                    <div
+                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
                       <input
                           id="trade_name"
                           name="trade_name"
@@ -167,7 +178,8 @@ export function PosApplication({ user, onSuccess}) {
                     Email
                   </label>
                   <div className="mt-2">
-                    <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                    <div
+                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
                       <input
                           id="email"
                           name="email"
@@ -179,6 +191,79 @@ export function PosApplication({ user, onSuccess}) {
                     </div>
                   </div>
                 </div>
+                <div>
+                  <label htmlFor="contactperson" className="block text-sm font-medium text-gray-900">
+                    Contact person
+                  </label>
+                  <div className="mt-2">
+                    <div
+                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                      <input
+                          id="contactperson"
+                          name="contactperson"
+                          type="text"
+                          value={contactPerson}
+                          onChange={(e) => setContactPerson(e.target.value)}
+                          className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="contactpersonnumber" className="block text-sm font-medium text-gray-900">
+                    Contact mobile number
+                  </label>
+                  <div className="mt-2">
+                    <div
+                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                      <input
+                          id="contactpersonnumber"
+                          name="contactpersonnumber"
+                          type="text"
+                          value={contactPersonNumber}
+                          onChange={(e) => setContactPersonNumber(e.target.value)}
+                          className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="nrofpos" className="block text-sm font-medium text-gray-900">
+                    Number of POS devices required
+                  </label>
+                  <div className="mt-2">
+                    <div
+                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                      <input
+                          id="nrofpos"
+                          name="nrofpos"
+                          type="text"
+                          value={numberOfPos}
+                          onChange={(e) => setNumberOfPos(e.target.value)}
+                          className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="cityofoperation" className="block text-sm font-medium text-gray-900">
+                    City of operation
+                  </label>
+                  <div className="mt-2">
+                    <div
+                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                      <input
+                          id="cityofoperation"
+                          name="cityofoperation"
+                          type="text"
+                          value={cityOfOperation}
+                          onChange={(e) => setCityOfOperation(e.target.value)}
+                          className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
 
                 {/* Notes */}
                 <div className="lg:col-span-2">
@@ -195,9 +280,6 @@ export function PosApplication({ user, onSuccess}) {
                       className="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline outline-1 outline-gray-300 placeholder:text-gray-400 focus:outline-indigo-600"
                   />
                   </div>
-                  <p className="mt-3 text-sm text-gray-600">
-                    Write a few sentences about yourself.
-                  </p>
                 </div>
 
                 {/* Upload */}
@@ -205,9 +287,10 @@ export function PosApplication({ user, onSuccess}) {
                   <label htmlFor="file-upload" className="block text-sm font-medium text-gray-900">
                     Upload document
                   </label>
-                  <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
+                  <div
+                      className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
                     <div className="text-center">
-                      <PhotoIcon className="mx-auto h-12 w-12 text-gray-300" aria-hidden="true" />
+                      <PhotoIcon className="mx-auto h-12 w-12 text-gray-300" aria-hidden="true"/>
                       <div className="mt-4 flex text-sm text-gray-600">
                         <label
                             htmlFor="file-upload"
@@ -224,21 +307,21 @@ export function PosApplication({ user, onSuccess}) {
                         </label>
                         <p className="pl-1">or drag and drop</p>
                       </div>
-                      <p className="text-xs text-gray-600">PNG, JPG, GIF up to 10MB</p>
+                      <p className="text-xs text-gray-600">pdf, JPG, .docx up to 10MB</p>
                     </div>
                   </div>
                   {uploadedFile && (
-                    <div className="mt-4 text-sm text-gray-700">
-                      <p><strong>Uploaded file(s):</strong> {uploadedFile.name}</p>
-                      <a
-                        href={URL.createObjectURL(uploadedFile)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-indigo-600 hover:underline"
-                      >
-                        Preview file
-                      </a>
-                    </div>
+                      <div className="mt-4 text-sm text-gray-700">
+                        <p><strong>Uploaded file(s):</strong> {uploadedFile.name}</p>
+                        <a
+                            href={URL.createObjectURL(uploadedFile)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo-600 hover:underline"
+                        >
+                          Preview file
+                        </a>
+                      </div>
                   )}
                 </div>
 

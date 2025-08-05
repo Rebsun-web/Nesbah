@@ -22,7 +22,7 @@ export async function POST(req) {
 
         const data = await response.json();
 
-        // ✅ Extract fields
+        // Extracted info from wathiq
         const crNationalNumber = data.crNationalNumber;
         const crNumber = data.crNumber;
         const crCapital = data.crCapital;
