@@ -10,13 +10,14 @@ export async function GET(req) {
 
     try {
         const result = await pool.query(
-            `SELECT sa.*, pa.submitted_at, sa.application_id, 'POS' as application_type
+            `SELECT sa.*, pa.submitted_at, sa.application_id, 'POS' as application_type,
+                    sa.auction_end_time, sa.offers_count, sa.revenue_collected
              FROM submitted_applications sa
                       JOIN pos_application pa ON sa.application_id = pa.application_id
-             WHERE sa.status = 'unopened'
+             WHERE sa.status = 'pending_offers'
                AND NOT $1 = ANY(sa.ignored_by)
                AND NOT $1 = ANY(sa.purchased_by)
-               AND pa.submitted_at >= NOW() - INTERVAL '48 hours'
+               AND sa.auction_end_time > NOW()
              ORDER BY pa.submitted_at DESC`,
             [bankUserId]
         );

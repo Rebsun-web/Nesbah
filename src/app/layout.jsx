@@ -1,4 +1,5 @@
 import '@/styles/tailwind.css'
+import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 
 export const metadata = {
   title: {
@@ -22,7 +23,11 @@ export default function RootLayout({ children }) {
           href="/blog/feed.xml"
         />
       </head>
-      <body className="text-gray-950 antialiased">{children}</body>
+      <body className="text-gray-950 antialiased">
+        <AdminAuthProvider>
+          {children}
+        </AdminAuthProvider>
+      </body>
     </html>
   )
 }

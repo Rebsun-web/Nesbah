@@ -2,7 +2,7 @@
 
 import { ChevronDownIcon } from '@heroicons/react/16/solid'
 import { Container } from '@/components/container'
-import { Navbar } from '@/components/navbar'
+import BusinessNavbar from '@/components/businessNavbar'
 import { NewFooter } from '@/components/NewFooter'
 import { BusinessInformation } from '@/components/businessInformation'
 import { BusinessFinancialInformation } from '@/components/businessFinancialInformation'
@@ -10,6 +10,7 @@ import { PosApplication } from '@/components/posApplication'
 import { ApplicationLimit } from '@/components/ApplicationLimit'
 import YourApplication from '@/components/YourApplication'
 import RejectionReaction from '@/components/RejectionReaction'
+import OfferSelection from '@/components/OfferSelection'
 import { useEffect, useState } from 'react'
 import ApplicationSubmittedModal from '@/components/ApplicationSubmittedModal'
 import ApprovedLeadReaction from '@/components/ApprovedLeadReaction'
@@ -28,6 +29,118 @@ function BusinessPortal() {
     const [businessInfo, setBusinessInfo] = useState(null);
     const [hasApplication, setHasApplication] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [applicationStatus, setApplicationStatus] = useState(null);
+    const [applicationData, setApplicationData] = useState(null);
+    const [lastUpdate, setLastUpdate] = useState(null);
+    const [previousStatus, setPreviousStatus] = useState(null);
+
+    // Function to fetch application data
+    const fetchApplicationData = async (userId) => {
+        try {
+            // Fetch POS applications
+            const appResponse = await fetch(`/api/posApplication/${userId}`);
+            const appData = await appResponse.json();
+            
+            if (appData.success && appData.data.length > 0) {
+                const application = appData.data[0]; // Get the first (and only) application
+                setApplicationData(application);
+                
+                // Check if status changed and show notification
+                if (application.status !== applicationStatus) {
+                    setPreviousStatus(applicationStatus);
+                    setApplicationStatus(application.status);
+                    
+                    // Show notification for important status changes
+                    if (application.status === 'offer_received') {
+                        alert('🎉 Great news! You have received offers from banks. Please review and select your preferred offer within 24 hours.');
+                    } else if (application.status === 'completed') {
+                        alert('✅ Congratulations! Your deal has been completed successfully.');
+                    } else if (application.status === 'abandoned') {
+                        alert('ℹ️ No banks submitted offers for your application. You can submit a new application if needed.');
+                    } else if (application.status === 'deal_expired') {
+                        alert('⏰ The 24-hour offer selection window has expired. You can submit a new application if needed.');
+                    }
+                } else {
+                    setApplicationStatus(application.status);
+                }
+                
+                setHasApplication(true);
+                
+                // Fetch additional application details if needed
+                if (application.application_id) {
+                    const detailsResponse = await fetch(`/api/leads/${application.application_id}`);
+                    const detailsData = await detailsResponse.json();
+                    if (detailsData.success) {
+                        setApplicationData(prev => ({ ...prev, ...detailsData.data }));
+                    }
+                }
+            } else {
+                setHasApplication(false);
+                setApplicationStatus(null);
+                setApplicationData(null);
+            }
+            
+            setLastUpdate(new Date());
+        } catch (err) {
+            console.error('Error fetching application data:', err);
+            setHasApplication(false);
+        }
+    };
+
+    // Function to get status display info
+    const getStatusInfo = (status) => {
+        const statusConfig = {
+            'submitted': {
+                label: 'Application Submitted',
+                description: 'Your application has been submitted and is being reviewed.',
+                color: 'bg-blue-100 text-blue-800',
+                icon: '📝'
+            },
+            'pending_offers': {
+                label: 'Live Auction Active',
+                description: 'Banks are viewing and purchasing your application. Auction ends in 48 hours.',
+                color: 'bg-yellow-100 text-yellow-800',
+                icon: '⏰'
+            },
+            'purchased': {
+                label: 'Application Purchased',
+                description: 'A bank has purchased access to your business data and can now submit offers.',
+                color: 'bg-purple-100 text-purple-800',
+                icon: '💰'
+            },
+            'offer_received': {
+                label: 'Offers Available',
+                description: 'You have received offers from banks. Choose your preferred offer within 24 hours.',
+                color: 'bg-green-100 text-green-800',
+                icon: '💰'
+            },
+            'completed': {
+                label: 'Deal Completed',
+                description: 'You have successfully selected an offer. Deal is finalized.',
+                color: 'bg-green-100 text-green-800',
+                icon: '✅'
+            },
+            'abandoned': {
+                label: 'Application Abandoned',
+                description: 'No banks submitted offers for your application.',
+                color: 'bg-gray-100 text-gray-800',
+                icon: '❌'
+            },
+            'deal_expired': {
+                label: 'Deal Expired',
+                description: 'You did not select an offer within the 24-hour window.',
+                color: 'bg-red-100 text-red-800',
+                icon: '⏰'
+            }
+        };
+        
+        return statusConfig[status] || {
+            label: 'Unknown Status',
+            description: 'Application status is unknown.',
+            color: 'bg-gray-100 text-gray-800',
+            icon: '❓'
+        };
+    };
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
@@ -44,20 +157,15 @@ function BusinessPortal() {
                     }
                 });
 
-            // Fetch POS applications
-            fetch(`/api/posApplication/${parsedUser.user_id}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success && data.data.length > 0) {
-                        setHasApplication(true);
-                    } else {
-                        setHasApplication(false);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error checking applications:', err);
-                    setHasApplication(false);
-                });
+            // Initial fetch
+            fetchApplicationData(parsedUser.user_id);
+
+            // Set up polling for real-time updates (every 30 seconds)
+            const interval = setInterval(() => {
+                fetchApplicationData(parsedUser.user_id);
+            }, 30000);
+
+            return () => clearInterval(interval);
         }
     }, []);
 
@@ -75,9 +183,7 @@ function BusinessPortal() {
     return (
       <div className="overflow-hidden pb-32">
         {isSubmitted && <ApplicationSubmittedModal />}
-        <Container className="relative">
-          <Navbar />
-        </Container>
+        <BusinessNavbar />
 
         {/* 🟪 Container 1 (Business Info) */}
         <div className="min-h-full">
@@ -93,9 +199,79 @@ function BusinessPortal() {
                   <BusinessInformation businessInfo={businessInfo} />
                 </div>
                 <div className="mx-auto max-w-7xl py-2">
+                  {/* Application Status Display */}
+                  {hasApplication && applicationStatus && (
+                    <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Application Status</h3>
+                        <div className="flex items-center space-x-3">
+                          {lastUpdate && (
+                            <span className="text-sm text-gray-500">
+                              Last updated: {lastUpdate.toLocaleTimeString()}
+                            </span>
+                          )}
+                          <button
+                            onClick={() => userInfo && fetchApplicationData(userInfo.user_id)}
+                            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                          >
+                            Refresh
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start space-x-4">
+                        <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-2xl ${getStatusInfo(applicationStatus).color.replace('text-', 'bg-').replace('bg-', '')}`}>
+                          {getStatusInfo(applicationStatus).icon}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className={`text-lg font-medium ${getStatusInfo(applicationStatus).color.split(' ')[1]}`}>
+                            {getStatusInfo(applicationStatus).label}
+                          </h4>
+                          <p className="text-gray-600 mt-1">
+                            {getStatusInfo(applicationStatus).description}
+                          </p>
+                          
+                          {/* Additional status-specific information */}
+                          {applicationData && (
+                            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              {applicationData.submitted_at && (
+                                <div>
+                                  <span className="font-medium text-gray-700">Submitted:</span>
+                                  <span className="ml-2 text-gray-600">
+                                    {new Date(applicationData.submitted_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              )}
+                              {applicationData.auction_end_time && (
+                                <div>
+                                  <span className="font-medium text-gray-700">Auction Ends:</span>
+                                  <span className="ml-2 text-gray-600">
+                                    {new Date(applicationData.auction_end_time).toLocaleString()}
+                                  </span>
+                                </div>
+                              )}
+                              {applicationData.offers_count !== undefined && (
+                                <div>
+                                  <span className="font-medium text-gray-700">Offers Received:</span>
+                                  <span className="ml-2 text-gray-600">{applicationData.offers_count}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <YourApplication user={userInfo} />
-                    <ApprovedLeadReaction user={userInfo} />
-                      <RejectionReaction user={userInfo} />
+                  <ApprovedLeadReaction user={userInfo} />
+                  <RejectionReaction user={userInfo} />
+                  {userInfo && businessInfo && (
+                    <OfferSelection 
+                      user={userInfo} 
+                      applicationId={businessInfo.application_id} 
+                    />
+                  )}
                 </div>
                 {!hasApplication && (
                 <div className="bg-white pb-10 pt-5">

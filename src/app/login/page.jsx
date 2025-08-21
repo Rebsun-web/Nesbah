@@ -17,13 +17,53 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaToken, setMfaToken] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [requiresMFA, setRequiresMFA] = useState(false);
+  const [adminId, setAdminId] = useState(null);
+  const [modalMessage, setModalMessage] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    console.log('🔐 Login form submitted for:', email);
+    
+    if (isLoading) {
+      console.log('⚠️ Login already in progress, ignoring duplicate submission');
+      return;
+    }
+    
+    setIsLoading(true);
     setIsModalOpen(false);
 
     try {
+      // If MFA is required, use admin login endpoint
+      if (requiresMFA && mfaToken) {
+        const adminResponse = await fetch('/api/admin/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email, 
+            password, 
+            mfaToken 
+          }),
+        });
+
+        const adminData = await adminResponse.json();
+        console.log('Admin login response:', adminResponse.status, adminData);
+
+        if (adminResponse.ok && adminData?.success) {
+          // Admin login successful
+          localStorage.setItem('adminUser', JSON.stringify(adminData.adminUser));
+          window.location.href = '/admin';
+        } else {
+          setModalMessage(adminData.error || 'Admin login failed');
+          setIsModalOpen(true);
+        }
+        return;
+      }
+
+      // Try regular user login first
       const response = await fetch('/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -31,8 +71,7 @@ export default function Login() {
       });
 
       const data = await response.json();
-      console.log('Response status:', response.status);
-      console.log('Response data:', data);
+      console.log('User login response:', response.status, data);
 
       if (response.ok && data?.user) {
         const user = data.user;
@@ -42,19 +81,86 @@ export default function Login() {
           window.location.href = '/portal';
         } else if (user.user_type === 'bank_user') {
           window.location.href = '/bankPortal';
-        } else if (user.user_type === 'admin') {
-          window.location.href = '/adminPortal';
+        } else if (user.user_type === 'admin_user') {
+          window.location.href = '/admin';
         } else {
           console.warn('Unknown user_type:', user.user_type);
         }
       } else {
-        console.error('Login failed: Invalid credentials or missing user info.');
-        setIsModalOpen(true);
+        // If regular login fails, try admin login
+        const adminResponse = await fetch('/api/admin/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const adminData = await adminResponse.json();
+        console.log('Admin login attempt:', adminResponse.status, adminData);
+
+        if (adminResponse.ok && adminData?.success) {
+          // Admin login successful
+          localStorage.setItem('adminUser', JSON.stringify(adminData.adminUser));
+          window.location.href = '/admin';
+        } else if (adminData?.requiresMFA) {
+          // Admin requires MFA
+          setRequiresMFA(true);
+          setAdminId(adminData.admin_id);
+          setModalMessage('MFA token required. Please enter your 6-digit code.');
+          setIsModalOpen(true);
+        } else {
+          // Both logins failed
+          setModalMessage('Invalid email or password');
+          setIsModalOpen(true);
+        }
       }
     } catch (error) {
       console.error('Error during login:', error);
+      setModalMessage('An error occurred during login. Please try again.');
       setIsModalOpen(true);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleMFASubmit = async () => {
+    if (!mfaToken || mfaToken.length !== 6) {
+      setModalMessage('Please enter a valid 6-digit MFA code.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const adminResponse = await fetch('/api/admin/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email, 
+          password, 
+          mfaToken 
+        }),
+      });
+
+      const adminData = await adminResponse.json();
+
+      if (adminResponse.ok && adminData?.success) {
+        localStorage.setItem('adminUser', JSON.stringify(adminData.adminUser));
+        window.location.href = '/admin';
+      } else {
+        setModalMessage(adminData.error || 'Invalid MFA token');
+      }
+    } catch (error) {
+      console.error('MFA verification error:', error);
+      setModalMessage('An error occurred during MFA verification.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setRequiresMFA(false);
+    setMfaToken('');
+    setAdminId(null);
+    setModalMessage('');
   };
 
   return (
@@ -77,6 +183,7 @@ export default function Login() {
                     required
                     placeholder="البريد الإلكتروني"
                     className="block w-full rounded-lg border shadow ring-1 ring-black/10 px-4 py-2"
+                    disabled={requiresMFA}
                 />
               </Field>
 
@@ -90,11 +197,13 @@ export default function Login() {
                       required
                       placeholder="كلمة المرور"
                       className="block w-full rounded-lg border px-4 py-2 pr-12 shadow ring-1 ring-black/10"
+                      disabled={requiresMFA}
                   />
                   <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                      disabled={requiresMFA}
                   >
                     {showPassword ? (
                         <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
@@ -105,41 +214,77 @@ export default function Login() {
                 </div>
               </Field>
 
-              <div className="mt-8 flex items-center justify-between text-sm/5">
-                <Field className="flex items-center gap-3">
-                  <Checkbox
-                      name="remember-me"
-                      className={clsx(
-                          'group block size-4 rounded border shadow ring-1 ring-black/10 focus:outline-none',
-                          'data-[checked]:bg-black data-[checked]:ring-black',
-                          'data-[focus]:outline data-[focus]:outline-2 data-[focus]:outline-offset-2 data-[focus]:outline-black'
-                      )}
-                  >
-                    <CheckIcon className="fill-white opacity-0 group-data-[checked]:opacity-100" />
-                  </Checkbox>
-                  <Label>تذكرني</Label>
+              {requiresMFA && (
+                <Field className="relative pt-4 space-y-3">
+                  <Label className="text-sm/5 font-medium">رمز التحقق الثنائي</Label>
+                  <input
+                      type="text"
+                      value={mfaToken}
+                      onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      required
+                      placeholder="000000"
+                      className="block w-full rounded-lg border px-4 py-2 shadow ring-1 ring-black/10 text-center text-lg font-mono"
+                      maxLength={6}
+                  />
+                  <p className="text-xs text-gray-500 text-center">
+                    أدخل رمز التحقق المكون من 6 أرقام من تطبيق المصادقة
+                  </p>
                 </Field>
-                <Link href="/forgotPassword" className="font-medium hover:text-gray-600">
-                  هل نسيت كلمة المرور؟
-                </Link>
-              </div>
+              )}
+
+              {!requiresMFA && (
+                <div className="mt-8 flex items-center justify-between text-sm/5">
+                  <Field className="flex items-center gap-3">
+                    <Checkbox
+                        name="remember-me"
+                        className={clsx(
+                            'group block size-4 rounded border shadow ring-1 ring-black/10 focus:outline-none',
+                            'data-[checked]:bg-black data-[checked]:ring-black',
+                            'data-[focus]:outline data-[focus]:outline-2 data-[focus]:outline-offset-2 data-[focus]:outline-black'
+                        )}
+                    >
+                      <CheckIcon className="fill-white opacity-0 group-data-[checked]:opacity-100" />
+                    </Checkbox>
+                    <Label>تذكرني</Label>
+                  </Field>
+                  <Link href="/forgotPassword" className="font-medium hover:text-gray-600">
+                    هل نسيت كلمة المرور؟
+                  </Link>
+                </div>
+              )}
 
               <div className="mt-8">
                 <button
-                    type="submit"
-                    className="mt-4 w-full rounded-full bg-gradient-to-r from-[#1E1851] to-[#4436B7] px-6 py-3 text-white transition duration-200 ease-in-out hover:bg-opacity-50 hover:shadow-lg hover:shadow-gray-500/50"
+                    type={requiresMFA ? 'button' : 'submit'}
+                    onClick={requiresMFA ? handleMFASubmit : undefined}
+                    disabled={isLoading}
+                    className="mt-4 w-full rounded-full bg-gradient-to-r from-[#1E1851] to-[#4436B7] px-6 py-3 text-white transition duration-200 ease-in-out hover:bg-opacity-50 hover:shadow-lg hover:shadow-gray-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  تسجيل الدخول
+                  {isLoading ? 'جاري تسجيل الدخول...' : requiresMFA ? 'تحقق من الرمز' : 'تسجيل الدخول'}
                 </button>
               </div>
+
+              {requiresMFA && (
+                <div className="mt-4 text-center">
+                  <button
+                      type="button"
+                      onClick={resetForm}
+                      className="text-sm text-gray-500 hover:text-gray-700 underline"
+                  >
+                    العودة إلى تسجيل الدخول
+                  </button>
+                </div>
+              )}
             </form>
 
-            <div className="m-1.5 rounded-lg bg-gray-50 py-4 text-center text-sm/5 ring-1 ring-black/5">
-              ليس لديك حساب ؟{' '}
-              <Link href="/register" className="font-medium hover:text-gray-600">
-                إنشاء حساب
-              </Link>
-            </div>
+            {!requiresMFA && (
+              <div className="m-1.5 rounded-lg bg-gray-50 py-4 text-center text-sm/5 ring-1 ring-black/5">
+                ليس لديك حساب ؟{' '}
+                <Link href="/register" className="font-medium hover:text-gray-600">
+                  إنشاء حساب
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
@@ -147,6 +292,7 @@ export default function Login() {
             <LoginStatusModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+                message={modalMessage}
             />
         )}
       </main>

@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import bcrypt from 'bcrypt';
 
 export async function POST(req) {
     try {
         const body = await req.json();
         const { cr_national_number, password, email } = body;
+
+        // Hash the password before storing
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
 
         const response = await fetch(`https://api.wathq.sa/commercial-registration/fullinfo/${cr_national_number}?language=en`, {
             method: 'GET',
@@ -52,7 +57,7 @@ export async function POST(req) {
 
             const userRes = await client.query(
                 `INSERT INTO users (email, password, user_type) VALUES ($1, $2, $3) RETURNING user_id`,
-                [email, password, 'business_user']
+                [email, hashedPassword, 'business_user']
             );
             const user_id = userRes.rows[0].user_id;
 

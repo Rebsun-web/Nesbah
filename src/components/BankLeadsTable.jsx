@@ -32,30 +32,31 @@ export default function BankLeadsTable({ data }) {
         }
     };
 
-    const formatCountdown = (submittedAt) => {
-        const submitted = new Date(submittedAt);
+    const formatCountdown = (submittedAt, auctionEndTime) => {
+        const endTime = auctionEndTime ? new Date(auctionEndTime) : new Date(submittedAt);
         const now = new Date();
-        const hoursPassed = Math.floor((now - submitted) / (1000 * 60 * 60));
-        const hoursLeft = 48 - hoursPassed;
+        const timeLeft = endTime - now;
 
-        if (hoursLeft <= 0) {
+        if (timeLeft <= 0) {
             return '⛔ Expired';
         } else {
-            return `${hoursLeft} hours left`;
+            const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+            const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            return `${hoursLeft}h ${minutesLeft}m left`;
         }
     };
 
     const sortedData = [...data].sort((a, b) => {
         const now = new Date();
 
-        const aSubmitted = new Date(a.submitted_at);
-        const bSubmitted = new Date(b.submitted_at);
+        const aEndTime = a.auction_end_time ? new Date(a.auction_end_time) : new Date(a.submitted_at);
+        const bEndTime = b.auction_end_time ? new Date(b.auction_end_time) : new Date(b.submitted_at);
 
-        const aHoursPassed = (now - aSubmitted) / (1000 * 60 * 60);
-        const bHoursPassed = (now - bSubmitted) / (1000 * 60 * 60);
+        const aTimeLeft = aEndTime - now;
+        const bTimeLeft = bEndTime - now;
 
-        // Sort descending by how close to 48 hours they are (i.e., highest hours passed first)
-        return bHoursPassed - aHoursPassed;
+        // Sort by urgency (least time left first)
+        return aTimeLeft - bTimeLeft;
     });
 
     return (
@@ -75,17 +76,17 @@ export default function BankLeadsTable({ data }) {
               </thead>
               <TableBody>
                 {sortedData.map((lead) => {
-                  const submitted = new Date(lead.submitted_at)
+                  const endTime = lead.auction_end_time ? new Date(lead.auction_end_time) : new Date(lead.submitted_at)
                   const now = new Date()
-                  const hoursPassed = (now - submitted) / (1000 * 60 * 60)
-                  const hoursLeft = 48 - hoursPassed
+                  const timeLeft = endTime - now
+                  const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60))
 
                   return (
                     <TableRow
                       key={lead.application_id}
                       onClick={() => handleRowClick(lead.application_id)}
                       className={`cursor-pointer hover:bg-gray-50 ${
-                        hoursLeft < 10 ? 'bg-red-50' : ''
+                        hoursLeft < 2 ? 'bg-red-50' : hoursLeft < 6 ? 'bg-yellow-50' : ''
                       }`}
                     >
                       <TableCell className="whitespace-nowrap text-sm text-center  text-gray-500">
@@ -98,7 +99,7 @@ export default function BankLeadsTable({ data }) {
                         POS Application
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-sm text-start font-semibold text-red-600">
-                        ⏳ {formatCountdown(lead.submitted_at)}
+                        ⏳ {formatCountdown(lead.submitted_at, lead.auction_end_time)}
                       </TableCell>
                     </TableRow>
                   )

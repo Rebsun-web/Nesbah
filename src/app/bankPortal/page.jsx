@@ -73,12 +73,8 @@ function BankPortal() {
                                     change="+0%"
                                 />
                                 <Stat
-                                    title="Avg response time"
-                                    value={
-                                        stats && stats.avg_response_time !== null
-                                            ? `${stats.avg_response_time} hrs`
-                                            : 'N/A'
-                                    }
+                                    title="Total revenue"
+                                    value={stats?.total_revenue ? `SAR ${stats.total_revenue}` : 'SAR 0'}
                                     change="+0%"
                                 />
                             </div>

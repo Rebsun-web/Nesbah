@@ -1,14 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
 import { XCircleIcon } from '@heroicons/react/24/outline'
 
-export default function Example() {
-    const [open, setOpen] = useState(true)
-
+export default function LoginStatusModal({ isOpen, onClose, message = 'بيانات الاعتماد غير صحيحة' }) {
     return (
-        <Dialog open={open} onClose={setOpen} className="relative z-10">
+        <Dialog open={isOpen} onClose={onClose} className="relative z-10">
             <DialogBackdrop
                 transition
                 className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"
@@ -26,11 +23,11 @@ export default function Example() {
                             </div>
                             <div className="mt-3 text-center sm:mt-5">
                                 <DialogTitle as="h3" className="text-base font-semibold text-gray-900">
-                                بيانات الاعتماد غير صحيحة
+                                    خطأ في تسجيل الدخول
                                 </DialogTitle>
                                 <div className="mt-2">
                                     <p className="text-sm text-gray-500">
-                                    اسم المستخدم أو كلمة المرور غير صحيحة.
+                                        {message}
                                     </p>
                                 </div>
                             </div>
@@ -38,7 +35,7 @@ export default function Example() {
                         <div className="mt-5 sm:mt-6">
                             <button
                                 type="button"
-                                onClick={() => setOpen(false)}
+                                onClick={onClose}
                                 className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                             >
                                 تَمَام

@@ -26,6 +26,14 @@ export async function POST(req, { params }) {
         const alreadyPurchased = check.rowCount > 0;
 
         if (!alreadyPurchased) {
+            // Record revenue collection (25 SAR per purchase)
+            await pool.query(
+                `INSERT INTO application_revenue (application_id, bank_user_id, amount, transaction_type)
+                 VALUES ($1, $2, $3, $4)`,
+                [applicationId, bankUserId, 25.00, 'lead_purchase']
+            );
+
+            // Update submitted_applications with purchase tracking but keep status as pending_offers
             await pool.query(
                 `UPDATE submitted_applications
                  SET
@@ -34,17 +42,14 @@ export async function POST(req, { params }) {
                              COALESCE(purchased_by_timestamps, '{}'),
                              $2,
                              to_jsonb(to_char(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))
-                         )
-                 WHERE application_id = $3`,
-                [bankUserId, `{${bankUserId}}`, applicationId]
+                         ),
+                     revenue_collected = revenue_collected + $3
+                 WHERE application_id = $4`,
+                [bankUserId, `{${bankUserId}}`, 25.00, applicationId]
             );
 
-            await pool.query(
-                `UPDATE pos_application
-                 SET status = 'accepted'
-                 WHERE application_id = $1`,
-                [applicationId]
-            );
+            // Keep pos_application status as 'pending_offers' - don't change to 'purchased'
+            // This allows multiple banks to purchase the same application
         }
 
         const offer_device_setup_fee = formData.get('offer_device_setup_fee');
@@ -92,8 +97,11 @@ export async function POST(req, { params }) {
                 offer_comment,
                 uploaded_document,
                 uploaded_mimetype,
-                uploaded_filename
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                uploaded_filename,
+                submitted_by_user_id,
+                status,
+                offer_selection_deadline
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
               [
                 submittedApplicationId,
                 offer_device_setup_fee || null,
@@ -103,8 +111,19 @@ export async function POST(req, { params }) {
                 offer_comment || null,
                 uploadedDocument,
                 uploadedMimetype,
-                uploadedFilename
+                uploadedFilename,
+                bankUserId,
+                'submitted',
+                new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
               ]
+            );
+
+            // Update offers count in submitted_applications
+            await pool.query(
+              `UPDATE submitted_applications
+               SET offers_count = offers_count + 1
+               WHERE application_id = $1`,
+              [applicationId]
             );
           }
         }

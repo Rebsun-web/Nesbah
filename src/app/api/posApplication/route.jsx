@@ -36,7 +36,7 @@ export async function POST(req) {
         try {
             await client.query('BEGIN');
 
-            // Insert into pos_application
+            // Insert into pos_application with new status workflow
             const posAppResult = await client.query(
                 `
                 INSERT INTO pos_application 
@@ -44,13 +44,13 @@ export async function POST(req) {
                      trade_name, cr_number, cr_national_number, legal_form, registration_status, 
                      issue_date, city, activities, contact_info, has_ecommerce, store_url, 
                      cr_capital, cash_capital, management_structure, management_names,
-                     contact_person, contact_person_number, number_of_pos_devices, city_of_operation)
+                     contact_person, contact_person_number, number_of_pos_devices, city_of_operation, auction_end_time)
                 VALUES 
-                    ($1, 'submitted', $2, $3, $4, $5, $21, $22,
+                    ($1, 'pending_offers', $2, $3, $4, $5, $21, $22,
                      $6, $7, $8, $9, $10,
                      $11, $12, $13, $14, $15, $16,
                      $17, $18, $19, $20,
-                     $23, $24, $25, $26)
+                     $23, $24, $25, $26, $27)
                 RETURNING application_id
                 `,
                 [
@@ -79,25 +79,27 @@ export async function POST(req) {
                     contact_person || null,
                     contact_person_number || null,
                     number_of_pos_devices || null,
-                    city_of_operation || null
+                    city_of_operation || null,
+                    new Date(Date.now() + 48 * 60 * 60 * 1000) // 48 hours from now
                 ]
             );
 
             const application_id = posAppResult.rows[0].application_id;
 
-            // Insert into submitted_applications
+            // Insert into submitted_applications with new status workflow
             await client.query(
                 `
                 INSERT INTO submitted_applications
-                    (application_id, application_type, status, opened_by)
+                    (application_id, application_type, status, opened_by, auction_end_time)
                 VALUES
-                    ($1, $2, $3, $4)
+                    ($1, $2, $3, $4, $5)
                 `,
                 [
                     application_id,
                     'pos',          // Application type
-                    'unopened',     // Default status
-                    []              // Empty opened_by array initially
+                    'pending_offers', // New status: starts 48-hour auction
+                    [],             // Empty opened_by array initially
+                    new Date(Date.now() + 48 * 60 * 60 * 1000) // 48 hours from now
                 ]
             );
 

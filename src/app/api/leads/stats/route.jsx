@@ -15,8 +15,10 @@ export async function GET(req) {
             `
                 SELECT
                     (SELECT COUNT(*) FROM submitted_applications
-                     WHERE NOT $1 = ANY(ignored_by)
+                     WHERE status = 'pending_offers'
+                       AND NOT $1 = ANY(ignored_by)
                        AND NOT $1 = ANY(purchased_by)
+                       AND auction_end_time > NOW()
                     ) AS incoming_leads,
 
                     (SELECT COUNT(*) FROM submitted_applications
@@ -52,7 +54,9 @@ export async function GET(req) {
                             WHERE $1 = ANY(sa.ignored_by)
                             AND sa.ignored_by_timestamps ->> $1 IS NOT NULL
                         ) AS sub
-                    ) AS avg_response_time
+                    ) AS avg_response_time,
+
+                    (SELECT COALESCE(SUM(amount), 0) FROM application_revenue WHERE bank_user_id = $1) AS total_revenue
             `,
             [userId]
         );

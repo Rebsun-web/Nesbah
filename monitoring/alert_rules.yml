@@ -1,0 +1,202 @@
+groups:
+  - name: nesbah_alerts
+    rules:
+      # Application Health
+      - alert: NesbahAppDown
+        expr: up{job="nesbah-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nesbah application is down"
+          description: "The Nesbah application has been down for more than 1 minute"
+
+      - alert: NesbahBackgroundJobsDown
+        expr: up{job="nesbah-background-jobs"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Background jobs service is down"
+          description: "The background jobs service has been down for more than 2 minutes"
+
+      # Database Health
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "The PostgreSQL database has been down for more than 1 minute"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis cache is down"
+          description: "The Redis cache has been down for more than 1 minute"
+
+      # System Resources
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 5 minutes"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 85% for more than 5 minutes"
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage detected"
+          description: "Disk usage is above 85% for more than 5 minutes"
+
+      # Application Performance
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is above 2 seconds"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% for more than 5 minutes"
+
+      # Database Performance
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, sum(rate(db_query_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile database query time is above 1 second"
+
+      - alert: DatabaseConnectionsHigh
+        expr: pg_stat_database_numbackends > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connections"
+          description: "Database connections are above 80 for more than 5 minutes"
+
+      # Background Job Monitoring
+      - alert: BackgroundJobFailure
+        expr: increase(background_job_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Background job failures detected"
+          description: "Background jobs are failing"
+
+      - alert: BackgroundJobLag
+        expr: background_job_lag_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Background job lag detected"
+          description: "Background jobs are lagging by more than 5 minutes"
+
+      # Security Alerts
+      - alert: HighFailedLoginAttempts
+        expr: rate(failed_login_attempts_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High failed login attempts"
+          description: "More than 10 failed login attempts per minute"
+
+      - alert: UnauthorizedAccessAttempts
+        expr: rate(unauthorized_access_attempts_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Unauthorized access attempts detected"
+          description: "Multiple unauthorized access attempts detected"
+
+      # Revenue Monitoring
+      - alert: RevenueAnomaly
+        expr: abs(rate(revenue_collected_total[1h]) - avg_over_time(revenue_collected_total[24h])) / avg_over_time(revenue_collected_total[24h]) * 100 > 50
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Revenue anomaly detected"
+          description: "Revenue collection rate has deviated significantly from the 24-hour average"
+
+      - alert: FailedRevenueCollections
+        expr: rate(failed_revenue_collections_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Failed revenue collections"
+          description: "Revenue collections are failing"
+
+      # Infrastructure Health
+      - alert: NginxDown
+        expr: up{job="nginx"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nginx reverse proxy is down"
+          description: "The Nginx reverse proxy has been down for more than 1 minute"
+
+      - alert: ElasticsearchDown
+        expr: up{job="elasticsearch"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elasticsearch is down"
+          description: "The Elasticsearch service has been down for more than 2 minutes"
+
+      # Network and Connectivity
+      - alert: HighNetworkLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High network latency detected"
+          description: "Network latency is above 1 second for 95th percentile"
+
+      # SSL Certificate Expiry
+      - alert: SSLCertificateExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 30
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate will expire in less than 30 days"

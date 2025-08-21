@@ -40,3 +40,16 @@ export function Button({ variant = 'primary', className, ...props }) {
 
   return <Link {...props} className={className} />
 }
+
+// TouchTarget component for better touch accessibility
+export function TouchTarget({ className, ...props }) {
+  return (
+    <span
+      {...props}
+      className={clsx(
+        className,
+        'inline-flex items-center justify-center min-w-[44px] min-h-[44px]'
+      )}
+    />
+  )
+}

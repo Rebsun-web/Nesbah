@@ -1,0 +1,131 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: 'https://hooks.slack.com/services/YOUR_SLACK_WEBHOOK'
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@nesbah.com'
+  smtp_auth_username: 'alerts@nesbah.com'
+  smtp_auth_password: 'YOUR_SMTP_PASSWORD'
+
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: true
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      continue: true
+    - match:
+        alertname: 'NesbahAppDown'
+      receiver: 'pager-duty'
+      continue: true
+    - match:
+        alertname: 'PostgresDown'
+      receiver: 'pager-duty'
+      continue: true
+    - match:
+        alertname: 'HighFailedLoginAttempts'
+      receiver: 'security-team'
+      continue: true
+    - match:
+        alertname: 'UnauthorizedAccessAttempts'
+      receiver: 'security-team'
+      continue: true
+    - match:
+        alertname: 'FailedRevenueCollections'
+      receiver: 'finance-team'
+      continue: true
+
+receivers:
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://127.0.0.1:5001/'
+
+  - name: 'critical-alerts'
+    slack_configs:
+      - channel: '#nesbah-critical'
+        title: '🚨 Critical Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}'
+        send_resolved: true
+    email_configs:
+      - to: 'admin@nesbah.com'
+        headers:
+          subject: '🚨 Critical Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Critical Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Time:</strong> {{ .StartsAt }}</p>
+
+  - name: 'warning-alerts'
+    slack_configs:
+      - channel: '#nesbah-warnings'
+        title: '⚠️ Warning Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}'
+        send_resolved: true
+    email_configs:
+      - to: 'admin@nesbah.com'
+        headers:
+          subject: '⚠️ Warning Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Warning Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Time:</strong> {{ .StartsAt }}</p>
+
+  - name: 'pager-duty'
+    pagerduty_configs:
+      - routing_key: 'YOUR_PAGERDUTY_ROUTING_KEY'
+        description: '{{ .GroupLabels.alertname }}: {{ .Annotations.summary }}'
+        severity: '{{ if eq .GroupLabels.severity "critical" }}critical{{ else }}warning{{ end }}'
+        client: 'Nesbah Monitoring'
+        client_url: 'https://nesbah.com/admin'
+
+  - name: 'security-team'
+    slack_configs:
+      - channel: '#nesbah-security'
+        title: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}'
+        send_resolved: true
+    email_configs:
+      - to: 'security@nesbah.com'
+        headers:
+          subject: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Security Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Time:</strong> {{ .StartsAt }}</p>
+
+  - name: 'finance-team'
+    slack_configs:
+      - channel: '#nesbah-finance'
+        title: '💰 Finance Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}'
+        send_resolved: true
+    email_configs:
+      - to: 'finance@nesbah.com'
+        headers:
+          subject: '💰 Finance Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Finance Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Time:</strong> {{ .StartsAt }}</p>
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev', 'instance']
