@@ -26,18 +26,19 @@ export async function GET(req) {
         const client = await pool.connect();
         
         try {
-            // Get real-time status counts with deadline information
+            // Get real-time status counts with deadline information from tracking table
             const statusCountsQuery = `
                 SELECT 
-                    sa.status,
-                    COUNT(*) as count,
-                    COUNT(CASE WHEN sa.auction_end_time > NOW() THEN 1 END) as active_auctions,
-                    COUNT(CASE WHEN sa.offer_selection_end_time > NOW() THEN 1 END) as active_selections,
-                    COUNT(CASE WHEN sa.auction_end_time <= NOW() AND sa.status = 'pending_offers' THEN 1 END) as expired_auctions,
-                    COUNT(CASE WHEN sa.offer_selection_end_time <= NOW() AND sa.status = 'offer_received' THEN 1 END) as expired_selections
+                    COALESCE(aot.current_application_status, sa.status) as status,
+                    COUNT(DISTINCT sa.application_id) as count,
+                    COUNT(DISTINCT CASE WHEN aot.application_window_end > NOW() AND aot.current_application_status = 'pending_offers' THEN sa.application_id END) as active_auctions,
+                    COUNT(DISTINCT CASE WHEN aot.offer_window_end > NOW() AND aot.current_application_status = 'offer_received' THEN sa.application_id END) as active_selections,
+                    COUNT(DISTINCT CASE WHEN aot.application_window_end <= NOW() AND aot.current_application_status = 'pending_offers' THEN sa.application_id END) as expired_auctions,
+                    COUNT(DISTINCT CASE WHEN aot.offer_window_end <= NOW() AND aot.current_application_status = 'offer_received' THEN sa.application_id END) as expired_selections
                 FROM submitted_applications sa
-                GROUP BY sa.status
-                ORDER BY sa.status;
+                LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
+                GROUP BY COALESCE(aot.current_application_status, sa.status)
+                ORDER BY COALESCE(aot.current_application_status, sa.status);
             `;
 
             const statusCounts = await client.query(statusCountsQuery);
@@ -46,30 +47,31 @@ export async function GET(req) {
             const urgentApplicationsQuery = `
                 SELECT 
                     sa.application_id,
-                    sa.status,
-                    sa.auction_end_time,
-                    sa.offer_selection_end_time,
+                    COALESCE(aot.current_application_status, sa.status) as status,
+                    aot.application_window_end as auction_end_time,
+                    aot.offer_window_end as offer_selection_end_time,
                     sa.offers_count,
                     sa.revenue_collected,
                     pa.submitted_at,
                     pa.trade_name,
-                    EXTRACT(EPOCH FROM (sa.auction_end_time - NOW()))/3600 as hours_until_auction_end,
-                    EXTRACT(EPOCH FROM (sa.offer_selection_end_time - NOW()))/3600 as hours_until_selection_end
+                    EXTRACT(EPOCH FROM (aot.application_window_end - NOW()))/3600 as hours_until_auction_end,
+                    EXTRACT(EPOCH FROM (aot.offer_window_end - NOW()))/3600 as hours_until_selection_end
                 FROM submitted_applications sa
                 JOIN pos_application pa ON sa.application_id = pa.application_id
+                LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
                 WHERE 
-                    (sa.status = 'pending_offers' AND sa.auction_end_time <= NOW() + INTERVAL '1 hour')
-                    OR (sa.status = 'offer_received' AND sa.offer_selection_end_time <= NOW() + INTERVAL '1 hour')
-                    OR (sa.status = 'pending_offers' AND sa.auction_end_time <= NOW())
-                    OR (sa.status = 'offer_received' AND sa.offer_selection_end_time <= NOW())
+                    (COALESCE(aot.current_application_status, sa.status) = 'pending_offers' AND aot.application_window_end <= NOW() + INTERVAL '1 hour')
+                    OR (COALESCE(aot.current_application_status, sa.status) = 'offer_received' AND aot.offer_window_end <= NOW() + INTERVAL '1 hour')
+                    OR (COALESCE(aot.current_application_status, sa.status) = 'pending_offers' AND aot.application_window_end <= NOW())
+                    OR (COALESCE(aot.current_application_status, sa.status) = 'offer_received' AND aot.offer_window_end <= NOW())
                 ORDER BY 
                     CASE 
-                        WHEN sa.auction_end_time <= NOW() THEN 1
-                        WHEN sa.offer_selection_end_time <= NOW() THEN 1
+                        WHEN aot.application_window_end <= NOW() THEN 1
+                        WHEN aot.offer_window_end <= NOW() THEN 1
                         ELSE 2
                     END,
-                    sa.auction_end_time ASC,
-                    sa.offer_selection_end_time ASC
+                    aot.application_window_end ASC,
+                    aot.offer_window_end ASC
                 LIMIT 20;
             `;
 
@@ -78,13 +80,14 @@ export async function GET(req) {
             // Get revenue analytics
             const revenueQuery = `
                 SELECT 
-                    SUM(sa.revenue_collected) as total_revenue,
-                    COUNT(CASE WHEN sa.revenue_collected > 0 THEN 1 END) as revenue_generating_applications,
-                    AVG(sa.revenue_collected) as avg_revenue_per_application,
-                    COUNT(CASE WHEN sa.status = 'completed' THEN 1 END) as completed_applications,
-                    COUNT(CASE WHEN sa.status = 'abandoned' THEN 1 END) as abandoned_applications,
-                    COUNT(CASE WHEN sa.status = 'deal_expired' THEN 1 END) as expired_applications
-                FROM submitted_applications sa;
+                    (SELECT COUNT(*) * 25 FROM submitted_applications WHERE has_been_purchased = TRUE) as total_revenue,
+                    (SELECT COUNT(*) FROM submitted_applications WHERE has_been_purchased = TRUE) as revenue_generating_applications,
+                    25 as avg_revenue_per_application,
+                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'completed' THEN sa.application_id END) as completed_applications,
+                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'abandoned' THEN sa.application_id END) as abandoned_applications,
+                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'deal_expired' THEN sa.application_id END) as expired_applications
+                FROM submitted_applications sa
+                LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id;
             `;
 
             const revenueAnalytics = await client.query(revenueQuery);

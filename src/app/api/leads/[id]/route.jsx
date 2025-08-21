@@ -65,7 +65,7 @@ export async function GET(req, { params }) {
         if (isPurchased) {
             await client.query(
                 `UPDATE pos_application
-                 SET status = 'accepted'
+                 SET status = 'purchased'
                  WHERE application_id = $1`,
                 [applicationId]
             );

@@ -6,54 +6,56 @@ export async function GET() {
         const client = await pool.connect();
         
         try {
-            // Get offer counts by status
+            // Get offer counts by status using tracking table
             const offerStatusStats = await client.query(`
                 SELECT 
-                    status,
+                    current_offer_status as status,
                     COUNT(*) as count,
-                    COUNT(CASE WHEN submitted_at >= NOW() - INTERVAL '30 days' THEN 1 END) as recent_count
-                FROM application_offers
-                GROUP BY status
+                    COUNT(CASE WHEN offer_sent_at >= NOW() - INTERVAL '30 days' THEN 1 END) as recent_count
+                FROM application_offer_tracking
+                WHERE offer_id IS NOT NULL
+                GROUP BY current_offer_status
                 ORDER BY count DESC
             `);
 
-            // Get offers by bank
+            // Get offers by bank using tracking table
             const bankOfferStats = await client.query(`
                 SELECT 
-                    COALESCE(bu.entity_name, 'Unknown Bank') as bank_name,
-                    COALESCE(bu.user_id, 0) as bank_user_id,
+                    COALESCE(u.entity_name, 'Unknown Bank') as bank_name,
+                    aot.bank_user_id,
                     COUNT(*) as total_offers,
-                    COUNT(CASE WHEN ao.status = 'deal_won' THEN 1 END) as won_offers,
-                    COUNT(CASE WHEN ao.status = 'deal_lost' THEN 1 END) as lost_offers,
-                    COUNT(CASE WHEN ao.status = 'submitted' THEN 1 END) as pending_offers,
+                    COUNT(CASE WHEN aot.current_offer_status = 'deal_won' THEN 1 END) as won_offers,
+                    COUNT(CASE WHEN aot.current_offer_status = 'deal_lost' THEN 1 END) as lost_offers,
+                    COUNT(CASE WHEN aot.current_offer_status = 'submitted' THEN 1 END) as pending_offers,
                     ROUND(
                         CASE 
                             WHEN COUNT(*) > 0 
-                            THEN (COUNT(CASE WHEN ao.status = 'deal_won' THEN 1 END)::DECIMAL / COUNT(*)) * 100 
+                            THEN (COUNT(CASE WHEN aot.current_offer_status = 'deal_won' THEN 1 END)::DECIMAL / COUNT(*)) * 100 
                             ELSE 0 
                         END, 2
                     ) as win_rate
-                FROM application_offers ao
-                LEFT JOIN bank_users bu ON ao.submitted_by_user_id = bu.user_id
-                GROUP BY bu.user_id, bu.entity_name
+                FROM application_offer_tracking aot
+                LEFT JOIN users u ON aot.bank_user_id = u.user_id
+                WHERE aot.offer_id IS NOT NULL
+                GROUP BY aot.bank_user_id, u.entity_name
                 ORDER BY total_offers DESC
                 LIMIT 10
             `);
 
-            // Get offers by business
+            // Get offers by business using tracking table
             const businessOfferStats = await client.query(`
                 SELECT 
                     pa.trade_name as business_name,
-                    pa.application_id,
+                    aot.application_id,
                     COUNT(*) as total_offers,
-                    COUNT(CASE WHEN ao.status = 'deal_won' THEN 1 END) as won_offers,
-                    COUNT(CASE WHEN ao.status = 'deal_lost' THEN 1 END) as lost_offers,
-                    COUNT(CASE WHEN ao.status = 'submitted' THEN 1 END) as pending_offers,
-                    MAX(ao.submitted_at) as last_offer_date
-                FROM application_offers ao
-                JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
-                JOIN pos_application pa ON sa.application_id = pa.application_id
-                GROUP BY pa.application_id, pa.trade_name
+                    COUNT(CASE WHEN aot.current_offer_status = 'deal_won' THEN 1 END) as won_offers,
+                    COUNT(CASE WHEN aot.current_offer_status = 'deal_lost' THEN 1 END) as lost_offers,
+                    COUNT(CASE WHEN aot.current_offer_status = 'submitted' THEN 1 END) as pending_offers,
+                    MAX(aot.offer_sent_at) as last_offer_date
+                FROM application_offer_tracking aot
+                JOIN pos_application pa ON aot.application_id = pa.application_id
+                WHERE aot.offer_id IS NOT NULL
+                GROUP BY aot.application_id, pa.trade_name
                 ORDER BY total_offers DESC
                 LIMIT 10
             `);
@@ -61,65 +63,142 @@ export async function GET() {
             // Get offer submission trends (last 12 months)
             const offerTrends = await client.query(`
                 SELECT 
-                    DATE_TRUNC('month', submitted_at) as month,
+                    DATE_TRUNC('month', offer_sent_at) as month,
                     COUNT(*) as total_offers,
-                    COUNT(CASE WHEN status = 'deal_won' THEN 1 END) as won_offers,
-                    COUNT(CASE WHEN status = 'deal_lost' THEN 1 END) as lost_offers,
-                    COUNT(CASE WHEN status = 'submitted' THEN 1 END) as pending_offers
-                FROM application_offers
-                WHERE submitted_at >= NOW() - INTERVAL '12 months'
-                GROUP BY DATE_TRUNC('month', submitted_at)
+                    COUNT(CASE WHEN current_offer_status = 'deal_won' THEN 1 END) as won_offers,
+                    COUNT(CASE WHEN current_offer_status = 'deal_lost' THEN 1 END) as lost_offers,
+                    COUNT(CASE WHEN current_offer_status = 'submitted' THEN 1 END) as pending_offers
+                FROM application_offer_tracking
+                WHERE offer_sent_at >= NOW() - INTERVAL '12 months'
+                AND offer_id IS NOT NULL
+                GROUP BY DATE_TRUNC('month', offer_sent_at)
                 ORDER BY month
             `);
 
-            // Get average offer metrics
+            // Get offer processing time (submission to acceptance)
+            const offerProcessingTime = await client.query(`
+                SELECT 
+                    ROUND(AVG(
+                        EXTRACT(EPOCH FROM (offer_accepted_at - offer_sent_at)) / 3600
+                    ), 2) as avg_offer_processing_hours,
+                    ROUND(MIN(
+                        EXTRACT(EPOCH FROM (offer_accepted_at - offer_sent_at)) / 3600
+                    ), 2) as min_offer_processing_hours,
+                    ROUND(MAX(
+                        EXTRACT(EPOCH FROM (offer_accepted_at - offer_sent_at)) / 3600
+                    ), 2) as max_offer_processing_hours,
+                    COUNT(*) as total_accepted_offers
+                FROM application_offer_tracking
+                WHERE current_offer_status = 'deal_won'
+                AND offer_sent_at IS NOT NULL
+                AND offer_accepted_at IS NOT NULL
+            `);
+
+            // Get bank response time (purchase to offer submission)
+            const bankResponseTime = await client.query(`
+                SELECT 
+                    ROUND(AVG(
+                        EXTRACT(EPOCH FROM (offer_sent_at - purchased_at)) / 3600
+                    ), 2) as avg_bank_response_hours,
+                    ROUND(MIN(
+                        EXTRACT(EPOCH FROM (offer_sent_at - purchased_at)) / 3600
+                    ), 2) as min_bank_response_hours,
+                    ROUND(MAX(
+                        EXTRACT(EPOCH FROM (offer_sent_at - purchased_at)) / 3600
+                    ), 2) as max_bank_response_hours,
+                    COUNT(*) as total_bank_responses
+                FROM application_offer_tracking
+                WHERE offer_sent_at IS NOT NULL
+                AND purchased_at IS NOT NULL
+            `);
+
+            // Get user acceptance time (offer window start to offer acceptance)
+            const userAcceptanceTime = await client.query(`
+                SELECT 
+                    ROUND(AVG(
+                        EXTRACT(EPOCH FROM (offer_accepted_at - offer_window_start)) / 3600
+                    ), 2) as avg_user_acceptance_hours,
+                    ROUND(MIN(
+                        EXTRACT(EPOCH FROM (offer_accepted_at - offer_window_start)) / 3600
+                    ), 2) as min_user_acceptance_hours,
+                    ROUND(MAX(
+                        EXTRACT(EPOCH FROM (offer_accepted_at - offer_window_start)) / 3600
+                    ), 2) as max_user_acceptance_hours,
+                    COUNT(*) as total_user_acceptances
+                FROM application_offer_tracking
+                WHERE offer_accepted_at IS NOT NULL
+                AND offer_window_start IS NOT NULL
+            `);
+
+            // Get offer selection window times
+            const offerWindowTimes = await client.query(`
+                SELECT 
+                    ROUND(AVG(
+                        EXTRACT(EPOCH FROM (offer_window_end - offer_window_start)) / 3600
+                    ), 2) as avg_offer_window_hours,
+                    ROUND(MIN(
+                        EXTRACT(EPOCH FROM (offer_window_end - offer_window_start)) / 3600
+                    ), 2) as min_offer_window_hours,
+                    ROUND(MAX(
+                        EXTRACT(EPOCH FROM (offer_window_end - offer_window_start)) / 3600
+                    ), 2) as max_offer_window_hours,
+                    COUNT(*) as total_offer_windows
+                FROM application_offer_tracking
+                WHERE offer_window_start IS NOT NULL
+                AND offer_window_end IS NOT NULL
+            `);
+
+            // Get average offer metrics (from application_offers table)
             const averageMetrics = await client.query(`
                 SELECT 
-                    ROUND(AVG(offer_device_setup_fee), 2) as avg_setup_fee,
-                    ROUND(AVG(offer_transaction_fee_mada), 2) as avg_mada_fee,
-                    ROUND(AVG(offer_transaction_fee_visa_mc), 2) as avg_visa_mc_fee,
-                    ROUND(AVG(offer_settlement_time_mada), 2) as avg_settlement_time
-                FROM application_offers
-                WHERE offer_device_setup_fee IS NOT NULL 
-                   OR offer_transaction_fee_mada IS NOT NULL 
-                   OR offer_transaction_fee_visa_mc IS NOT NULL
+                    ROUND(AVG(CASE WHEN ao.offer_device_setup_fee IS NOT NULL THEN ao.offer_device_setup_fee END), 2) as avg_setup_fee,
+                    ROUND(AVG(CASE WHEN ao.offer_transaction_fee_mada IS NOT NULL THEN ao.offer_transaction_fee_mada END), 2) as avg_mada_fee,
+                    ROUND(AVG(CASE WHEN ao.offer_transaction_fee_visa_mc IS NOT NULL THEN ao.offer_transaction_fee_visa_mc END), 2) as avg_visa_mc_fee,
+                    ROUND(AVG(CASE WHEN ao.offer_settlement_time_mada IS NOT NULL THEN ao.offer_settlement_time_mada END), 2) as avg_settlement_time,
+                    COUNT(CASE WHEN ao.offer_device_setup_fee IS NOT NULL THEN 1 END) as offers_with_setup_fee,
+                    COUNT(CASE WHEN ao.offer_transaction_fee_mada IS NOT NULL THEN 1 END) as offers_with_mada_fee,
+                    COUNT(CASE WHEN ao.offer_transaction_fee_visa_mc IS NOT NULL THEN 1 END) as offers_with_visa_mc_fee,
+                    COUNT(CASE WHEN ao.offer_settlement_time_mada IS NOT NULL THEN 1 END) as offers_with_settlement_time
+                FROM application_offers ao
+                JOIN application_offer_tracking aot ON ao.offer_id = aot.offer_id
+                WHERE ao.status IN ('deal_won', 'deal_lost', 'submitted')
             `);
 
             // Get recent offer activity (last 7 days)
             const recentActivity = await client.query(`
                 SELECT 
-                    ao.id as offer_id,
-                    ao.status,
-                    ao.submitted_at,
+                    aot.offer_id,
+                    aot.current_offer_status as status,
+                    aot.offer_sent_at as submitted_at,
                     pa.trade_name as business_name,
-                    COALESCE(bu.entity_name, 'Unknown Bank') as bank_name,
+                    COALESCE(u.entity_name, 'Unknown Bank') as bank_name,
                     ao.offer_device_setup_fee,
                     ao.offer_transaction_fee_mada
-                FROM application_offers ao
-                JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
-                JOIN pos_application pa ON sa.application_id = pa.application_id
-                LEFT JOIN bank_users bu ON ao.submitted_by_user_id = bu.user_id
-                WHERE ao.submitted_at >= NOW() - INTERVAL '7 days'
-                ORDER BY ao.submitted_at DESC
+                FROM application_offer_tracking aot
+                JOIN application_offers ao ON aot.offer_id = ao.offer_id
+                JOIN pos_application pa ON aot.application_id = pa.application_id
+                LEFT JOIN users u ON aot.bank_user_id = u.user_id
+                WHERE aot.offer_sent_at >= NOW() - INTERVAL '7 days'
+                ORDER BY aot.offer_sent_at DESC
                 LIMIT 20
             `);
 
             // Get featured offers
             const featuredOffers = await client.query(`
                 SELECT 
-                    ao.id as offer_id,
+                    aot.offer_id,
                     ao.is_featured,
                     ao.featured_reason,
-                    ao.submitted_at,
+                    aot.offer_sent_at as submitted_at,
                     pa.trade_name as business_name,
-                    COALESCE(bu.entity_name, 'Unknown Bank') as bank_name,
-                    ao.status
-                FROM application_offers ao
-                JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
-                JOIN pos_application pa ON sa.application_id = pa.application_id
-                LEFT JOIN bank_users bu ON ao.submitted_by_user_id = bu.user_id
+                    COALESCE(u.entity_name, 'Unknown Bank') as bank_name,
+                    aot.current_offer_status as status
+                FROM application_offer_tracking aot
+                JOIN application_offers ao ON aot.offer_id = ao.offer_id
+                JOIN pos_application pa ON aot.application_id = pa.application_id
+                LEFT JOIN users u ON aot.bank_user_id = u.user_id
                 WHERE ao.is_featured = true
-                ORDER BY ao.submitted_at DESC
+                ORDER BY aot.offer_sent_at DESC
                 LIMIT 10
             `);
 
@@ -146,6 +225,10 @@ export async function GET() {
                     by_business: businessOfferStats.rows,
                     trends: offerTrends.rows,
                     average_metrics: averageMetrics.rows[0] || {},
+                    offer_processing_time: offerProcessingTime.rows[0] || {},
+                    bank_response_time: bankResponseTime.rows[0] || {},
+                    user_acceptance_time: userAcceptanceTime.rows[0] || {},
+                    offer_window_times: offerWindowTimes.rows[0] || {},
                     recent_activity: recentActivity.rows,
                     featured_offers: featuredOffers.rows
                 }

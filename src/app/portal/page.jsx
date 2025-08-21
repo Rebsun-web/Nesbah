@@ -109,7 +109,7 @@ function BusinessPortal() {
                 icon: '💰'
             },
             'offer_received': {
-                label: 'Offers Available',
+                label: 'Offer Received',
                 description: 'You have received offers from banks. Choose your preferred offer within 24 hours.',
                 color: 'bg-green-100 text-green-800',
                 icon: '💰'

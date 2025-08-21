@@ -66,16 +66,17 @@ export async function GET(req) {
             // Get current period revenue metrics
             const currentRevenueQuery = `
                 SELECT 
-                    COALESCE(SUM(sa.revenue_collected), 0) as total_revenue,
-                    COUNT(CASE WHEN sa.revenue_collected > 0 THEN 1 END) as revenue_generating_applications,
-                    COALESCE(AVG(CASE WHEN sa.revenue_collected > 0 THEN sa.revenue_collected END), 0) as avg_revenue_per_application,
-                    COUNT(CASE WHEN sa.status = 'completed' THEN 1 END) as completed_applications,
-                    COUNT(CASE WHEN sa.status = 'abandoned' THEN 1 END) as abandoned_applications,
-                    COUNT(CASE WHEN sa.status = 'deal_expired' THEN 1 END) as expired_applications,
-                    COUNT(CASE WHEN sa.status = 'pending_offers' THEN 1 END) as active_auctions,
-                    COUNT(CASE WHEN sa.status = 'offer_received' THEN 1 END) as active_selections,
-                    COUNT(*) as total_applications
+                    COUNT(DISTINCT CASE WHEN sa.has_been_purchased = TRUE THEN sa.application_id END) * 25 as total_revenue,
+                    COUNT(DISTINCT CASE WHEN sa.has_been_purchased = TRUE THEN sa.application_id END) as revenue_generating_applications,
+                    25 as avg_revenue_per_application,
+                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'completed' THEN sa.application_id END) as completed_applications,
+                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'abandoned' THEN sa.application_id END) as abandoned_applications,
+                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'deal_expired' THEN sa.application_id END) as expired_applications,
+                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'pending_offers' THEN sa.application_id END) as active_auctions,
+                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'offer_received' THEN sa.application_id END) as active_selections,
+                    COUNT(DISTINCT sa.application_id) as total_applications
                 FROM submitted_applications sa
+                LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
                 ${dateFilter}
             `;
 
@@ -94,12 +95,13 @@ export async function GET(req) {
 
             const previousRevenueQuery = `
                 SELECT 
-                    COALESCE(SUM(sa.revenue_collected), 0) as total_revenue,
-                    COUNT(CASE WHEN sa.revenue_collected > 0 THEN 1 END) as revenue_generating_applications,
-                    COALESCE(AVG(CASE WHEN sa.revenue_collected > 0 THEN sa.revenue_collected END), 0) as avg_revenue_per_application,
-                    COUNT(CASE WHEN sa.status = 'completed' THEN 1 END) as completed_applications,
-                    COUNT(*) as total_applications
+                    COUNT(DISTINCT CASE WHEN sa.has_been_purchased = TRUE THEN sa.application_id END) * 25 as total_revenue,
+                    COUNT(DISTINCT CASE WHEN sa.has_been_purchased = TRUE THEN sa.application_id END) as revenue_generating_applications,
+                    25 as avg_revenue_per_application,
+                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'completed' THEN sa.application_id END) as completed_applications,
+                    COUNT(DISTINCT sa.application_id) as total_applications
                 FROM submitted_applications sa
+                LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
                 WHERE sa.submitted_at >= $1 AND sa.submitted_at < $2
             `;
 
@@ -138,9 +140,9 @@ export async function GET(req) {
             const dailyTrendQuery = `
                 SELECT 
                     DATE(sa.submitted_at) as date,
-                    COALESCE(SUM(sa.revenue_collected), 0) as revenue,
-                    COUNT(*) as applications,
-                    COUNT(CASE WHEN sa.revenue_collected > 0 THEN 1 END) as revenue_apps
+                    COUNT(DISTINCT CASE WHEN sa.has_been_purchased = TRUE THEN sa.application_id END) * 25 as revenue,
+                    COUNT(DISTINCT CASE WHEN sa.has_been_purchased = TRUE THEN sa.application_id END) as applications,
+                    COUNT(DISTINCT CASE WHEN sa.has_been_purchased = TRUE THEN sa.application_id END) as revenue_apps
                 FROM submitted_applications sa
                 ${dateFilter}
                 GROUP BY DATE(sa.submitted_at)
@@ -149,22 +151,25 @@ export async function GET(req) {
 
             const dailyTrend = await client.query(dailyTrendQuery, dateParams);
 
-            // Get bank performance data (using bank_user_id for now)
+            // Get bank performance data from application offers
             const bankPerformanceQuery = `
                 SELECT 
-                    'Bank ' || ar.bank_user_id as bank_name,
-                    COALESCE(SUM(ar.amount), 0) as revenue,
-                    COUNT(DISTINCT sa.id) as applications,
-                    COUNT(CASE WHEN sa.status = 'completed' THEN 1 END) as completed_applications,
+                    COALESCE(u.email, 'Unknown Bank') as bank_name,
+                    COUNT(DISTINCT sa.application_id) * 25 as revenue,
+                    COUNT(DISTINCT sa.application_id) as applications,
+                    COUNT(CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'completed' THEN 1 END) as completed_applications,
                     CASE 
-                        WHEN COUNT(DISTINCT sa.id) > 0 THEN 
-                            ROUND((COUNT(CASE WHEN sa.status = 'completed' THEN 1 END)::DECIMAL / COUNT(DISTINCT sa.id)) * 100, 1)
+                        WHEN COUNT(DISTINCT sa.application_id) > 0 THEN 
+                            ROUND((COUNT(CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'completed' THEN 1 END)::DECIMAL / COUNT(DISTINCT sa.application_id)) * 100, 1)
                         ELSE 0 
                     END as success_rate
-                FROM application_revenue ar
-                JOIN submitted_applications sa ON ar.application_id = sa.id
-                ${dateFilter}
-                GROUP BY ar.bank_user_id
+                FROM application_offers ao
+                JOIN submitted_applications sa ON ao.submitted_application_id = sa.application_id
+                LEFT JOIN users u ON ao.submitted_by_user_id = u.user_id
+                LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
+                WHERE u.user_type = 'bank_user'
+                ${dateFilter.replace('WHERE', 'AND')}
+                GROUP BY u.email, u.user_id
                 ORDER BY revenue DESC
                 LIMIT 10
             `;
@@ -187,24 +192,50 @@ export async function GET(req) {
                 improvement: []
             };
 
+            // Positive trends - more comprehensive analysis
             if (revenueChange > 0) {
                 insights.positive.push(`Revenue increased ${revenueChange.toFixed(1)}% this period`);
             }
-            if (conversionRate > 70) {
-                insights.positive.push(`Conversion rate is strong at ${conversionRate.toFixed(1)}%`);
+            if (conversionRate > 60) {
+                insights.positive.push(`Lead conversion rate is strong at ${conversionRate.toFixed(1)}%`);
+            } else if (conversionRate > 40) {
+                insights.positive.push(`Lead conversion rate is improving at ${conversionRate.toFixed(1)}%`);
             }
-            if (current.avg_revenue_per_application > 20) {
-                insights.positive.push(`Average deal value is healthy at SAR ${current.avg_revenue_per_application.toFixed(2)}`);
+            if (current.completed_applications > 0) {
+                insights.positive.push(`${current.completed_applications} leads sold successfully`);
+            }
+            if (current.revenue_generating_applications > 0) {
+                insights.positive.push(`${current.revenue_generating_applications} leads generated revenue (25 SAR each)`);
+            }
+            if (current.active_selections > 0) {
+                insights.positive.push(`${current.active_selections} applications have active offer selections`);
+            }
+            if (current.total_revenue > 0) {
+                insights.positive.push(`Total lead sales: ${current.total_revenue / 25} leads sold`);
             }
 
-            if (abandonmentRate > 10) {
-                insights.improvement.push(`${abandonmentRate.toFixed(1)}% of applications abandoned`);
+            // Areas for improvement - more actionable insights
+            if (abandonmentRate > 15) {
+                insights.improvement.push(`High abandonment rate: ${abandonmentRate.toFixed(1)}% - consider improving application process`);
+            } else if (abandonmentRate > 5) {
+                insights.improvement.push(`Moderate abandonment rate: ${abandonmentRate.toFixed(1)}% - monitor application flow`);
             }
-            if (expirationRate > 5) {
-                insights.improvement.push(`${expirationRate.toFixed(1)}% of deals expired`);
+            if (expirationRate > 10) {
+                insights.improvement.push(`High expiration rate: ${expirationRate.toFixed(1)}% - review auction deadlines`);
+            } else if (expirationRate > 3) {
+                insights.improvement.push(`Moderate expiration rate: ${expirationRate.toFixed(1)}% - optimize timing`);
             }
             if (current.active_auctions > 0) {
-                insights.improvement.push(`${current.active_auctions} active auctions need attention`);
+                insights.improvement.push(`${current.active_auctions} active auctions - ensure timely bank participation`);
+            }
+            if (conversionRate < 30 && current.total_applications > 0) {
+                insights.improvement.push(`Low lead conversion rate: ${conversionRate.toFixed(1)}% - focus on improving lead quality and bank engagement`);
+            }
+            if (current.total_applications === 0) {
+                insights.improvement.push(`No applications in this period - focus on lead generation`);
+            }
+            if (current.total_applications > 0 && current.revenue_generating_applications === 0) {
+                insights.improvement.push(`No leads sold despite ${current.total_applications} applications - review bank participation`);
             }
 
             return NextResponse.json({

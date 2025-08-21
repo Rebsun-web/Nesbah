@@ -8,14 +8,16 @@ import DashboardOverview from '@/components/admin/DashboardOverview'
 import ApplicationsTable from '@/components/admin/ApplicationsTable'
 import RevenueMetrics from '@/components/admin/RevenueMetrics'
 import SystemAlerts from '@/components/admin/SystemAlerts'
-import UrgentApplications from '@/components/admin/UrgentApplications'
+
 import BackgroundJobMonitor from '@/components/admin/BackgroundJobMonitor'
 import UserManagement from '@/components/admin/UserManagement'
 import UserStats from '@/components/admin/UserStats'
 import OfferAnalytics from '@/components/admin/OfferAnalytics'
 import OfferManagement from '@/components/admin/OfferManagement'
+import ComprehensiveAnalytics from '@/components/admin/ComprehensiveAnalytics'
 import ProtectedRoute from '@/components/admin/ProtectedRoute'
 import { useAdminAuth } from '@/contexts/AdminAuthContext'
+import { ChartBarIcon } from '@heroicons/react/24/outline'
 
 export default function AdminDashboard() {
     const { adminUser, logout } = useAdminAuth()
@@ -61,7 +63,6 @@ export default function AdminDashboard() {
                     <div className="space-y-6">
                         <DashboardOverview data={dashboardData} loading={loading} />
                         <UserStats />
-                        <UrgentApplications data={dashboardData?.urgentApplications} />
                         <RevenueMetrics />
                     </div>
                 )
@@ -78,15 +79,7 @@ export default function AdminDashboard() {
             case 'offers':
                 return <OfferManagement />
             case 'analytics':
-                return <div className="bg-white rounded-lg shadow">
-                    <iframe 
-                        src="/admin/analytics" 
-                        className="w-full h-screen border-0"
-                        title="Analytics Dashboard"
-                    />
-                </div>
-            case 'settings':
-                return <div className="bg-white rounded-lg shadow p-6">Settings coming soon...</div>
+                return <ComprehensiveAnalytics />
             default:
                 return <DashboardOverview data={dashboardData} loading={loading} />
         }
@@ -140,7 +133,6 @@ export default function AdminDashboard() {
                                 {activeTab === 'users' && 'User Management'}
                                 {activeTab === 'offers' && 'Offer Management'}
                                 {activeTab === 'analytics' && 'Analytics Dashboard'}
-                                {activeTab === 'settings' && 'Settings'}
                                 </h1>
                                 <p className="text-gray-600 mt-2">
                                     {activeTab === 'overview' && 'Real-time monitoring of the dual-auction system'}
@@ -149,9 +141,8 @@ export default function AdminDashboard() {
                                                                     {activeTab === 'alerts' && 'Monitor system alerts and notifications'}
                                 {activeTab === 'background-jobs' && 'Monitor and manage automated background processes'}
                                 {activeTab === 'users' && 'Manage business, individual, and bank users'}
-                                {activeTab === 'offers' && 'Manage bank offers and their status'}
-                                {activeTab === 'analytics' && 'Comprehensive analytics dashboard for applications and offers'}
-                                {activeTab === 'settings' && 'Configure system settings and preferences'}
+                                                                    {activeTab === 'offers' && 'Manage bank offers and their status'}
+                                    {activeTab === 'analytics' && 'Analytics for applications and offers'}
                                 </p>
                             </div>
                             {renderActiveTab()}

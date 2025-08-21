@@ -503,7 +503,7 @@ export default function OfferManagement() {
                             <div>
                                 <h2 className="text-lg font-medium text-gray-900">Offer Management</h2>
                                 <p className="text-sm text-gray-500">
-                                    Applications available for banks to propose offers
+                                    Applications with status "purchased" available for banks to propose offers
                                 </p>
                             </div>
                             <div className="flex items-center space-x-3">
@@ -534,9 +534,8 @@ export default function OfferManagement() {
                                         onChange={(e) => setSelectedStatus(e.target.value)}
                                         className="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                     >
-                                        <option value="all">All Statuses</option>
-                                        <option value="pending_offers">Live Auction</option>
-                                        <option value="purchased">Purchased</option>
+                                        <option value="all">All Purchased Applications</option>
+                                        <option value="purchased">Purchased Only</option>
                                     </select>
                                 </div>
                                 <div>
@@ -604,66 +603,82 @@ export default function OfferManagement() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {applications.map((application) => (
-                                    <tr key={application.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedApplications.includes(application.id)}
-                                                onChange={() => handleApplicationSelection(application.id)}
-                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                            />
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div>
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {application.trade_name}
+                                {applications.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="9" className="px-6 py-12 text-center">
+                                            <div className="flex flex-col items-center">
+                                                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4">
+                                                    <BuildingOfficeIcon className="h-6 w-6 text-gray-400" />
                                                 </div>
-                                                <div className="text-sm text-gray-500">
-                                                    CR: {application.cr_number} • {application.city}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {getStatusBadge(application.status, application.purchases_count)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {getUrgencyBadge(application.urgency_level)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">
-                                                {application.offers_count || 0}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">
-                                                {application.purchases_count || 0}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {getAuctionTimeRemaining(application.auction_end_time)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(application.submitted_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex items-center justify-end space-x-2">
-                                                <button
-                                                    onClick={() => openViewModal(application)}
-                                                    className="text-blue-600 hover:text-blue-900"
-                                                >
-                                                    <EyeIcon className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => openOfferModal(application)}
-                                                    className="text-green-600 hover:text-green-900"
-                                                >
-                                                    <PlusIcon className="w-4 h-4" />
-                                                </button>
+                                                <h3 className="text-lg font-medium text-gray-900 mb-2">No Purchased Applications</h3>
+                                                <p className="text-sm text-gray-500">
+                                                    There are currently no applications with status "purchased". Applications will appear here once they are purchased by banks.
+                                                </p>
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    applications.map((application) => (
+                                        <tr key={application.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedApplications.includes(application.id)}
+                                                    onChange={() => handleApplicationSelection(application.id)}
+                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div>
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {application.trade_name}
+                                                    </div>
+                                                    <div className="text-sm text-gray-500">
+                                                        CR: {application.cr_number} • {application.city}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {getStatusBadge(application.status, application.purchases_count)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {getUrgencyBadge(application.urgency_level)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900">
+                                                    {application.offers_count || 0}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900">
+                                                    {application.purchases_count || 0}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {getAuctionTimeRemaining(application.auction_end_time)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {new Date(application.submitted_at).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex items-center justify-end space-x-2">
+                                                    <button
+                                                        onClick={() => openViewModal(application)}
+                                                        className="text-blue-600 hover:text-blue-900"
+                                                    >
+                                                        <EyeIcon className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => openOfferModal(application)}
+                                                        className="text-green-600 hover:text-green-900"
+                                                    >
+                                                        <PlusIcon className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -866,8 +881,8 @@ export default function OfferManagement() {
                                                             </div>
                                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                                                 offer.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
-                                                                offer.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                                                                offer.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                                offer.status === 'deal_won' ? 'bg-green-100 text-green-800' :
+                                                                offer.status === 'deal_lost' ? 'bg-red-100 text-red-800' :
                                                                 'bg-gray-100 text-gray-800'
                                                             }`}>
                                                                 {offer.status}
@@ -1238,76 +1253,92 @@ export default function OfferManagement() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {allOffers.map((offer) => (
-                                    <tr key={offer.offer_id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedApplications.includes(offer.application_id)}
-                                                onChange={() => handleApplicationSelection(offer.application_id)}
-                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                            />
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div>
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {offer.bank_name || offer.bank_contact_person || offer.bank_email}
+                                {allOffers.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="6" className="px-6 py-12 text-center">
+                                            <div className="flex flex-col items-center">
+                                                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4">
+                                                    <CurrencyDollarIcon className="h-6 w-6 text-gray-400" />
                                                 </div>
-                                                <div className="text-sm text-gray-500">
-                                                    {offer.bank_email || offer.email}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div>
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {offer.application_trade_name}
-                                                </div>
-                                                <div className="text-sm text-gray-500">
-                                                    CR: {offer.application_cr_number}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                offer.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
-                                                offer.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                                                offer.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                'bg-gray-100 text-gray-800'
-                                            }`}>
-                                                {offer.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <div>Device Setup Fee: SAR {parseFloat(offer.offer_device_setup_fee || 0).toFixed(2)}</div>
-                                            <div>Mada Fee: {parseFloat(offer.offer_transaction_fee_mada || 0).toFixed(2)}%</div>
-                                            <div>Visa/MC Fee: {parseFloat(offer.offer_transaction_fee_visa_mc || 0).toFixed(2)}%</div>
-                                            <div>Settlement Time: {offer.offer_settlement_time_mada} hours</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div className="flex items-center justify-end space-x-2">
-                                                <button
-                                                    onClick={() => {
-                                                        console.log('🔍 Edit button clicked for offer:', offer.offer_id)
-                                                        openEditOfferModal(offer)
-                                                    }}
-                                                    className="text-blue-600 hover:text-blue-900"
-                                                >
-                                                    <EyeIcon className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        console.log('🔍 Delete button clicked for offer:', offer.offer_id)
-                                                        openDeleteConfirmModal(offer)
-                                                    }}
-                                                    className="text-red-600 hover:text-red-900"
-                                                >
-                                                    <XCircleIcon className="w-4 h-4" />
-                                                </button>
+                                                <h3 className="text-lg font-medium text-gray-900 mb-2">No Offers Being Made</h3>
+                                                <p className="text-sm text-gray-500">
+                                                    There are currently no offers in the system. Offers will appear here once banks submit them for applications.
+                                                </p>
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    allOffers.map((offer) => (
+                                        <tr key={offer.offer_id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedApplications.includes(offer.application_id)}
+                                                    onChange={() => handleApplicationSelection(offer.application_id)}
+                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div>
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {offer.bank_name || offer.bank_contact_person || offer.bank_email}
+                                                    </div>
+                                                    <div className="text-sm text-gray-500">
+                                                        {offer.bank_email || offer.email}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div>
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {offer.application_trade_name}
+                                                    </div>
+                                                    <div className="text-sm text-gray-500">
+                                                        CR: {offer.application_cr_number}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    offer.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
+                                                    offer.status === 'deal_won' ? 'bg-green-100 text-green-800' :
+                                                    offer.status === 'deal_lost' ? 'bg-red-100 text-red-800' :
+                                                    'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                    {offer.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <div>Device Setup Fee: SAR {parseFloat(offer.offer_device_setup_fee || 0).toFixed(2)}</div>
+                                                <div>Mada Fee: {parseFloat(offer.offer_transaction_fee_mada || 0).toFixed(2)}%</div>
+                                                <div>Visa/MC Fee: {parseFloat(offer.offer_transaction_fee_visa_mc || 0).toFixed(2)}%</div>
+                                                <div>Settlement Time: {offer.offer_settlement_time_mada} hours</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <div className="flex items-center justify-end space-x-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            console.log('🔍 Edit button clicked for offer:', offer.offer_id)
+                                                            openEditOfferModal(offer)
+                                                        }}
+                                                        className="text-blue-600 hover:text-blue-900"
+                                                    >
+                                                        <EyeIcon className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            console.log('🔍 Delete button clicked for offer:', offer.offer_id)
+                                                            openDeleteConfirmModal(offer)
+                                                        }}
+                                                        className="text-red-600 hover:text-red-900"
+                                                    >
+                                                        <XCircleIcon className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>

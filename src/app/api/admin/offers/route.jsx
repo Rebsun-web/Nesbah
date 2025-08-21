@@ -23,6 +23,9 @@ export async function POST(request) {
             return NextResponse.json({ success: false, error: 'Admin user not found or inactive' }, { status: 401 })
         }
 
+        const requestBody = await request.json()
+        console.log('🔍 Request body:', requestBody)
+        
         const { 
             application_id, 
             device_setup_fee, 
@@ -32,9 +35,21 @@ export async function POST(request) {
             offer_comment, 
             admin_notes,
             bank_user_id: providedBankUserId
-        } = await request.json()
+        } = requestBody
+
+        console.log('🔍 Parsed values:', {
+            application_id,
+            device_setup_fee,
+            mada_transaction_fee,
+            visa_mc_transaction_fee,
+            mada_settlement_time,
+            offer_comment,
+            admin_notes,
+            providedBankUserId
+        })
 
         if (!application_id) {
+            console.log('❌ Missing application_id')
             return NextResponse.json({ success: false, error: 'Application ID is required' }, { status: 400 })
         }
 
@@ -43,24 +58,31 @@ export async function POST(request) {
         try {
             // Validate that the provided bank_user_id exists and is a bank user
             if (providedBankUserId) {
+                console.log('🔍 Checking bank user ID:', providedBankUserId)
                 const bankUserCheck = await client.query(`
                     SELECT user_id, user_type FROM users WHERE user_id = $1
                 `, [providedBankUserId])
                 
+                console.log('🔍 Bank user check result:', bankUserCheck.rows)
+                
                 if (bankUserCheck.rows.length === 0) {
+                    console.log('❌ Bank user not found')
                     return NextResponse.json({ success: false, error: 'Invalid bank user ID' }, { status: 400 })
                 }
                 
                 if (bankUserCheck.rows[0].user_type !== 'bank_user') {
+                    console.log('❌ User is not a bank user, type:', bankUserCheck.rows[0].user_type)
                     return NextResponse.json({ success: false, error: 'Selected user is not a bank user' }, { status: 400 })
                 }
                 
-                console.log('🔍 Using provided bank user ID:', providedBankUserId)
+                console.log('✅ Bank user validation passed')
             } else {
+                console.log('❌ Missing bank user ID')
                 return NextResponse.json({ success: false, error: 'Bank user ID is required' }, { status: 400 })
             }
 
             // Check if this bank has already submitted an offer for this application
+            console.log('🔍 Checking for existing offers...')
             const existingOfferCheck = await client.query(`
                 SELECT ao.offer_id, ao.status, u.email
                 FROM application_offers ao
@@ -69,13 +91,18 @@ export async function POST(request) {
                 WHERE sa.application_id = $1 AND ao.bank_user_id = $2
             `, [application_id, providedBankUserId])
             
+            console.log('🔍 Existing offers found:', existingOfferCheck.rows.length)
+            
             if (existingOfferCheck.rows.length > 0) {
                 const existingOffer = existingOfferCheck.rows[0]
+                console.log('❌ Bank already has an offer:', existingOffer)
                 return NextResponse.json({ 
                     success: false, 
                     error: `Bank ${existingOffer.email} has already submitted an offer for this application. Status: ${existingOffer.status}` 
                 }, { status: 400 })
             }
+            
+            console.log('✅ No existing offers found')
 
             // Debug: Check if application_offers table exists
             const tableExists = await client.query(`
@@ -178,6 +205,19 @@ export async function POST(request) {
             const bank_user_id = providedBankUserId
             console.log('🔍 Using provided bank user ID:', bank_user_id)
 
+            // Validate and format numeric values to prevent overflow
+            const deviceSetupFee = Math.min(parseFloat(device_setup_fee) || 0, 99999.9999);
+            const madaTransactionFee = Math.min(parseFloat(mada_transaction_fee) || 0, 9.9999); // Max 9.9999% for precision 5,4
+            const visaMcTransactionFee = Math.min(parseFloat(visa_mc_transaction_fee) || 0, 9.9999); // Max 9.9999% for precision 5,4
+            const madaSettlementTime = Math.min(Math.max(parseInt(mada_settlement_time) || 24, 1), 9999); // Between 1 and 9999 hours
+
+            console.log('🔍 Validated values:', {
+                deviceSetupFee,
+                madaTransactionFee,
+                visaMcTransactionFee,
+                madaSettlementTime
+            });
+
             // Insert the offer
             let insertQuery
             try {
@@ -197,11 +237,11 @@ export async function POST(request) {
                     RETURNING offer_id`,
                     [
                         submitted_application_id,
-                        bank_user_id, // Use admin's admin_id as bank_user_id
-                        parseFloat(device_setup_fee) || 0,
-                        parseFloat(mada_transaction_fee) || 0,
-                        parseFloat(visa_mc_transaction_fee) || 0,
-                        parseInt(mada_settlement_time) || 24,
+                        bank_user_id,
+                        deviceSetupFee,
+                        madaTransactionFee,
+                        visaMcTransactionFee,
+                        madaSettlementTime,
                         offer_comment || '',
                         admin_notes || '',
                         'submitted'
@@ -254,10 +294,10 @@ export async function POST(request) {
                         [
                             submitted_application_id,
                             bank_user_id,
-                            parseFloat(device_setup_fee) || 0,
-                            parseFloat(mada_transaction_fee) || 0,
-                            parseFloat(visa_mc_transaction_fee) || 0,
-                            parseInt(mada_settlement_time) || 24,
+                            deviceSetupFee,
+                            madaTransactionFee,
+                            visaMcTransactionFee,
+                            madaSettlementTime,
                             offer_comment || '',
                             admin_notes || '',
                             'submitted'

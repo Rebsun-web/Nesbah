@@ -45,115 +45,103 @@ export async function GET(req, { params }) {
 export async function POST(req, { params }) {
     const { application_id } = params;
     const { selected_offer_id, business_user_id } = await req.json();
-
+    
     if (!selected_offer_id || !business_user_id) {
-        return NextResponse.json({ success: false, error: 'Missing offer ID or business user ID' }, { status: 400 });
+        return NextResponse.json({ 
+            success: false, 
+            error: 'Missing required fields: selected_offer_id and business_user_id' 
+        }, { status: 400 });
     }
-
+    
     const client = await pool.connect();
     
     try {
         await client.query('BEGIN');
-
-        // Verify the application belongs to the business user
-        const appCheck = await client.query(
-            `SELECT pa.application_id, sa.status 
+        
+        // Verify the business user owns this application
+        const ownershipCheck = await client.query(
+            `SELECT pa.application_id 
              FROM pos_application pa
-             JOIN submitted_applications sa ON pa.application_id = sa.application_id
              WHERE pa.application_id = $1 AND pa.user_id = $2`,
             [application_id, business_user_id]
         );
-
-        if (appCheck.rowCount === 0) {
-            await client.query('ROLLBACK');
-            return NextResponse.json({ success: false, error: 'Application not found or unauthorized' }, { status: 404 });
-        }
-
-        const applicationStatus = appCheck.rows[0].status;
         
-        if (applicationStatus !== 'offer_received') {
+        if (ownershipCheck.rowCount === 0) {
             await client.query('ROLLBACK');
-            return NextResponse.json({ success: false, error: 'Application is not in offer selection phase' }, { status: 400 });
+            return NextResponse.json({ 
+                success: false, 
+                error: 'Application not found or access denied' 
+            }, { status: 404 });
         }
-
+        
         // Verify the offer exists and belongs to this application
         const offerCheck = await client.query(
-            `SELECT ao.id, ao.submitted_application_id, ao.status
+            `SELECT ao.offer_id, ao.submitted_by_user_id
              FROM application_offers ao
              JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
-             WHERE ao.id = $1 AND sa.application_id = $2`,
-            [selected_offer_id, application_id]
+             WHERE sa.application_id = $1 AND ao.offer_id = $2`,
+            [application_id, selected_offer_id]
         );
-
+        
         if (offerCheck.rowCount === 0) {
             await client.query('ROLLBACK');
-            return NextResponse.json({ success: false, error: 'Offer not found' }, { status: 404 });
+            return NextResponse.json({ 
+                success: false, 
+                error: 'Offer not found for this application' 
+            }, { status: 404 });
         }
-
-        const offerStatus = offerCheck.rows[0].status;
-        if (offerStatus !== 'submitted') {
-            await client.query('ROLLBACK');
-            return NextResponse.json({ success: false, error: 'Offer is not available for selection' }, { status: 400 });
-        }
-
-        // Check if offer selection deadline has passed
-        const deadlineCheck = await client.query(
-            `SELECT offer_selection_deadline FROM application_offers WHERE id = $1`,
-            [selected_offer_id]
+        
+        // Check if an offer has already been selected for this application
+        const existingSelection = await client.query(
+            `SELECT id FROM offer_selections WHERE application_id = $1`,
+            [application_id]
         );
-
-        if (deadlineCheck.rowCount > 0) {
-            const deadline = new Date(deadlineCheck.rows[0].offer_selection_deadline);
-            if (new Date() > deadline) {
-                await client.query('ROLLBACK');
-                return NextResponse.json({ success: false, error: 'Offer selection deadline has passed' }, { status: 400 });
-            }
+        
+        if (existingSelection.rowCount > 0) {
+            await client.query('ROLLBACK');
+            return NextResponse.json({ 
+                success: false, 
+                error: 'An offer has already been selected for this application' 
+            }, { status: 409 });
         }
-
-        // Record the offer selection
+        
+        // Insert the offer selection
+        // The trigger will automatically update the tracking table
         await client.query(
             `INSERT INTO offer_selections (application_id, selected_offer_id, business_user_id)
              VALUES ($1, $2, $3)`,
             [application_id, selected_offer_id, business_user_id]
         );
-
-        // Update the selected offer status to 'deal_won'
+        
+        // Update application status to completed
         await client.query(
-            `UPDATE application_offers SET status = 'deal_won' WHERE id = $1`,
-            [selected_offer_id]
-        );
-
-        // Update all other offers for this application to 'deal_lost'
-        await client.query(
-            `UPDATE application_offers 
-             SET status = 'deal_lost' 
-             WHERE submitted_application_id = $1 AND id != $2`,
-            [offerCheck.rows[0].submitted_application_id, selected_offer_id]
-        );
-
-        // Update application status to 'completed'
-        await client.query(
-            `UPDATE submitted_applications SET status = 'completed' WHERE application_id = $1`,
+            `UPDATE submitted_applications 
+             SET status = 'completed' 
+             WHERE application_id = $1`,
             [application_id]
         );
-
+        
         await client.query(
-            `UPDATE pos_application SET status = 'completed' WHERE application_id = $1`,
+            `UPDATE pos_application 
+             SET status = 'completed' 
+             WHERE application_id = $1`,
             [application_id]
         );
-
+        
         await client.query('COMMIT');
-
+        
         return NextResponse.json({ 
             success: true, 
-            message: 'Offer selected successfully',
-            selected_offer_id: selected_offer_id
+            message: 'Offer selected successfully' 
         });
-
+        
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('Failed to select offer:', err);
-        return NextResponse.json({ success: false, error: 'Failed to select offer' }, { status: 500 });
+        return NextResponse.json({ 
+            success: false, 
+            error: 'Failed to select offer' 
+        }, { status: 500 });
     } finally {
         client.release();
     }

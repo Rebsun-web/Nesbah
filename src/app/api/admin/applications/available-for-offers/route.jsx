@@ -39,7 +39,7 @@ export async function GET(req) {
         try {
             client = await pool.connect();
             // Build WHERE clause for applications available for offers
-            let whereClause = "WHERE sa.status IN ('pending_offers', 'purchased')";
+            let whereClause = "WHERE sa.status = 'purchased'";
             const queryParams = [];
             let paramCount = 0;
 

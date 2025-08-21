@@ -42,13 +42,19 @@ export default function DashboardOverview({ data, loading }) {
                 bgColor: 'bg-blue-50'
             },
             'pending_offers': {
-                label: 'Live Auctions',
+                label: 'Live Auction',
                 icon: ClockIcon,
                 color: 'bg-yellow-100 text-yellow-600',
                 bgColor: 'bg-yellow-50'
             },
+            'purchased': {
+                label: 'Purchased',
+                icon: CheckCircleIcon,
+                color: 'bg-purple-100 text-purple-600',
+                bgColor: 'bg-purple-50'
+            },
             'offer_received': {
-                label: 'Offers Available',
+                label: 'Offer Received',
                 icon: CheckCircleIcon,
                 color: 'bg-green-100 text-green-600',
                 bgColor: 'bg-green-50'
@@ -66,7 +72,7 @@ export default function DashboardOverview({ data, loading }) {
                 bgColor: 'bg-gray-50'
             },
             'deal_expired': {
-                label: 'Expired',
+                label: 'Deal Expired',
                 icon: ExclamationTriangleIcon,
                 color: 'bg-red-100 text-red-600',
                 bgColor: 'bg-red-50'
@@ -153,93 +159,72 @@ export default function DashboardOverview({ data, loading }) {
                     <p className="text-sm text-gray-600 mt-1">Real-time status distribution across all applications</p>
                 </div>
                 <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {statusCounts.map((status) => {
-                            const statusInfo = getStatusInfo(status.status)
-                            const Icon = statusInfo.icon
-                            
-                            return (
-                                <div key={status.status} className={`p-4 rounded-lg ${statusInfo.bgColor}`}>
-                                    <div className="flex items-center">
-                                        <div className={`p-2 rounded-lg ${statusInfo.color}`}>
-                                            <Icon className="h-5 w-5" />
+                    {statusCounts.length === 0 ? (
+                        <div className="text-center py-12">
+                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4">
+                                <DocumentTextIcon className="h-6 w-6 text-gray-400" />
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Found</h3>
+                            <p className="text-sm text-gray-500">
+                                There are currently no applications in the system. Applications will appear here once they are submitted.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {statusCounts.map((status) => {
+                                const statusInfo = getStatusInfo(status.status)
+                                const Icon = statusInfo.icon
+                                
+                                return (
+                                    <div key={status.status} className={`p-4 rounded-lg ${statusInfo.bgColor}`}>
+                                        <div className="flex items-center">
+                                            <div className={`p-2 rounded-lg ${statusInfo.color}`}>
+                                                <Icon className="h-5 w-5" />
+                                            </div>
+                                            <div className="ml-3 flex-1">
+                                                <p className="text-sm font-medium text-gray-900">{statusInfo.label}</p>
+                                                <p className="text-2xl font-bold text-gray-900">{status.count}</p>
+                                            </div>
                                         </div>
-                                        <div className="ml-3 flex-1">
-                                            <p className="text-sm font-medium text-gray-900">{statusInfo.label}</p>
-                                            <p className="text-2xl font-bold text-gray-900">{status.count}</p>
-                                        </div>
+                                        
+                                        {status.status === 'pending_offers' && status.active_auctions !== undefined && (
+                                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-gray-600">Active Auctions</span>
+                                                    <span className="font-medium text-green-600">{status.active_auctions}</span>
+                                                </div>
+                                                {status.expired_auctions > 0 && (
+                                                    <div className="flex justify-between text-sm mt-1">
+                                                        <span className="text-gray-600">Expired</span>
+                                                        <span className="font-medium text-red-600">{status.expired_auctions}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        
+                                        {status.status === 'offer_received' && status.active_selections !== undefined && (
+                                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-gray-600">Active Selections</span>
+                                                    <span className="font-medium text-green-600">{status.active_selections}</span>
+                                                </div>
+                                                {status.expired_selections > 0 && (
+                                                    <div className="flex justify-between text-sm mt-1">
+                                                        <span className="text-gray-600">Expired</span>
+                                                        <span className="font-medium text-red-600">{status.expired_selections}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                    
-                                    {status.status === 'pending_offers' && status.active_auctions !== undefined && (
-                                        <div className="mt-3 pt-3 border-t border-gray-200">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-gray-600">Active Auctions</span>
-                                                <span className="font-medium text-green-600">{status.active_auctions}</span>
-                                            </div>
-                                            {status.expired_auctions > 0 && (
-                                                <div className="flex justify-between text-sm mt-1">
-                                                    <span className="text-gray-600">Expired</span>
-                                                    <span className="font-medium text-red-600">{status.expired_auctions}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                    
-                                    {status.status === 'offer_received' && status.active_selections !== undefined && (
-                                        <div className="mt-3 pt-3 border-t border-gray-200">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-gray-600">Active Selections</span>
-                                                <span className="font-medium text-green-600">{status.active_selections}</span>
-                                            </div>
-                                            {status.expired_selections > 0 && (
-                                                <div className="flex justify-between text-sm mt-1">
-                                                    <span className="text-gray-600">Expired</span>
-                                                    <span className="font-medium text-red-600">{status.expired_selections}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        })}
-                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Recent Activity */}
-            <div className="bg-white rounded-lg shadow">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
-                </div>
-                <div className="p-6">
-                    <div className="space-y-4">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                            <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">New application submitted</p>
-                                <p className="text-sm text-gray-500">Business ABC submitted POS application</p>
-                            </div>
-                            <span className="text-sm text-gray-400">2 min ago</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                            <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">Auction completed</p>
-                                <p className="text-sm text-gray-500">Application #123 received 3 offers</p>
-                            </div>
-                            <span className="text-sm text-gray-400">5 min ago</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                            <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                            <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">Revenue collected</p>
-                                <p className="text-sm text-gray-500">25 SAR collected from Bank XYZ</p>
-                            </div>
-                            <span className="text-sm text-gray-400">8 min ago</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
         </div>
     )
 }

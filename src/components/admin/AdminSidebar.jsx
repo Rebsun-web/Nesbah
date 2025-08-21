@@ -21,6 +21,18 @@ export default function AdminSidebar({ activeTab, onTabChange, isOpen, onClose }
             description: 'System overview and key metrics' 
         },
         { 
+            id: 'analytics', 
+            name: 'Analytics', 
+            icon: ChartBarIcon, 
+            description: 'Applications and Offers insights' 
+        },
+        { 
+            id: 'revenue', 
+            name: 'Revenue', 
+            icon: CurrencyDollarIcon, 
+            description: 'Track financial performance' 
+        },
+        { 
             id: 'applications', 
             name: 'Applications', 
             icon: DocumentTextIcon, 
@@ -33,23 +45,12 @@ export default function AdminSidebar({ activeTab, onTabChange, isOpen, onClose }
             description: 'Manage bank offers' 
         },
         { 
-            id: 'revenue', 
-            name: 'Revenue', 
-            icon: CurrencyDollarIcon, 
-            description: 'Track financial performance' 
-        },
-        { 
             id: 'users', 
             name: 'Users', 
             icon: UsersIcon, 
             description: 'Manage all user types' 
         },
-        { 
-            id: 'analytics', 
-            name: 'Analytics', 
-            icon: ChartBarIcon, 
-            description: 'Comprehensive analytics dashboard' 
-        },
+
         { 
             id: 'alerts', 
             name: 'Alerts', 
@@ -61,12 +62,6 @@ export default function AdminSidebar({ activeTab, onTabChange, isOpen, onClose }
             name: 'Background Jobs', 
             icon: Cog6ToothIcon, 
             description: 'Monitor automated processes' 
-        },
-        { 
-            id: 'settings', 
-            name: 'Settings', 
-            icon: Cog6ToothIcon, 
-            description: 'System configuration' 
         },
     ]
 

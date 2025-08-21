@@ -50,7 +50,7 @@ export async function GET(req) {
 
             if (status !== 'all') {
                 paramCount++;
-                whereConditions.push(`sa.status = $${paramCount}`);
+                whereConditions.push(`COALESCE(aot.current_application_status, sa.status) = $${paramCount}`);
                 queryParams.push(status);
             }
 
@@ -58,13 +58,14 @@ export async function GET(req) {
 
             // Count total applications
             const countQuery = `
-                SELECT COUNT(*) as total
+                SELECT COUNT(DISTINCT sa.application_id) as total
                 FROM submitted_applications sa
                 JOIN pos_application pa ON sa.application_id = pa.application_id
                 JOIN business_users bu ON sa.business_user_id = bu.user_id
                 JOIN users u ON bu.user_id = u.user_id
                 LEFT JOIN business_users assigned_bu ON sa.assigned_user_id = assigned_bu.user_id
                 LEFT JOIN users assigned_u ON assigned_bu.user_id = assigned_u.user_id
+                LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
                 WHERE 1=1 ${whereClause}
             `;
             
@@ -73,13 +74,13 @@ export async function GET(req) {
 
             // Build the main query
             const query = `
-                SELECT 
+                SELECT DISTINCT
                     sa.id,
                     sa.application_id,
                     sa.application_type,
                     sa.business_user_id,
                     sa.assigned_user_id,
-                    sa.status,
+                    COALESCE(aot.current_application_status, sa.status) as status,
                     sa.revenue_collected,
                     sa.offers_count,
                     sa.admin_notes,
@@ -103,6 +104,7 @@ export async function GET(req) {
                 JOIN users u ON bu.user_id = u.user_id
                 LEFT JOIN business_users assigned_bu ON sa.assigned_user_id = assigned_bu.user_id
                 LEFT JOIN users assigned_u ON assigned_bu.user_id = assigned_u.user_id
+                LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
                 WHERE 1=1 ${whereClause}
                 ORDER BY ${sortBy} ${sortOrder.toUpperCase()}
                 LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}

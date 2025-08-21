@@ -136,7 +136,7 @@ export default function ApplicationDetail() {
                 icon: CheckCircleIcon
             },
             'offer_received': {
-                label: 'Offers Available',
+                label: 'Offer Received',
                 color: 'bg-green-100 text-green-800',
                 icon: CheckCircleIcon
             },
@@ -151,7 +151,7 @@ export default function ApplicationDetail() {
                 icon: XCircleIcon
             },
             'deal_expired': {
-                label: 'Expired',
+                label: 'Deal Expired',
                 color: 'bg-red-100 text-red-800',
                 icon: XCircleIcon
             }
@@ -547,10 +547,10 @@ export default function ApplicationDetail() {
                                                 <option value="submitted">Submitted</option>
                                                 <option value="pending_offers">Live Auction</option>
                                                 <option value="purchased">Purchased</option>
-                                                <option value="offer_received">Offers Available</option>
+                                                <option value="offer_received">Offer Received</option>
                                                 <option value="completed">Completed</option>
                                                 <option value="abandoned">Abandoned</option>
-                                                <option value="deal_expired">Expired</option>
+                                                <option value="deal_expired">Deal Expired</option>
                                             </select>
                                         ) : (
                                             <p className="mt-1 text-sm text-gray-900">{statusInfo.label}</p>

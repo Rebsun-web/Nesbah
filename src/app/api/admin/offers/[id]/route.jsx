@@ -98,12 +98,12 @@ export async function DELETE(request, { params }) {
             return NextResponse.json({ success: false, error: 'Offer not found' }, { status: 404 })
         }
 
-        // Check if offer can be deleted (not accepted/won)
+        // Check if offer can be deleted (not won)
         const offer = offerCheck.rows[0]
-        if (offer.status === 'accepted' || offer.status === 'deal_won') {
+        if (offer.status === 'deal_won') {
             return NextResponse.json({ 
                 success: false, 
-                error: 'Cannot delete accepted or won offers' 
+                error: 'Cannot delete won offers' 
             }, { status: 400 })
         }
 

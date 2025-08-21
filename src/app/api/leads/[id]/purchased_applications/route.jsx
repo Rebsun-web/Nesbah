@@ -33,19 +33,15 @@ export async function POST(req, { params }) {
                 [applicationId, bankUserId, 25.00, 'lead_purchase']
             );
 
-            // Update submitted_applications with purchase tracking but keep status as pending_offers
+            // Update submitted_applications with purchase tracking
+            // The trigger will automatically update the tracking table
             await pool.query(
                 `UPDATE submitted_applications
                  SET
                      purchased_by = array_append(purchased_by, $1),
-                     purchased_by_timestamps = jsonb_set(
-                             COALESCE(purchased_by_timestamps, '{}'),
-                             $2,
-                             to_jsonb(to_char(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))
-                         ),
-                     revenue_collected = revenue_collected + $3
-                 WHERE application_id = $4`,
-                [bankUserId, `{${bankUserId}}`, 25.00, applicationId]
+                     revenue_collected = revenue_collected + $2
+                 WHERE application_id = $3`,
+                [bankUserId, 25.00, applicationId]
             );
 
             // Keep pos_application status as 'pending_offers' - don't change to 'purchased'
@@ -117,6 +113,8 @@ export async function POST(req, { params }) {
                 new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
               ]
             );
+
+            // The trigger will automatically update the tracking table with offer details
 
             // Update offers count in submitted_applications
             await pool.query(

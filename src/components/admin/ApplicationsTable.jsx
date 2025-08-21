@@ -8,9 +8,14 @@ import {
     Cog6ToothIcon,
     ClockIcon,
     CheckCircleIcon,
-    XCircleIcon
+    XCircleIcon,
+    PencilIcon,
+    TrashIcon
 } from '@heroicons/react/24/outline'
 import NewApplicationModal from './NewApplicationModal'
+import ViewApplicationModal from './ViewApplicationModal'
+import EditApplicationModal from './EditApplicationModal'
+import DeleteApplicationModal from './DeleteApplicationModal'
 
 export default function ApplicationsTable() {
     const [applications, setApplications] = useState([])
@@ -24,6 +29,10 @@ export default function ApplicationsTable() {
     const [totalPages, setTotalPages] = useState(1)
     const [totalApplications, setTotalApplications] = useState(0)
     const [showNewApplicationModal, setShowNewApplicationModal] = useState(false)
+    const [showViewModal, setShowViewModal] = useState(false)
+    const [showEditModal, setShowEditModal] = useState(false)
+    const [showDeleteModal, setShowDeleteModal] = useState(false)
+    const [selectedApplication, setSelectedApplication] = useState(null)
     const [error, setError] = useState('')
 
     const fetchApplications = async () => {
@@ -71,6 +80,43 @@ export default function ApplicationsTable() {
         setCurrentPage(1)
     }
 
+    const handleViewApplication = (application) => {
+        setSelectedApplication(application)
+        setShowViewModal(true)
+    }
+
+    const handleEditApplication = (application) => {
+        setSelectedApplication(application)
+        setShowEditModal(true)
+    }
+
+    const handleDeleteApplication = (application) => {
+        setSelectedApplication(application)
+        setShowDeleteModal(true)
+    }
+
+    const handleApplicationSaved = (updatedApplication) => {
+        // Update the application in the list
+        setApplications(prev => 
+            prev.map(app => 
+                app.application_id === updatedApplication.application_id 
+                    ? updatedApplication 
+                    : app
+            )
+        )
+        setShowEditModal(false)
+        setSelectedApplication(null)
+    }
+
+    const handleApplicationDeleted = (applicationId) => {
+        // Remove the application from the list
+        setApplications(prev => prev.filter(app => app.application_id !== applicationId))
+        setShowDeleteModal(false)
+        setSelectedApplication(null)
+        // Update total count
+        setTotalApplications(prev => prev - 1)
+    }
+
     const getStatusInfo = (status) => {
         const statusConfig = {
             'submitted': {
@@ -89,7 +135,7 @@ export default function ApplicationsTable() {
                 icon: CheckCircleIcon
             },
             'offer_received': {
-                label: 'Offers Available',
+                label: 'Offer Received',
                 color: 'bg-green-100 text-green-800',
                 icon: CheckCircleIcon
             },
@@ -104,7 +150,7 @@ export default function ApplicationsTable() {
                 icon: XCircleIcon
             },
             'deal_expired': {
-                label: 'Expired',
+                label: 'Deal Expired',
                 color: 'bg-red-100 text-red-800',
                 icon: XCircleIcon
             }
@@ -230,10 +276,11 @@ export default function ApplicationsTable() {
                                 <option value="all">All Statuses</option>
                                 <option value="submitted">Submitted</option>
                                 <option value="pending_offers">Live Auction</option>
-                                <option value="offer_received">Offers Available</option>
+                                <option value="purchased">Purchased</option>
+                                <option value="offer_received">Offer Received</option>
                                 <option value="completed">Completed</option>
                                 <option value="abandoned">Abandoned</option>
-                                <option value="deal_expired">Expired</option>
+                                <option value="deal_expired">Deal Expired</option>
                             </select>
                             <select
                                 value={`${sortBy}-${sortOrder}`}
@@ -383,16 +430,25 @@ export default function ApplicationsTable() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex items-center space-x-2">
                                                     <button
-                                                        onClick={() => window.open(`/admin/applications/${application.application_id}`, '_blank')}
+                                                        onClick={() => handleViewApplication(application)}
                                                         className="text-blue-600 hover:text-blue-900"
+                                                        title="View Details"
                                                     >
                                                         <EyeIcon className="h-4 w-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => console.log('Edit application:', application.application_id)}
+                                                        onClick={() => handleEditApplication(application)}
                                                         className="text-gray-600 hover:text-gray-900"
+                                                        title="Edit Application"
                                                     >
-                                                        <Cog6ToothIcon className="h-4 w-4" />
+                                                        <PencilIcon className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteApplication(application)}
+                                                        className="text-red-600 hover:text-red-900"
+                                                        title="Delete Application"
+                                                    >
+                                                        <TrashIcon className="h-4 w-4" />
                                                     </button>
                                                 </div>
                                             </td>
@@ -435,6 +491,38 @@ export default function ApplicationsTable() {
                 isOpen={showNewApplicationModal}
                 onClose={() => setShowNewApplicationModal(false)}
                 onSuccess={handleNewApplicationSuccess}
+            />
+
+            {/* View Application Modal */}
+            <ViewApplicationModal
+                isOpen={showViewModal}
+                onClose={() => {
+                    setShowViewModal(false)
+                    setSelectedApplication(null)
+                }}
+                applicationId={selectedApplication?.application_id}
+            />
+
+            {/* Edit Application Modal */}
+            <EditApplicationModal
+                isOpen={showEditModal}
+                onClose={() => {
+                    setShowEditModal(false)
+                    setSelectedApplication(null)
+                }}
+                application={selectedApplication}
+                onSave={handleApplicationSaved}
+            />
+
+            {/* Delete Application Modal */}
+            <DeleteApplicationModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false)
+                    setSelectedApplication(null)
+                }}
+                application={selectedApplication}
+                onDelete={handleApplicationDeleted}
             />
         </>
     )

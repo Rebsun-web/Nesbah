@@ -239,6 +239,55 @@ export async function PUT(req, { params }) {
                 return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
             }
 
+            // Also update application_offer_tracking table if status is provided
+            if (status) {
+                // Check if tracking record exists
+                const trackingCheck = await client.query(
+                    'SELECT COUNT(*) as count FROM application_offer_tracking WHERE application_id = $1',
+                    [applicationId]
+                );
+                
+                if (parseInt(trackingCheck.rows[0].count) > 0) {
+                    // Update existing tracking record
+                    await client.query(
+                        'UPDATE application_offer_tracking SET current_application_status = $1 WHERE application_id = $2',
+                        [status, applicationId]
+                    );
+                } else {
+                    // Create new tracking record
+                    await client.query(`
+                        INSERT INTO application_offer_tracking (
+                            application_id, 
+                            business_user_id, 
+                            bank_user_id,
+                            application_submitted_at,
+                            application_window_start,
+                            application_window_end,
+                            current_application_status
+                        )
+                        SELECT 
+                            sa.application_id,
+                            sa.business_user_id,
+                            u.user_id,
+                            sa.submitted_at,
+                            sa.submitted_at,
+                            sa.submitted_at + INTERVAL '48 hours',
+                            $1
+                        FROM submitted_applications sa
+                        CROSS JOIN users u
+                        WHERE sa.application_id = $2 AND u.user_type = 'bank_user'
+                    `, [status, applicationId]);
+                }
+                
+                // Set has_been_purchased flag if status is 'purchased'
+                if (status === 'purchased') {
+                    await client.query(
+                        'UPDATE submitted_applications SET has_been_purchased = TRUE WHERE application_id = $1',
+                        [applicationId]
+                    );
+                }
+            }
+
             // Update POS application if fields provided
             if (trade_name || cr_number || city || contact_person || contact_person_number || notes) {
                 const posUpdateQuery = `
