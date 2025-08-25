@@ -4,6 +4,7 @@ import { Container } from '@/components/container'
 import BankNavbar from '@/components/bankNavbar'
 import { NewFooter } from '@/components/NewFooter'
 import LeadsHistoryTable from '@/components/LeadsHistoryTable'
+import BoughtLeadsDisplay from '@/components/BoughtLeadsDisplay'
 import { useEffect, useState } from 'react'
 import ContactCard from '@/components/contactCard'
 import {Heading} from "@/components/text";
@@ -15,6 +16,7 @@ function classNames(...classes) {
 function BankHistoryPage (){
 
     const [leads, setLeads] = useState([]);
+    const [userInfo, setUserInfo] = useState(null);
 
     useEffect(() => {
         const fetchLeadsHistory = async () => {
@@ -22,6 +24,7 @@ function BankHistoryPage (){
 
             if (storedUser) {
                 const bankUser = JSON.parse(storedUser);
+                setUserInfo(bankUser);
                 try {
                     const res = await fetch(`/api/leads/history?user_id=${bankUser.user_id}`);
                     const result = await res.json();
@@ -50,6 +53,11 @@ function BankHistoryPage (){
                 </div>
                 <div className="py-5">
                     <LeadsHistoryTable data={leads}/>
+                </div>
+                
+                {/* Purchased Leads Display */}
+                <div className="mt-8">
+                    <BoughtLeadsDisplay userInfo={userInfo} />
                 </div>
             </div>
         </div>

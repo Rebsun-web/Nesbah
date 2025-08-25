@@ -16,6 +16,7 @@ import NewApplicationModal from './NewApplicationModal'
 import ViewApplicationModal from './ViewApplicationModal'
 import EditApplicationModal from './EditApplicationModal'
 import DeleteApplicationModal from './DeleteApplicationModal'
+import BankLogo from '@/components/BankLogo'
 
 export default function ApplicationsTable() {
     const [applications, setApplications] = useState([])
@@ -119,39 +120,24 @@ export default function ApplicationsTable() {
 
     const getStatusInfo = (status) => {
         const statusConfig = {
-            'submitted': {
-                label: 'Submitted',
-                color: 'bg-blue-100 text-blue-800',
-                icon: ClockIcon
-            },
-            'pending_offers': {
+            'live_auction': {
                 label: 'Live Auction',
                 color: 'bg-yellow-100 text-yellow-800',
                 icon: ClockIcon
             },
-            'purchased': {
-                label: 'Purchased',
+            'approved_leads': {
+                label: 'Approved Leads',
                 color: 'bg-purple-100 text-purple-800',
                 icon: CheckCircleIcon
             },
-            'offer_received': {
-                label: 'Offer Received',
+            'complete': {
+                label: 'Complete',
                 color: 'bg-green-100 text-green-800',
                 icon: CheckCircleIcon
             },
-            'completed': {
-                label: 'Completed',
-                color: 'bg-green-100 text-green-800',
-                icon: CheckCircleIcon
-            },
-            'abandoned': {
-                label: 'Abandoned',
+            'ignored': {
+                label: 'Ignored',
                 color: 'bg-gray-100 text-gray-800',
-                icon: XCircleIcon
-            },
-            'deal_expired': {
-                label: 'Deal Expired',
-                color: 'bg-red-100 text-red-800',
                 icon: XCircleIcon
             }
         }
@@ -295,8 +281,6 @@ export default function ApplicationsTable() {
                                 <option value="submitted_at-asc">Oldest First</option>
                                 <option value="trade_name-asc">Name A-Z</option>
                                 <option value="trade_name-desc">Name Z-A</option>
-                                <option value="revenue_collected-desc">Revenue High-Low</option>
-                                <option value="revenue_collected-asc">Revenue Low-High</option>
                             </select>
                         </div>
                     </div>
@@ -353,12 +337,6 @@ export default function ApplicationsTable() {
                                     Assigned User
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Offers
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Revenue
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions
                                 </th>
                             </tr>
@@ -366,7 +344,7 @@ export default function ApplicationsTable() {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {applications.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-12 text-center">
+                                    <td colSpan="6" className="px-6 py-12 text-center">
                                         <div className="text-gray-500">
                                             <p className="text-lg font-medium">No applications found</p>
                                             <p className="text-sm">Try adjusting your search or filters</p>
@@ -413,20 +391,26 @@ export default function ApplicationsTable() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {application.assigned_trade_name ? (
-                                                    <div>
-                                                        <div className="font-medium">{application.assigned_trade_name}</div>
-                                                        <div className="text-xs text-gray-500">{application.assigned_email}</div>
+                                                    <div className="flex items-center">
+                                                        {application.assigned_user_type === 'bank' && (
+                                                            <div className="flex-shrink-0 mr-2">
+                                                                <BankLogo
+                                                                    bankName={application.assigned_trade_name}
+                                                                    logoUrl={application.assigned_logo_url}
+                                                                    size="xs"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <div className="font-medium">{application.assigned_trade_name}</div>
+                                                            <div className="text-xs text-gray-500">{application.assigned_email}</div>
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <span className="text-gray-400">Not assigned</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {application.offers_count || 0}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                SAR {application.revenue_collected || 0}
-                                            </td>
+
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex items-center space-x-2">
                                                     <button

@@ -13,7 +13,9 @@
     "status-transitions": "node scripts/run-status-transitions.js",
     "admin-migrate": "node scripts/run-admin-migration.js",
     "background-jobs": "node scripts/start-background-jobs.js",
-    "event-monitor": "node scripts/start-event-monitor.js"
+    "event-monitor": "node scripts/start-event-monitor.js",
+    "optimize-db": "node scripts/optimize-database.js",
+    "pre-deploy": "npm run optimize-db && npm run build"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
@@ -31,6 +33,7 @@
     "dayjs": "^1.11.12",
     "dotenv": "^17.2.1",
     "emailjs-com": "^3.2.0",
+    "exceljs": "^4.4.0",
     "feed": "^4.2.2",
     "flag-icons": "^7.2.3",
     "flowbite": "^3.1.2",

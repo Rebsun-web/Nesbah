@@ -63,8 +63,9 @@ export async function GET(req) {
                 JOIN pos_application pa ON sa.application_id = pa.application_id
                 JOIN business_users bu ON sa.business_user_id = bu.user_id
                 JOIN users u ON bu.user_id = u.user_id
-                LEFT JOIN business_users assigned_bu ON sa.assigned_user_id = assigned_bu.user_id
-                LEFT JOIN users assigned_u ON assigned_bu.user_id = assigned_u.user_id
+                LEFT JOIN users assigned_u ON sa.assigned_user_id = assigned_u.user_id
+                LEFT JOIN business_users assigned_bu ON sa.assigned_user_id = assigned_bu.user_id AND assigned_u.user_type = 'business_user'
+                LEFT JOIN bank_users assigned_bank ON sa.assigned_user_id = assigned_bank.user_id AND assigned_u.user_type = 'bank_user'
                 LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
                 WHERE 1=1 ${whereClause}
             `;
@@ -96,14 +97,17 @@ export async function GET(req) {
                     pa.notes,
                     bu.trade_name as business_trade_name,
                     u.email as business_email,
-                    assigned_bu.trade_name as assigned_trade_name,
-                    assigned_u.email as assigned_email
+                    COALESCE(assigned_bu.trade_name, assigned_bank.entity_name) as assigned_trade_name,
+                    assigned_u.email as assigned_email,
+                    assigned_u.user_type as assigned_user_type,
+                    COALESCE(assigned_bu.logo_url, assigned_bank.logo_url) as assigned_logo_url
                 FROM submitted_applications sa
                 JOIN pos_application pa ON sa.application_id = pa.application_id
                 JOIN business_users bu ON sa.business_user_id = bu.user_id
                 JOIN users u ON bu.user_id = u.user_id
-                LEFT JOIN business_users assigned_bu ON sa.assigned_user_id = assigned_bu.user_id
-                LEFT JOIN users assigned_u ON assigned_bu.user_id = assigned_u.user_id
+                LEFT JOIN users assigned_u ON sa.assigned_user_id = assigned_u.user_id
+                LEFT JOIN business_users assigned_bu ON sa.assigned_user_id = assigned_bu.user_id AND assigned_u.user_type = 'business_user'
+                LEFT JOIN bank_users assigned_bank ON sa.assigned_user_id = assigned_bank.user_id AND assigned_u.user_type = 'bank_user'
                 LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
                 WHERE 1=1 ${whereClause}
                 ORDER BY ${sortBy} ${sortOrder.toUpperCase()}

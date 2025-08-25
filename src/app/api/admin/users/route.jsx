@@ -79,11 +79,13 @@ export async function GET(req) {
                         NULL::timestamp as last_application_date,
                         CASE WHEN COUNT(ao.offer_id) > 0 THEN true ELSE false END as has_sent_offer,
                         COUNT(ao.offer_id)::bigint as total_offers_sent,
-                        MAX(ao.submitted_at) as last_offer_date
+                        MAX(ao.submitted_at) as last_offer_date,
+                        bu.logo_url
                     FROM users u
+                    LEFT JOIN bank_users bu ON u.user_id = bu.user_id
                     LEFT JOIN application_offers ao ON u.user_id = ao.bank_user_id
                     WHERE u.user_type = 'bank_user'
-                    GROUP BY u.user_id, u.email, u.entity_name, u.account_status, u.created_at, u.updated_at
+                    GROUP BY u.user_id, u.email, u.entity_name, u.account_status, u.created_at, u.updated_at, bu.logo_url
                 `;
                 
                 // Add offer status filter for bank users

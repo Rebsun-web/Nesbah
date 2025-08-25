@@ -29,13 +29,10 @@ export async function POST(req) {
 
         // Validate status transition
         const validTransitions = {
-            'submitted': ['pending_offers'],
-            'pending_offers': ['purchased', 'abandoned'],
-            'purchased': ['offer_received'],
-            'offer_received': ['completed', 'deal_expired'],
-            'completed': [],
-            'abandoned': ['pending_offers'], // Allow reset
-            'deal_expired': ['pending_offers'] // Allow reset
+            'live_auction': ['approved_leads', 'ignored'],
+            'approved_leads': ['complete', 'ignored'],
+            'complete': [],
+            'ignored': ['live_auction'] // Allow reset
         };
 
         if (!validTransitions[from_status]?.includes(to_status)) {
@@ -77,8 +74,8 @@ export async function POST(req) {
             let updateQuery;
             let updateParams;
 
-            if (to_status === 'pending_offers') {
-                // Reset to pending_offers with new auction deadline
+            if (to_status === 'live_auction') {
+                // Reset to live_auction with new auction deadline
                 updateQuery = `
                     UPDATE application_offer_tracking 
                     SET current_application_status = $1, 
@@ -97,7 +94,6 @@ export async function POST(req) {
                 await client.query(
                     `UPDATE submitted_applications 
                      SET auction_end_time = NOW() + INTERVAL '48 hours',
-                         offer_selection_end_time = NULL,
                          offers_count = 0,
                          revenue_collected = 0,
                          ignored_by = '{}',
@@ -106,7 +102,7 @@ export async function POST(req) {
                      WHERE application_id = $1`,
                     [application_id]
                 );
-            } else if (to_status === 'purchased') {
+            } else if (to_status === 'approved_leads') {
                 // Transition to purchased status
                 updateQuery = `
                     UPDATE application_offer_tracking 
@@ -136,15 +132,6 @@ export async function POST(req) {
                 );
                 
                 console.log(`💰 Added 25 SAR revenue for manually purchased application ${application_id}`);
-            } else if (to_status === 'offer_received') {
-                // Transition to offer_received with selection deadline
-                updateQuery = `
-                    UPDATE application_offer_tracking 
-                    SET current_application_status = $1,
-                        offer_selection_end_time = NOW() + INTERVAL '24 hours'
-                    WHERE application_id = $2
-                `;
-                updateParams = [to_status, application_id];
             } else {
                 // Standard status update for other statuses
                 updateQuery = `
@@ -219,8 +206,8 @@ export async function POST(req) {
                 [application_id, from_status, to_status, admin_user_id, reason]
             );
 
-            // Handle offer status updates if transitioning to completed
-            if (to_status === 'completed') {
+            // Handle offer status updates if transitioning to complete
+            if (to_status === 'complete') {
                 // Mark all offers as deal_lost except the selected one
                 await client.query(
                     `

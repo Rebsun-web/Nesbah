@@ -20,34 +20,64 @@ const poolConfig = process.env.DATABASE_URL ? {
 
 const pool = new Pool({
   ...poolConfig,
-  // Optimized connection pool limits to prevent exhaustion
-  max: 10, // Reduced from 20 to prevent overwhelming the server
-  min: 0, // Start with no connections
-  idleTimeoutMillis: 10000, // Close idle clients after 10 seconds (reduced from 30)
-  connectionTimeoutMillis: 5000, // Increased timeout for better reliability
-  maxUses: 1000, // Close connections after 1000 uses (reduced from 7500)
-  allowExitOnIdle: true, // Allow the pool to exit when idle
+  // Optimized connection pool for production load
+  max: process.env.NODE_ENV === 'production' ? 20 : 10, // Increased for production
+  min: process.env.NODE_ENV === 'production' ? 5 : 0, // Keep minimum connections in production
+  idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 30000 : 10000, // Longer timeout in production
+  connectionTimeoutMillis: 10000, // Increased timeout for better reliability
+  maxUses: process.env.NODE_ENV === 'production' ? 7500 : 1000, // More uses in production
+  allowExitOnIdle: process.env.NODE_ENV !== 'production', // Don't exit in production
+  // Add connection retry logic
+  retryDelay: 1000,
+  maxRetries: 3,
 });
 
-// Handle pool errors
+// Enhanced error handling and monitoring
 pool.on('error', (err, client) => {
-  console.error('Unexpected error on idle client', err);
+  console.error('❌ Database pool error:', err);
+  // Log to monitoring system
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Database pool error details:', {
+      message: err.message,
+      code: err.code,
+      timestamp: new Date().toISOString(),
+      poolStatus: {
+        totalCount: pool.totalCount,
+        idleCount: pool.idleCount,
+        waitingCount: pool.waitingCount
+      }
+    });
+  }
 });
 
 // Handle connection errors
 pool.on('connect', (client) => {
   client.on('error', (err) => {
-    console.error('Database client error:', err);
+    console.error('❌ Database client error:', err);
   });
 });
 
-// Log pool status for debugging
-pool.on('acquire', (client) => {
-  console.log(`🔗 Database connection acquired. Pool status: ${pool.totalCount}/${pool.idleCount}/${pool.waitingCount}`);
-});
+// Enhanced logging for production monitoring
+if (process.env.NODE_ENV === 'production') {
+  pool.on('acquire', (client) => {
+    console.log(`🔗 Database connection acquired. Pool status: ${pool.totalCount}/${pool.idleCount}/${pool.waitingCount}`);
+  });
 
-pool.on('release', (client) => {
-  console.log(`🔓 Database connection released. Pool status: ${pool.totalCount}/${pool.idleCount}/${pool.waitingCount}`);
-});
+  pool.on('release', (client) => {
+    console.log(`🔓 Database connection released. Pool status: ${pool.totalCount}/${pool.idleCount}/${pool.waitingCount}`);
+  });
+}
+
+// Add connection health check method
+pool.healthCheck = async () => {
+  try {
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    return { healthy: true, timestamp: new Date().toISOString() };
+  } catch (error) {
+    return { healthy: false, error: error.message, timestamp: new Date().toISOString() };
+  }
+};
 
 module.exports = pool;

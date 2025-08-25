@@ -24,11 +24,11 @@ const poolConfig = process.env.DATABASE_URL ? {
 const pool = new Pool({
   ...poolConfig,
   // Optimized connection pool limits to prevent exhaustion
-  max: 5, // Further reduced to prevent overwhelming the server
-  min: 0, // Start with no connections
-  idleTimeoutMillis: 5000, // Close idle clients after 5 seconds
+  max: 10, // Increased to handle current load
+  min: 2, // Keep some connections ready
+  idleTimeoutMillis: 30000, // Keep connections alive longer
   connectionTimeoutMillis: 10000, // Increased timeout for better reliability
-  maxUses: 500, // Close connections after 500 uses to prevent memory leaks
+  maxUses: 1000, // Close connections after 1000 uses to prevent memory leaks
   allowExitOnIdle: true, // Allow the pool to exit when idle
 });
 

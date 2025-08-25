@@ -14,7 +14,7 @@ export async function GET(req) {
                     sa.auction_end_time, sa.offers_count, sa.revenue_collected
              FROM submitted_applications sa
                       JOIN pos_application pa ON sa.application_id = pa.application_id
-             WHERE sa.status = 'pending_offers'
+             WHERE sa.status = 'live_auction'
                AND NOT $1 = ANY(sa.ignored_by)
                AND NOT $1 = ANY(sa.purchased_by)
                AND sa.auction_end_time > NOW()

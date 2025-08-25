@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { AnalyticsService } from '@/lib/analytics/analytics-service';
 
 export async function POST(req, { params }) {
     const applicationId = params.id;
@@ -34,7 +35,6 @@ export async function POST(req, { params }) {
             );
 
             // Update submitted_applications with purchase tracking
-            // The trigger will automatically update the tracking table
             await pool.query(
                 `UPDATE submitted_applications
                  SET
@@ -44,7 +44,7 @@ export async function POST(req, { params }) {
                 [bankUserId, 25.00, applicationId]
             );
 
-            // Keep pos_application status as 'pending_offers' - don't change to 'purchased'
+            // Keep pos_application status as 'live_auction' - don't change to 'approved_leads'
             // This allows multiple banks to purchase the same application
         }
 
@@ -83,7 +83,7 @@ export async function POST(req, { params }) {
           if (result.rowCount > 0) {
             const submittedApplicationId = result.rows[0].id;
 
-            await pool.query(
+            const offerResult = await pool.query(
               `INSERT INTO application_offers (
                 submitted_application_id,
                 offer_device_setup_fee,
@@ -97,7 +97,8 @@ export async function POST(req, { params }) {
                 submitted_by_user_id,
                 status,
                 offer_selection_deadline
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+              RETURNING offer_id`,
               [
                 submittedApplicationId,
                 offer_device_setup_fee || null,
@@ -114,6 +115,15 @@ export async function POST(req, { params }) {
               ]
             );
 
+            // Track offer submission for analytics
+            try {
+                const offerId = offerResult.rows[0].offer_id;
+                await AnalyticsService.trackOfferSubmission(applicationId, bankUserId, offerId);
+            } catch (error) {
+                console.error('Failed to track offer submission:', error);
+                // Don't fail the request if analytics tracking fails
+            }
+
             // The trigger will automatically update the tracking table with offer details
 
             // Update offers count in submitted_applications
@@ -123,6 +133,25 @@ export async function POST(req, { params }) {
                WHERE application_id = $1`,
               [applicationId]
             );
+
+            // Check if this is the first offer - if so, transition to approved_leads
+            const offersCountResult = await pool.query(
+              `SELECT offers_count FROM submitted_applications WHERE application_id = $1`,
+              [applicationId]
+            );
+
+            if (offersCountResult.rows[0]?.offers_count === 1) {
+              // First offer submitted - transition to approved_leads
+              await pool.query(
+                `UPDATE submitted_applications SET status = 'approved_leads' WHERE application_id = $1`,
+                [applicationId]
+              );
+              
+              await pool.query(
+                `UPDATE pos_application SET status = 'approved_leads' WHERE application_id = $1`,
+                [applicationId]
+              );
+            }
           }
         }
 

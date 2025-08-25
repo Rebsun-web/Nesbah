@@ -135,11 +135,6 @@ export default function ApplicationDetail() {
                 color: 'bg-purple-100 text-purple-800',
                 icon: CheckCircleIcon
             },
-            'offer_received': {
-                label: 'Offer Received',
-                color: 'bg-green-100 text-green-800',
-                icon: CheckCircleIcon
-            },
             'completed': {
                 label: 'Completed',
                 color: 'bg-green-100 text-green-800',
@@ -150,11 +145,6 @@ export default function ApplicationDetail() {
                 color: 'bg-gray-100 text-gray-800',
                 icon: XCircleIcon
             },
-            'deal_expired': {
-                label: 'Deal Expired',
-                color: 'bg-red-100 text-red-800',
-                icon: XCircleIcon
-            }
         }
         return statusConfig[status] || {
             label: status,
@@ -165,26 +155,7 @@ export default function ApplicationDetail() {
 
     const getUrgencyInfo = (urgencyLevel) => {
         const urgencyConfig = {
-            'auction_ending_soon': {
-                label: 'Auction Ending Soon',
-                color: 'bg-red-100 text-red-800',
-                icon: ExclamationTriangleIcon
-            },
-            'selection_ending_soon': {
-                label: 'Selection Ending Soon',
-                color: 'bg-orange-100 text-orange-800',
-                icon: ExclamationTriangleIcon
-            },
-            'auction_expired': {
-                label: 'Auction Expired',
-                color: 'bg-gray-100 text-gray-800',
-                icon: XCircleIcon
-            },
-            'selection_expired': {
-                label: 'Selection Expired',
-                color: 'bg-gray-100 text-gray-800',
-                icon: XCircleIcon
-            },
+
             'normal': {
                 label: 'Normal',
                 color: 'bg-green-100 text-green-800',
@@ -505,30 +476,12 @@ export default function ApplicationDetail() {
                             <div className="bg-white rounded-lg shadow p-6">
                                 <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Stats</h2>
                                 <div className="space-y-3">
-                                    <div>
-                                        <p className="text-sm text-gray-500">Revenue Collected</p>
-                                        <p className="text-lg font-semibold text-gray-900">SAR {application.revenue_collected || 0}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500">Offers Count</p>
-                                        <p className="text-lg font-semibold text-gray-900">{application.offers_count || 0}</p>
-                                    </div>
+
                                     <div>
                                         <p className="text-sm text-gray-500">Submitted</p>
                                         <p className="text-sm text-gray-900">{new Date(application.submitted_at).toLocaleDateString()}</p>
                                     </div>
-                                    {application.auction_end_time && (
-                                        <div>
-                                            <p className="text-sm text-gray-500">Auction Ends</p>
-                                            <p className="text-sm text-gray-900">{new Date(application.auction_end_time).toLocaleDateString()}</p>
-                                        </div>
-                                    )}
-                                    {application.offer_selection_end_time && (
-                                        <div>
-                                            <p className="text-sm text-gray-500">Selection Ends</p>
-                                            <p className="text-sm text-gray-900">{new Date(application.offer_selection_end_time).toLocaleDateString()}</p>
-                                        </div>
-                                    )}
+
                                 </div>
                             </div>
 
@@ -544,13 +497,10 @@ export default function ApplicationDetail() {
                                                 onChange={(e) => setEditForm({...editForm, status: e.target.value})}
                                                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             >
-                                                <option value="submitted">Submitted</option>
-                                                <option value="pending_offers">Live Auction</option>
-                                                <option value="purchased">Purchased</option>
-                                                <option value="offer_received">Offer Received</option>
-                                                <option value="completed">Completed</option>
-                                                <option value="abandoned">Abandoned</option>
-                                                <option value="deal_expired">Deal Expired</option>
+                                                <option value="live_auction">Live Auction</option>
+                                                <option value="approved_leads">Approved Leads</option>
+                                                <option value="complete">Complete</option>
+                                                <option value="ignored">Ignored</option>
                                             </select>
                                         ) : (
                                             <p className="mt-1 text-sm text-gray-900">{statusInfo.label}</p>

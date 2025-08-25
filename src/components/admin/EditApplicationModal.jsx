@@ -134,13 +134,10 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="">Select Status</option>
-                                <option value="submitted">Submitted</option>
-                                <option value="pending_offers">Live Auction</option>
-                                <option value="purchased">Purchased</option>
-                                <option value="offer_received">Offer Received</option>
-                                <option value="completed">Completed</option>
-                                <option value="abandoned">Abandoned</option>
-                                <option value="deal_expired">Deal Expired</option>
+                                <option value="live_auction">Live Auction</option>
+                                <option value="approved_leads">Approved Leads</option>
+                                <option value="complete">Complete</option>
+                                <option value="ignored">Ignored</option>
                             </select>
                         </div>
 

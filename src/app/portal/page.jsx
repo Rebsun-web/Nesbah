@@ -10,13 +10,14 @@ import { PosApplication } from '@/components/posApplication'
 import { ApplicationLimit } from '@/components/ApplicationLimit'
 import YourApplication from '@/components/YourApplication'
 import RejectionReaction from '@/components/RejectionReaction'
-import OfferSelection from '@/components/OfferSelection'
+import BankOffersDisplay from '@/components/BankOffersDisplay'
+
 import { useEffect, useState } from 'react'
 import ApplicationSubmittedModal from '@/components/ApplicationSubmittedModal'
 import ApprovedLeadReaction from '@/components/ApprovedLeadReaction'
 
 const tabs = [
-    { name: 'Point of service (POS)', value: 'pos' },
+    { name: 'POS finance', value: 'pos' },
 ]
 
 function classNames(...classes) {
@@ -51,14 +52,10 @@ function BusinessPortal() {
                     setApplicationStatus(application.status);
                     
                     // Show notification for important status changes
-                    if (application.status === 'offer_received') {
-                        alert('🎉 Great news! You have received offers from banks. Please review and select your preferred offer within 24 hours.');
-                    } else if (application.status === 'completed') {
+                    if (application.status === 'completed') {
                         alert('✅ Congratulations! Your deal has been completed successfully.');
                     } else if (application.status === 'abandoned') {
                         alert('ℹ️ No banks submitted offers for your application. You can submit a new application if needed.');
-                    } else if (application.status === 'deal_expired') {
-                        alert('⏰ The 24-hour offer selection window has expired. You can submit a new application if needed.');
                     }
                 } else {
                     setApplicationStatus(application.status);
@@ -90,48 +87,30 @@ function BusinessPortal() {
     // Function to get status display info
     const getStatusInfo = (status) => {
         const statusConfig = {
-            'submitted': {
-                label: 'Application Submitted',
-                description: 'Your application has been submitted and is being reviewed.',
-                color: 'bg-blue-100 text-blue-800',
-                icon: '📝'
-            },
-            'pending_offers': {
+            'live_auction': {
                 label: 'Live Auction Active',
-                description: 'Banks are viewing and purchasing your application. Auction ends in 48 hours.',
+                description: 'Banks are viewing and submitting offers for your application. Auction ends in 48 hours.',
                 color: 'bg-yellow-100 text-yellow-800',
                 icon: '⏰'
             },
-            'purchased': {
-                label: 'Application Purchased',
-                description: 'A bank has purchased access to your business data and can now submit offers.',
+            'approved_leads': {
+                label: 'Offers Received',
+                description: 'Banks have submitted offers for your application. You can view all offers.',
                 color: 'bg-purple-100 text-purple-800',
                 icon: '💰'
             },
-            'offer_received': {
-                label: 'Offer Received',
-                description: 'You have received offers from banks. Choose your preferred offer within 24 hours.',
-                color: 'bg-green-100 text-green-800',
-                icon: '💰'
-            },
-            'completed': {
+            'complete': {
                 label: 'Deal Completed',
-                description: 'You have successfully selected an offer. Deal is finalized.',
+                description: 'Your application has been successfully processed.',
                 color: 'bg-green-100 text-green-800',
                 icon: '✅'
             },
-            'abandoned': {
-                label: 'Application Abandoned',
+            'ignored': {
+                label: 'Application Ignored',
                 description: 'No banks submitted offers for your application.',
                 color: 'bg-gray-100 text-gray-800',
                 icon: '❌'
             },
-            'deal_expired': {
-                label: 'Deal Expired',
-                description: 'You did not select an offer within the 24-hour window.',
-                color: 'bg-red-100 text-red-800',
-                icon: '⏰'
-            }
         };
         
         return statusConfig[status] || {
@@ -155,19 +134,23 @@ function BusinessPortal() {
                     if (data.success) {
                         setBusinessInfo(data.data);
                     }
-                });
+                })
+                .catch(err => console.error('Error fetching business info:', err));
 
             // Initial fetch
             fetchApplicationData(parsedUser.user_id);
 
-            // Set up polling for real-time updates (every 30 seconds)
+            // Optimized polling: only poll if user has active application
             const interval = setInterval(() => {
-                fetchApplicationData(parsedUser.user_id);
-            }, 30000);
+                if (hasApplication && applicationStatus && 
+                    ['live_auction', 'pending_offers', 'approved_leads'].includes(applicationStatus)) {
+                    fetchApplicationData(parsedUser.user_id);
+                }
+            }, 60000); // Increased to 60 seconds to reduce server load
 
             return () => clearInterval(interval);
         }
-    }, []);
+    }, [hasApplication, applicationStatus]); // Added dependencies to prevent unnecessary re-renders
 
     const renderForm = () => {
         switch (activeTab) {
@@ -242,20 +225,6 @@ function BusinessPortal() {
                                   </span>
                                 </div>
                               )}
-                              {applicationData.auction_end_time && (
-                                <div>
-                                  <span className="font-medium text-gray-700">Auction Ends:</span>
-                                  <span className="ml-2 text-gray-600">
-                                    {new Date(applicationData.auction_end_time).toLocaleString()}
-                                  </span>
-                                </div>
-                              )}
-                              {applicationData.offers_count !== undefined && (
-                                <div>
-                                  <span className="font-medium text-gray-700">Offers Received:</span>
-                                  <span className="ml-2 text-gray-600">{applicationData.offers_count}</span>
-                                </div>
-                              )}
                             </div>
                           )}
                         </div>
@@ -264,14 +233,10 @@ function BusinessPortal() {
                   )}
                   
                   <YourApplication user={userInfo} />
+                  <BankOffersDisplay user={userInfo} />
                   <ApprovedLeadReaction user={userInfo} />
                   <RejectionReaction user={userInfo} />
-                  {userInfo && businessInfo && (
-                    <OfferSelection 
-                      user={userInfo} 
-                      applicationId={businessInfo.application_id} 
-                    />
-                  )}
+
                 </div>
                 {!hasApplication && (
                 <div className="bg-white pb-10 pt-5">

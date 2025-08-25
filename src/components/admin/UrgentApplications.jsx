@@ -43,32 +43,20 @@ export default function UrgentApplications({ data }) {
 
     const getStatusInfo = (status) => {
         const statusConfig = {
-            'submitted': {
-                label: 'Submitted',
-                color: 'bg-blue-100 text-blue-800'
-            },
-            'pending_offers': {
+            'live_auction': {
                 label: 'Live Auction',
                 color: 'bg-yellow-100 text-yellow-800'
             },
-            'purchased': {
-                label: 'Purchased',
+            'approved_leads': {
+                label: 'Approved Leads',
                 color: 'bg-purple-100 text-purple-800'
             },
-            'offer_received': {
-                label: 'Offer Received',
+            'complete': {
+                label: 'Complete',
                 color: 'bg-green-100 text-green-800'
             },
-            'completed': {
-                label: 'Completed',
-                color: 'bg-green-100 text-green-800'
-            },
-            'abandoned': {
-                label: 'Abandoned',
-                color: 'bg-red-100 text-red-800'
-            },
-            'deal_expired': {
-                label: 'Deal Expired',
+            'ignored': {
+                label: 'Ignored',
                 color: 'bg-gray-100 text-gray-800'
             }
         }
@@ -176,53 +164,10 @@ export default function UrgentApplications({ data }) {
                                                 {new Date(application.submitted_at).toLocaleDateString()}
                                             </span>
                                         </div>
-                                        <div>
-                                            <span className="font-medium">Offers:</span>
-                                            <span className="ml-2">{application.offers_count || 0}</span>
-                                        </div>
-                                        <div>
-                                            <span className="font-medium">Revenue:</span>
-                                            <span className="ml-2">SAR {application.revenue_collected || 0}</span>
-                                        </div>
+
                                     </div>
                                     
-                                    {application.hours_until_auction_end !== undefined && (
-                                        <div className="mt-3 p-3 bg-yellow-50 rounded-lg">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center">
-                                                    <ClockIcon className="h-4 w-4 text-yellow-600 mr-2" />
-                                                    <span className="text-sm font-medium text-yellow-800">
-                                                        Auction ends in: {formatTimeRemaining(application.hours_until_auction_end)}
-                                                    </span>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleExtendDeadline(application.application_id, 'auction')}
-                                                    className="text-sm text-yellow-600 hover:text-yellow-500 font-medium"
-                                                >
-                                                    Extend
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                    
-                                    {application.hours_until_selection_end !== undefined && (
-                                        <div className="mt-3 p-3 bg-green-50 rounded-lg">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center">
-                                                    <ClockIcon className="h-4 w-4 text-green-600 mr-2" />
-                                                    <span className="text-sm font-medium text-green-800">
-                                                        Selection ends in: {formatTimeRemaining(application.hours_until_selection_end)}
-                                                    </span>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleExtendDeadline(application.application_id, 'selection')}
-                                                    className="text-sm text-green-600 hover:text-green-500 font-medium"
-                                                >
-                                                    Extend
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
+
                                 </div>
                                 
                                 <div className="ml-6 flex flex-col space-y-2">

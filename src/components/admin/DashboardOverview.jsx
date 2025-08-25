@@ -35,47 +35,29 @@ export default function DashboardOverview({ data, loading }) {
 
     const getStatusInfo = (status) => {
         const statusConfig = {
-            'submitted': {
-                label: 'Submitted',
-                icon: DocumentTextIcon,
-                color: 'bg-blue-100 text-blue-600',
-                bgColor: 'bg-blue-50'
-            },
-            'pending_offers': {
+            'live_auction': {
                 label: 'Live Auction',
                 icon: ClockIcon,
                 color: 'bg-yellow-100 text-yellow-600',
                 bgColor: 'bg-yellow-50'
             },
-            'purchased': {
-                label: 'Purchased',
+            'approved_leads': {
+                label: 'Approved Leads',
                 icon: CheckCircleIcon,
                 color: 'bg-purple-100 text-purple-600',
                 bgColor: 'bg-purple-50'
             },
-            'offer_received': {
-                label: 'Offer Received',
+            'complete': {
+                label: 'Complete',
                 icon: CheckCircleIcon,
                 color: 'bg-green-100 text-green-600',
                 bgColor: 'bg-green-50'
             },
-            'completed': {
-                label: 'Completed',
-                icon: CheckCircleIcon,
-                color: 'bg-green-100 text-green-600',
-                bgColor: 'bg-green-50'
-            },
-            'abandoned': {
-                label: 'Abandoned',
+            'ignored': {
+                label: 'Ignored',
                 icon: XCircleIcon,
                 color: 'bg-gray-100 text-gray-600',
                 bgColor: 'bg-gray-50'
-            },
-            'deal_expired': {
-                label: 'Deal Expired',
-                icon: ExclamationTriangleIcon,
-                color: 'bg-red-100 text-red-600',
-                bgColor: 'bg-red-50'
             }
         }
         

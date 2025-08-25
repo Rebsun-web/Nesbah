@@ -1,0 +1,23 @@
+[2025-08-25T22:15:23.902Z] [INFO] Starting performance monitoring with 60000ms interval
+[2025-08-25T22:15:23.907Z] [INFO] 🚀 Starting comprehensive performance monitoring...
+[2025-08-25T22:15:24.437Z] [ERROR] Database performance check failed: relation "pg_stat_statements" does not exist
+[2025-08-25T22:15:24.441Z] [INFO] System resources check completed. Memory usage: 99%
+[2025-08-25T22:15:24.441Z] [WARN] HIGH MEMORY USAGE WARNING: 99%
+[2025-08-25T22:15:24.541Z] [INFO] API performance check skipped: relation "api_logs" does not exist
+[2025-08-25T22:15:24.543Z] [INFO] Cache performance check completed
+[2025-08-25T22:15:24.544Z] [INFO] 📊 Performance Report Generated:
+[2025-08-25T22:15:24.544Z] [INFO]   Database Pool Utilization: 0%
+[2025-08-25T22:15:24.544Z] [INFO]   Memory Usage: 99%
+[2025-08-25T22:15:24.545Z] [INFO]   CPU Load: 7.9521484375
+[2025-08-25T22:15:24.545Z] [INFO]   Recent API Requests: 0
+[2025-08-25T22:16:24.548Z] [INFO] 🚀 Starting comprehensive performance monitoring...
+[2025-08-25T22:16:25.069Z] [ERROR] Database performance check failed: relation "pg_stat_statements" does not exist
+[2025-08-25T22:16:25.071Z] [INFO] System resources check completed. Memory usage: 100%
+[2025-08-25T22:16:25.072Z] [WARN] HIGH MEMORY USAGE WARNING: 100%
+[2025-08-25T22:16:25.173Z] [INFO] API performance check skipped: relation "api_logs" does not exist
+[2025-08-25T22:16:25.174Z] [INFO] Cache performance check completed
+[2025-08-25T22:16:25.175Z] [INFO] 📊 Performance Report Generated:
+[2025-08-25T22:16:25.176Z] [INFO]   Database Pool Utilization: 0%
+[2025-08-25T22:16:25.178Z] [INFO]   Memory Usage: 100%
+[2025-08-25T22:16:25.179Z] [INFO]   CPU Load: 11.60302734375
+[2025-08-25T22:16:25.180Z] [INFO]   Recent API Requests: 0

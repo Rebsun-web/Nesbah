@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-08-25T22:16:25.175Z",
+  "summary": {
+    "database": {
+      "poolUtilization": 0,
+      "slowQueriesCount": 0,
+      "largestTable": "N/A"
+    },
+    "system": {
+      "memoryUsage": 100,
+      "cpuLoad": 11.60302734375,
+      "uptime": 569867
+    },
+    "api": {
+      "recentRequests": 0,
+      "avgResponseTime": 0
+    }
+  },
+  "recommendations": [
+    "High memory usage detected - consider scaling up or optimizing memory usage"
+  ]
+}

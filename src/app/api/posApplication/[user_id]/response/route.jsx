@@ -25,8 +25,9 @@ export async function GET(req, { params }) {
       `
       SELECT ao.*, u.entity_name AS bank_name
       FROM application_offers ao
-      JOIN users u ON ao.bank_user_id = u.id
+      JOIN users u ON ao.submitted_by_user_id = u.user_id
       WHERE ao.submitted_application_id = $1
+      ORDER BY ao.submitted_at DESC
       `,
       [submittedApplicationId]
     );

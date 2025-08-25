@@ -51,38 +51,23 @@ export default function ViewApplicationModal({ isOpen, onClose, applicationId })
 
     const getStatusInfo = (status) => {
         const statusConfig = {
-            'submitted': {
-                label: 'Submitted',
-                color: 'bg-blue-100 text-blue-800',
-                icon: ClockIcon
-            },
-            'pending_offers': {
+            'live_auction': {
                 label: 'Live Auction',
                 color: 'bg-yellow-100 text-yellow-800',
                 icon: ExclamationTriangleIcon
             },
-            'purchased': {
-                label: 'Purchased',
+            'approved_leads': {
+                label: 'Approved Leads',
                 color: 'bg-purple-100 text-purple-800',
                 icon: CheckCircleIcon
             },
-            'offer_received': {
-                label: 'Offer Received',
+            'complete': {
+                label: 'Complete',
                 color: 'bg-green-100 text-green-800',
                 icon: CheckCircleIcon
             },
-            'completed': {
-                label: 'Completed',
-                color: 'bg-green-100 text-green-800',
-                icon: CheckCircleIcon
-            },
-            'abandoned': {
-                label: 'Abandoned',
-                color: 'bg-red-100 text-red-800',
-                icon: XCircleIcon
-            },
-            'deal_expired': {
-                label: 'Deal Expired',
+            'ignored': {
+                label: 'Ignored',
                 color: 'bg-gray-100 text-gray-800',
                 icon: XCircleIcon
             }
@@ -243,10 +228,7 @@ export default function ViewApplicationModal({ isOpen, onClose, applicationId })
                                     <label className="text-sm font-medium text-gray-700">Priority Level</label>
                                     <p className="text-sm text-gray-900 capitalize">{application.priority_level || 'Normal'}</p>
                                 </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Offers Count</label>
-                                    <p className="text-sm text-gray-900">{application.offers_count || 0}</p>
-                                </div>
+
                             </div>
                             {application.notes && (
                                 <div className="mt-4">
@@ -260,12 +242,7 @@ export default function ViewApplicationModal({ isOpen, onClose, applicationId })
                         <div className="bg-white border border-gray-200 rounded-lg p-4">
                             <h5 className="text-lg font-medium text-gray-900 mb-4">Financial Information</h5>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Revenue Collected</label>
-                                    <p className="text-lg font-semibold text-green-600">
-                                        SAR {application.revenue_collected || 0}
-                                    </p>
-                                </div>
+
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">Assigned User</label>
                                     <p className="text-sm text-gray-900">

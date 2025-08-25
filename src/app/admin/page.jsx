@@ -7,14 +7,12 @@ import AdminSidebar from '@/components/admin/AdminSidebar'
 import DashboardOverview from '@/components/admin/DashboardOverview'
 import ApplicationsTable from '@/components/admin/ApplicationsTable'
 import RevenueMetrics from '@/components/admin/RevenueMetrics'
-import SystemAlerts from '@/components/admin/SystemAlerts'
 
-import BackgroundJobMonitor from '@/components/admin/BackgroundJobMonitor'
 import UserManagement from '@/components/admin/UserManagement'
 import UserStats from '@/components/admin/UserStats'
 import OfferAnalytics from '@/components/admin/OfferAnalytics'
 import OfferManagement from '@/components/admin/OfferManagement'
-import ComprehensiveAnalytics from '@/components/admin/ComprehensiveAnalytics'
+import EnhancedAnalytics from '@/components/admin/EnhancedAnalytics'
 import ProtectedRoute from '@/components/admin/ProtectedRoute'
 import { useAdminAuth } from '@/contexts/AdminAuthContext'
 import { ChartBarIcon } from '@heroicons/react/24/outline'
@@ -51,8 +49,8 @@ export default function AdminDashboard() {
     useEffect(() => {
         fetchDashboardData()
         
-        // Refresh data every 30 seconds
-        const interval = setInterval(fetchDashboardData, 30000)
+        // Optimized polling: only refresh every 2 minutes to reduce server load
+        const interval = setInterval(fetchDashboardData, 120000) // Changed from 30s to 120s
         return () => clearInterval(interval)
     }, [])
 
@@ -70,16 +68,13 @@ export default function AdminDashboard() {
                 return <ApplicationsTable />
             case 'revenue':
                 return <RevenueMetrics detailed={true} />
-            case 'alerts':
-                return <SystemAlerts />
-            case 'background-jobs':
-                return <BackgroundJobMonitor />
+
             case 'users':
                 return <UserManagement />
             case 'offers':
                 return <OfferManagement />
             case 'analytics':
-                return <ComprehensiveAnalytics />
+                return <EnhancedAnalytics />
             default:
                 return <DashboardOverview data={dashboardData} loading={loading} />
         }
@@ -128,8 +123,7 @@ export default function AdminDashboard() {
                                     {activeTab === 'overview' && 'Admin Dashboard'}
                                     {activeTab === 'applications' && 'Applications Management'}
                                     {activeTab === 'revenue' && 'Revenue Analytics'}
-                                                                    {activeTab === 'alerts' && 'System Alerts'}
-                                {activeTab === 'background-jobs' && 'Background Jobs'}
+                                
                                 {activeTab === 'users' && 'User Management'}
                                 {activeTab === 'offers' && 'Offer Management'}
                                 {activeTab === 'analytics' && 'Analytics Dashboard'}
@@ -138,8 +132,7 @@ export default function AdminDashboard() {
                                     {activeTab === 'overview' && 'Real-time monitoring of the dual-auction system'}
                                     {activeTab === 'applications' && 'Manage application lifecycle and status transitions'}
                                     {activeTab === 'revenue' && 'Track revenue and financial performance'}
-                                                                    {activeTab === 'alerts' && 'Monitor system alerts and notifications'}
-                                {activeTab === 'background-jobs' && 'Monitor and manage automated background processes'}
+                                
                                 {activeTab === 'users' && 'Manage business, individual, and bank users'}
                                                                     {activeTab === 'offers' && 'Manage bank offers and their status'}
                                     {activeTab === 'analytics' && 'Analytics for applications and offers'}

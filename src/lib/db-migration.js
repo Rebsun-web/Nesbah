@@ -6,77 +6,9 @@ export async function runMigrations() {
     try {
         await client.query('BEGIN');
 
-        // 1. Update submitted_applications table to support new status workflow
-        await client.query(`
-            ALTER TABLE submitted_applications 
-            ADD COLUMN IF NOT EXISTS auction_end_time TIMESTAMP,
-            ADD COLUMN IF NOT EXISTS offer_selection_end_time TIMESTAMP,
-            ADD COLUMN IF NOT EXISTS revenue_collected DECIMAL(10,2) DEFAULT 0,
-            ADD COLUMN IF NOT EXISTS offers_count INTEGER DEFAULT 0;
-        `);
+        console.log('🔄 Running simplified database migrations...');
 
-        // 2. Update pos_application table to support new status workflow
-        await client.query(`
-            ALTER TABLE pos_application 
-            ADD COLUMN IF NOT EXISTS auction_end_time TIMESTAMP,
-            ADD COLUMN IF NOT EXISTS offer_selection_end_time TIMESTAMP;
-        `);
-
-        // 3. Update application_offers table to support offer status tracking
-        await client.query(`
-            ALTER TABLE application_offers 
-            ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'submitted',
-            ADD COLUMN IF NOT EXISTS submitted_by_user_id INTEGER,
-            ADD COLUMN IF NOT EXISTS offer_selection_deadline TIMESTAMP;
-        `);
-
-        // 4. Create revenue tracking table (without foreign key constraints for now)
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS application_revenue (
-                id SERIAL PRIMARY KEY,
-                application_id INTEGER NOT NULL,
-                bank_user_id INTEGER NOT NULL,
-                amount DECIMAL(10,2) NOT NULL,
-                transaction_type VARCHAR(20) NOT NULL,
-                created_at TIMESTAMP DEFAULT NOW()
-            );
-        `);
-
-        // 5. Create offer selection tracking table (without foreign key constraints for now)
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS offer_selections (
-                id SERIAL PRIMARY KEY,
-                application_id INTEGER NOT NULL,
-                selected_offer_id INTEGER NOT NULL,
-                business_user_id INTEGER NOT NULL,
-                selected_at TIMESTAMP DEFAULT NOW()
-            );
-        `);
-
-        // 6. Create bank_partners table for commission tracking
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS bank_partners (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                bank_name VARCHAR(255) NOT NULL,
-                commission_rate DECIMAL(5,2) DEFAULT 0.00,
-                is_active BOOLEAN DEFAULT true,
-                created_at TIMESTAMP DEFAULT NOW(),
-                updated_at TIMESTAMP DEFAULT NOW()
-            );
-        `);
-
-        // 7. Insert default bank partner for admin users
-        await client.query(`
-            INSERT INTO bank_partners (user_id, bank_name, commission_rate, is_active)
-            SELECT admin_id, 'Admin Bank', 0.00, true
-            FROM admin_users
-            WHERE NOT EXISTS (
-                SELECT 1 FROM bank_partners bp WHERE bp.user_id = admin_users.admin_id
-            )
-        `);
-
-        // 8. Drop existing check constraints that might prevent new status values
+        // 1. Drop existing check constraints that might prevent new status values
         try {
             await client.query(`
                 ALTER TABLE pos_application 
@@ -90,7 +22,9 @@ export async function runMigrations() {
             console.log('⚠️  Check constraints may not exist, continuing...');
         }
 
-        // 9. Update existing applications to new status workflow
+        // 2. Update existing applications to simplified status workflow
+        console.log('📋 Updating application statuses...');
+        
         await client.query(`
             UPDATE submitted_applications 
             SET status = 'pending_offers' 
@@ -105,40 +39,52 @@ export async function runMigrations() {
 
         await client.query(`
             UPDATE pos_application 
-            SET status = 'offer_received' 
+            SET status = 'completed' 
             WHERE status = 'accepted';
         `);
 
-        // 10. Set auction end times for existing applications
+        // 3. Add new simplified status constraints
+        console.log('📋 Adding simplified status constraints...');
+        
         await client.query(`
-            UPDATE submitted_applications sa
-            SET auction_end_time = pa.submitted_at + INTERVAL '48 hours'
-            FROM pos_application pa
-            WHERE sa.application_id = pa.application_id 
-            AND sa.status = 'pending_offers';
+            ALTER TABLE submitted_applications 
+            ADD CONSTRAINT submitted_applications_status_check 
+            CHECK (status IN ('submitted', 'pending_offers', 'purchased', 'completed', 'abandoned'));
         `);
 
         await client.query(`
-            UPDATE pos_application 
-            SET auction_end_time = submitted_at + INTERVAL '48 hours'
-            WHERE status = 'pending_offers';
+            ALTER TABLE pos_application 
+            ADD CONSTRAINT pos_application_status_check 
+            CHECK (status IN ('submitted', 'pending_offers', 'purchased', 'completed', 'abandoned'));
         `);
 
-        // 11. Update application_offers to link with bank users properly
+        // 4. Create bank_partners table for commission tracking (if not exists)
+        console.log('📋 Setting up bank partners table...');
+        
         await client.query(`
-            UPDATE application_offers ao
-            SET submitted_by_user_id = (
-                SELECT u.user_id 
-                FROM users u 
-                JOIN submitted_applications sa ON u.user_id = ANY(sa.purchased_by)
-                WHERE sa.id = ao.submitted_application_id
-                LIMIT 1
+            CREATE TABLE IF NOT EXISTS bank_partners (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                bank_name VARCHAR(255) NOT NULL,
+                commission_rate DECIMAL(5,2) DEFAULT 0.00,
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `);
+
+        // 5. Insert default bank partner for admin users
+        await client.query(`
+            INSERT INTO bank_partners (user_id, bank_name, commission_rate, is_active)
+            SELECT admin_id, 'Admin Bank', 0.00, true
+            FROM admin_users
+            WHERE NOT EXISTS (
+                SELECT 1 FROM bank_partners bp WHERE bp.user_id = admin_users.admin_id
             )
-            WHERE ao.submitted_by_user_id IS NULL;
         `);
 
         await client.query('COMMIT');
-        console.log('✅ Database migrations completed successfully');
+        console.log('✅ Simplified database migrations completed successfully');
         
     } catch (error) {
         await client.query('ROLLBACK');
@@ -161,3 +107,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             process.exit(1);
         });
 }
+
+

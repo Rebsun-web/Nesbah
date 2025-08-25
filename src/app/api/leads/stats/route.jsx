@@ -11,52 +11,54 @@ export async function GET(req) {
     }
 
     try {
+        // Optimized single query instead of multiple subqueries
         const { rows } = await pool.query(
             `
-                SELECT
-                    (SELECT COUNT(*) FROM submitted_applications
-                     WHERE status = 'pending_offers'
-                       AND NOT $1 = ANY(ignored_by)
-                       AND NOT $1 = ANY(purchased_by)
-                       AND auction_end_time > NOW()
-                    ) AS incoming_leads,
+            WITH stats AS (
+                SELECT 
+                    COUNT(*) FILTER (WHERE status = 'pending_offers' 
+                        AND NOT $1 = ANY(ignored_by) 
+                        AND NOT $1 = ANY(purchased_by) 
+                        AND auction_end_time > NOW()) as incoming_leads,
+                    COUNT(*) FILTER (WHERE $1 = ANY(purchased_by)) as purchased_leads,
+                    COUNT(*) FILTER (WHERE $1 = ANY(ignored_by)) as ignored_leads,
+                    COALESCE(SUM(amount), 0) as total_revenue
+                FROM submitted_applications sa
+                LEFT JOIN application_revenue ar ON sa.id = ar.application_id AND ar.bank_user_id = $1
+            ),
+            avg_response AS (
+                SELECT ROUND(AVG(diff)::numeric, 2) as avg_response_time
+                FROM (
+                    SELECT (
+                        EXTRACT(EPOCH FROM (
+                            (sa.purchased_by_timestamps ->> $1)::timestamptz - pa.submitted_at
+                        )) / 3600
+                    ) AS diff
+                    FROM submitted_applications sa
+                    JOIN pos_application pa ON sa.application_id = pa.application_id
+                    WHERE $1 = ANY(sa.purchased_by)
+                    AND sa.purchased_by_timestamps ->> $1 IS NOT NULL
 
-                    (SELECT COUNT(*) FROM submitted_applications
-                     WHERE $1 = ANY(purchased_by)
-                    ) AS purchased_leads,
+                    UNION ALL
 
-                    (SELECT COUNT(*) FROM submitted_applications
-                     WHERE $1 = ANY(ignored_by)
-                    ) AS ignored_leads,
-
-                    (
-                        SELECT ROUND(AVG(diff)::numeric, 2)
-                        FROM (
-                            SELECT (
-                                EXTRACT(EPOCH FROM (
-                                    (sa.purchased_by_timestamps ->> $1)::timestamptz - pa.submitted_at
-                                )) / 3600
-                            ) AS diff
-                            FROM submitted_applications sa
-                            JOIN pos_application pa ON sa.application_id = pa.application_id
-                            WHERE $1 = ANY(sa.purchased_by)
-                            AND sa.purchased_by_timestamps ->> $1 IS NOT NULL
-
-                            UNION ALL
-
-                            SELECT (
-                                EXTRACT(EPOCH FROM (
-                                    (sa.ignored_by_timestamps ->> $1)::timestamptz - pa.submitted_at
-                                )) / 3600
-                            ) AS diff
-                            FROM submitted_applications sa
-                            JOIN pos_application pa ON sa.application_id = pa.application_id
-                            WHERE $1 = ANY(sa.ignored_by)
-                            AND sa.ignored_by_timestamps ->> $1 IS NOT NULL
-                        ) AS sub
-                    ) AS avg_response_time,
-
-                    (SELECT COALESCE(SUM(amount), 0) FROM application_revenue WHERE bank_user_id = $1) AS total_revenue
+                    SELECT (
+                        EXTRACT(EPOCH FROM (
+                            (sa.ignored_by_timestamps ->> $1)::timestamptz - pa.submitted_at
+                        )) / 3600
+                    ) AS diff
+                    FROM submitted_applications sa
+                    JOIN pos_application pa ON sa.application_id = pa.application_id
+                    WHERE $1 = ANY(sa.ignored_by)
+                    AND sa.ignored_by_timestamps ->> $1 IS NOT NULL
+                ) AS sub
+            )
+            SELECT 
+                s.incoming_leads,
+                s.purchased_leads,
+                s.ignored_leads,
+                s.total_revenue,
+                ar.avg_response_time
+            FROM stats s, avg_response ar
             `,
             [userId]
         );

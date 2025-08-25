@@ -18,6 +18,7 @@ import {
     CheckCircleIcon,
     ClockIcon
 } from '@heroicons/react/24/solid'
+import BankLogo from '@/components/BankLogo'
 
 export default function UserManagement() {
     const [users, setUsers] = useState([])
@@ -509,12 +510,23 @@ export default function UserManagement() {
                                         />
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div>
-                                            <div className="text-sm font-medium text-gray-900">
-                                                {user.entity_name}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                {user.email}
+                                        <div className="flex items-center">
+                                            {user.user_type === 'bank' && (
+                                                <div className="flex-shrink-0 mr-3">
+                                                    <BankLogo
+                                                        bankName={user.entity_name}
+                                                        logoUrl={user.logo_url}
+                                                        size="sm"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {user.entity_name}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {user.email}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>

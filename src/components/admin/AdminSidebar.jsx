@@ -5,9 +5,7 @@ import {
     HomeIcon,
     DocumentTextIcon,
     CurrencyDollarIcon,
-    ExclamationTriangleIcon,
     UsersIcon,
-    Cog6ToothIcon,
     ChartBarIcon,
     BuildingOfficeIcon
 } from '@heroicons/react/24/outline'
@@ -49,19 +47,6 @@ export default function AdminSidebar({ activeTab, onTabChange, isOpen, onClose }
             name: 'Users', 
             icon: UsersIcon, 
             description: 'Manage all user types' 
-        },
-
-        { 
-            id: 'alerts', 
-            name: 'Alerts', 
-            icon: ExclamationTriangleIcon, 
-            description: 'System alerts and notifications' 
-        },
-        { 
-            id: 'background-jobs', 
-            name: 'Background Jobs', 
-            icon: Cog6ToothIcon, 
-            description: 'Monitor automated processes' 
         },
     ]
 

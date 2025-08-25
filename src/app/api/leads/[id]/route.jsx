@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { AnalyticsService } from '@/lib/analytics/analytics-service';
 
 export async function GET(req, { params }) {
     const applicationId = parseInt(params.id);
@@ -43,14 +44,22 @@ export async function GET(req, { params }) {
                 bu.has_ecommerce, bu.store_url, bu.cr_capital,
                 bu.cash_capital, bu.in_kind_capital,
                 bu.management_structure, bu.management_managers,
-                bu.contact_info
+                bu.contact_info,
+                -- Additional personal details not provided by Wathiq API
+                pa.contact_person as business_contact_person,
+                pa.contact_person_number as business_contact_telephone,
+                u.email as business_contact_email
             FROM pos_application pa
                      JOIN business_users bu ON pa.user_id = bu.user_id
+                     JOIN users u ON bu.user_id = u.user_id
             WHERE pa.application_id = $1
         `;
 
         if (isOpened && !isPurchased) {
             appQuery = appQuery.replace('bu.contact_info', `'{}'::jsonb AS contact_info`);
+            appQuery = appQuery.replace('pa.contact_person as business_contact_person,', `'' as business_contact_person,`);
+            appQuery = appQuery.replace('pa.contact_person_number as business_contact_telephone,', `'' as business_contact_telephone,`);
+            appQuery = appQuery.replace('u.email as business_contact_email', `'' as business_contact_email`);
         }
 
         if (!isOpened) {
@@ -60,6 +69,14 @@ export async function GET(req, { params }) {
                  WHERE application_id = $2`,
                 [bankUserId, applicationId]
             );
+            
+            // Track application view for analytics
+            try {
+                await AnalyticsService.trackApplicationView(applicationId, bankUserId);
+            } catch (error) {
+                console.error('Failed to track application view:', error);
+                // Don't fail the request if analytics tracking fails
+            }
         }
 
         if (isPurchased) {
