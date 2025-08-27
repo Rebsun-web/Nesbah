@@ -12,17 +12,18 @@ export async function GET(req) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Verify admin token
-        const decoded = AdminAuth.verifyToken(adminToken);
-        if (!decoded) {
-            return NextResponse.json({ success: false, error: 'Invalid admin token' }, { status: 401 });
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
         }
 
-        // Get admin user from database
-        const adminUser = await AdminAuth.getAdminById(decoded.admin_id);
-        if (!adminUser || !adminUser.is_active) {
-            return NextResponse.json({ success: false, error: 'Admin user not found or inactive' }, { status: 401 });
-        }
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get('page')) || 1;
@@ -37,7 +38,7 @@ export async function GET(req) {
         let client;
         
         try {
-            client = await pool.connect();
+            client = await pool.connectWithRetry();
             // Build WHERE clause for applications available for offers
             let whereClause = "WHERE sa.status = 'purchased'";
             const queryParams = [];
@@ -103,10 +104,10 @@ export async function GET(req) {
                     array_length(sa.purchased_by, 1) as purchases_count,
                     sa.purchased_by as purchased_by_banks,
                     CASE 
-                        WHEN sa.status = 'pending_offers' AND sa.auction_end_time <= NOW() + INTERVAL '1 hour' THEN 'auction_ending_soon'
-                        WHEN sa.status = 'offer_received' AND sa.offer_selection_end_time <= NOW() + INTERVAL '1 hour' THEN 'selection_ending_soon'
-                        WHEN sa.status = 'pending_offers' AND sa.auction_end_time <= NOW() THEN 'auction_expired'
-                        WHEN sa.status = 'offer_received' AND sa.offer_selection_end_time <= NOW() THEN 'selection_expired'
+                        WHEN sa.status = 'live_auction' AND sa.auction_end_time <= NOW() + INTERVAL '1 hour' THEN 'auction_ending_soon'
+                        WHEN sa.status = 'completed' AND sa.offer_selection_end_time <= NOW() + INTERVAL '1 hour' THEN 'selection_ending_soon'
+                        WHEN sa.status = 'live_auction' AND sa.auction_end_time <= NOW() THEN 'auction_expired'
+                        WHEN sa.status = 'completed' AND sa.offer_selection_end_time <= NOW() THEN 'selection_expired'
                         ELSE 'normal'
                     END as urgency_level
                 FROM submitted_applications sa

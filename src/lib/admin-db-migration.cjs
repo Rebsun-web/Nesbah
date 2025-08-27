@@ -256,18 +256,16 @@ async function runAdminMigrations() {
                 EXTRACT(EPOCH FROM (sa.offer_selection_end_time - NOW()))/3600 as hours_until_selection_end,
                 CASE 
                     WHEN sa.status = 'pending_offers' AND sa.auction_end_time <= NOW() + INTERVAL '1 hour' THEN 'auction_ending_soon'
-                    WHEN sa.status = 'offer_received' AND sa.offer_selection_end_time <= NOW() + INTERVAL '1 hour' THEN 'selection_ending_soon'
-                    WHEN sa.status = 'pending_offers' AND sa.auction_end_time <= NOW() THEN 'auction_expired'
-                    WHEN sa.status = 'offer_received' AND sa.offer_selection_end_time <= NOW() THEN 'selection_expired'
+                    WHEN sa.status = 'live_auction' AND sa.auction_end_time <= NOW() + INTERVAL '1 hour' THEN 'auction_ending_soon'
+                    WHEN sa.status = 'live_auction' AND sa.auction_end_time <= NOW() THEN 'auction_expired'
                     ELSE 'normal'
                 END as urgency_level
             FROM submitted_applications sa
             JOIN pos_application pa ON sa.application_id = pa.application_id
             WHERE 
                 (sa.status = 'pending_offers' AND sa.auction_end_time <= NOW() + INTERVAL '1 hour')
-                OR (sa.status = 'offer_received' AND sa.offer_selection_end_time <= NOW() + INTERVAL '1 hour')
-                OR (sa.status = 'pending_offers' AND sa.auction_end_time <= NOW())
-                OR (sa.status = 'offer_received' AND sa.offer_selection_end_time <= NOW());
+                OR (sa.status = 'live_auction' AND sa.auction_end_time <= NOW() + INTERVAL '1 hour')
+                OR (sa.status = 'live_auction' AND sa.auction_end_time <= NOW());
         `);
 
         // View for revenue summary

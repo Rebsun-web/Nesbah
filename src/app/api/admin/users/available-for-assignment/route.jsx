@@ -1,9 +1,30 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function GET(req) {
     try {
-        const client = await pool.connect();
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
+        }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
+
+        const client = await pool.connectWithRetry();
         
         try {
             console.log('🔍 Starting available-for-assignment query...');
@@ -52,7 +73,7 @@ export async function GET(req) {
                     bu.contact_person_number,
                     bu.contact_info,
                     bu.store_url,
-                    bu.form_name,
+                    bu.legal_form,
                     bu.issue_date_gregorian,
                     bu.confirmation_date_gregorian,
                     bu.has_ecommerce,

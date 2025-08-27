@@ -19,93 +19,78 @@ export async function POST(req) {
         } = body;
 
         const submitted_at = new Date(); // capture submit time
+        const auction_end_time = new Date(submitted_at.getTime() + 48 * 60 * 60 * 1000); // 48 hours from submission time
 
-        // 🛰️ Fetch business info from business_users table based on user_id
-        const { rows } = await pool.query(
-            `SELECT * FROM business_users WHERE user_id = $1`,
-            [user_id]
-        );
-
-        if (rows.length === 0) {
-            return NextResponse.json({ success: false, error: 'Business info not found' }, { status: 404 });
-        }
-
-        const business = rows[0];
-
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
+        
         try {
             await client.query('BEGIN');
 
-            // Insert into pos_application with new status workflow
+            // OPTIMIZED: Single query to get business info and validate user exists
+            const businessResult = await client.query(
+                `SELECT 
+                    trade_name, cr_number, cr_national_number, legal_form, 
+                    registration_status, issue_date_gregorian, city, activities, 
+                    contact_info, has_ecommerce, store_url, cr_capital, 
+                    cash_capital, management_structure, management_managers
+                 FROM business_users 
+                 WHERE user_id = $1`,
+                [user_id]
+            );
+
+            if (businessResult.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return NextResponse.json({ success: false, error: 'Business info not found' }, { status: 404 });
+            }
+
+            const business = businessResult.rows[0];
+
+            // OPTIMIZED: Insert into pos_application with all data in one query
             const posAppResult = await client.query(
                 `
                 INSERT INTO pos_application 
-                    (user_id, status, submitted_at, notes, uploaded_document, own_pos_system, uploaded_filename, uploaded_mimetype,
-                     trade_name, cr_number, cr_national_number, legal_form, registration_status, 
-                     issue_date, city, activities, contact_info, has_ecommerce, store_url, 
-                     cr_capital, cash_capital, management_structure, management_names,
-                     contact_person, contact_person_number, number_of_pos_devices, city_of_operation, auction_end_time)
+                    (user_id, status, submitted_at, notes, uploaded_document, own_pos_system, 
+                     uploaded_filename, uploaded_mimetype, trade_name, cr_number, cr_national_number, 
+                     legal_form, registration_status, issue_date_gregorian, city, activities, contact_info, 
+                     has_ecommerce, store_url, cr_capital, cash_capital, management_structure, 
+                     management_managers, contact_person, contact_person_number, number_of_pos_devices, 
+                     city_of_operation, auction_end_time)
                 VALUES 
-                    ($1, 'pending_offers', $2, $3, $4, $5, $21, $22,
-                     $6, $7, $8, $9, $10,
-                     $11, $12, $13, $14, $15, $16,
-                     $17, $18, $19, $20,
-                     $23, $24, $25, $26, $27)
+                    ($1, 'live_auction', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
+                     $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
                 RETURNING application_id
                 `,
                 [
-                    user_id,
-                    submitted_at,
-                    notes || null,
+                    user_id, submitted_at, notes || null,
                     uploaded_document ? Buffer.from(uploaded_document, 'base64') : null,
-                    own_pos_system ?? null,
-                    business.trade_name,
-                    business.cr_number,
-                    business.cr_national_number,
-                    business.legal_form,
-                    business.registration_status,
-                    business.issue_date,
-                    business.city,
-                    business.activities,
-                    business.contact_info,
-                    business.has_ecommerce,
-                    business.store_url,
-                    business.cr_capital,
-                    business.cash_capital,
-                    business.management_structure,
-                    business.management_names,
-                    uploaded_filename || null,
-                    uploaded_mimetype || null,
-                    contact_person || null,
-                    contact_person_number || null,
-                    number_of_pos_devices || null,
-                    city_of_operation || null,
-                    new Date(Date.now() + 48 * 60 * 60 * 1000) // 48 hours from now
+                    own_pos_system ?? null, uploaded_filename || null, uploaded_mimetype || null,
+                    business.trade_name, business.cr_number, business.cr_national_number,
+                    business.legal_form, business.registration_status, business.issue_date_gregorian,
+                    business.city, business.activities, business.contact_info, business.has_ecommerce,
+                    business.store_url, business.cr_capital, business.cash_capital,
+                    business.management_structure, business.management_managers,
+                    contact_person || null, contact_person_number || null,
+                    number_of_pos_devices || null, city_of_operation || null, auction_end_time
                 ]
             );
 
             const application_id = posAppResult.rows[0].application_id;
 
-            // Insert into submitted_applications with new status workflow
+            // OPTIMIZED: Insert into submitted_applications
             await client.query(
                 `
                 INSERT INTO submitted_applications
-                    (application_id, application_type, status, opened_by, auction_end_time)
+                    (application_id, application_type, status, opened_by, auction_end_time, business_user_id)
                 VALUES
-                    ($1, $2, $3, $4, $5)
+                    ($1, 'pos', 'live_auction', $2, $3, $4)
                 `,
-                [
-                    application_id,
-                    'pos',          // Application type
-                    'pending_offers', // New status: starts 48-hour auction
-                    [],             // Empty opened_by array initially
-                    new Date(Date.now() + 48 * 60 * 60 * 1000) // 48 hours from now
-                ]
+                [application_id, [], auction_end_time, user_id]
             );
 
+            // OPTIMIZED: Get bank users for email notification (only if needed)
             const bankUsers = await client.query(
-                'SELECT email FROM users WHERE user_type = $1',
-                ['bank_user']
+                'SELECT email FROM users WHERE user_type = $1 AND account_status = $2',
+                ['bank_user', 'active']
             );
 
             await client.query('COMMIT');

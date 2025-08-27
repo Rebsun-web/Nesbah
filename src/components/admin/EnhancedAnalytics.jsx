@@ -7,7 +7,7 @@ import {
     CheckCircleIcon, 
     XCircleIcon, 
     ClockIcon,
-    TrendingUpIcon,
+    ArrowTrendingUpIcon,
     BanknotesIcon,
     UserGroupIcon,
     CurrencyDollarIcon,
@@ -26,12 +26,11 @@ export default function EnhancedAnalytics() {
     const [timeMetricsData, setTimeMetricsData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
-    const [timeRange, setTimeRange] = useState('30d')
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
 
     useEffect(() => {
         fetchAllData()
-    }, [timeRange, selectedDate])
+    }, [selectedDate])
 
     const fetchAllData = async () => {
         try {
@@ -48,12 +47,20 @@ export default function EnhancedAnalytics() {
             const offersResult = await offersResponse.json()
             const timeMetricsResult = await timeMetricsResponse.json()
             
+            console.log('🔍 EnhancedAnalytics: API Responses:', {
+                applications: applicationsResult,
+                offers: offersResult,
+                timeMetrics: timeMetricsResult
+            })
+            
             if (applicationsResult.success && offersResult.success && timeMetricsResult.success) {
+                console.log('✅ EnhancedAnalytics: All APIs successful, setting data')
                 setApplicationsData(applicationsResult.data)
                 setOffersData(offersResult.data)
                 setTimeMetricsData(timeMetricsResult.data)
             } else {
                 const errorMessage = applicationsResult.error || offersResult.error || timeMetricsResult.error || 'Failed to fetch analytics data'
+                console.error('❌ EnhancedAnalytics: API errors:', errorMessage)
                 setError(errorMessage)
             }
         } catch (err) {
@@ -65,29 +72,34 @@ export default function EnhancedAnalytics() {
     }
 
     const calculateConversionRate = () => {
+        console.log('🔍 EnhancedAnalytics: calculateConversionRate called with:', {
+            applicationsData: applicationsData,
+            offersData: offersData
+        })
         if (!applicationsData || !offersData) return 0
-        const totalApplications = applicationsData.total_applications || 0
-        const totalOffers = offersData.total_offers || 0
+        const totalApplications = applicationsData.summary?.total_applications || 0
+        const totalOffers = offersData.summary?.total_offers || 0
+        console.log('🔍 EnhancedAnalytics: Conversion rate calculation:', {
+            totalApplications,
+            totalOffers,
+            result: totalApplications > 0 ? ((totalOffers / totalApplications) * 100).toFixed(1) : 0
+        })
         return totalApplications > 0 ? ((totalOffers / totalApplications) * 100).toFixed(1) : 0
     }
 
     const getAverageResponseTime = () => {
-        if (!timeMetricsData || timeMetricsData.length === 0) return 0
-        const totalTime = timeMetricsData.reduce((sum, bank) => sum + (bank.avg_response_time_minutes || 0), 0)
-        return (totalTime / timeMetricsData.length).toFixed(1)
+        if (!timeMetricsData) return 0
+        return (timeMetricsData.avg_response_time_minutes || 0).toFixed(1)
     }
 
     const getAverageOfferTime = () => {
-        if (!timeMetricsData || timeMetricsData.length === 0) return 0
-        const totalTime = timeMetricsData.reduce((sum, bank) => sum + (bank.avg_offer_submission_time_minutes || 0), 0)
-        return (totalTime / timeMetricsData.length).toFixed(1)
+        if (!timeMetricsData) return 0
+        return (timeMetricsData.avg_offer_time_minutes || 0).toFixed(1)
     }
 
     const getTopPerformingBank = () => {
-        if (!timeMetricsData || timeMetricsData.length === 0) return null
-        return timeMetricsData.reduce((top, bank) => 
-            (bank.conversion_rate || 0) > (top.conversion_rate || 0) ? bank : top
-        )
+        if (!applicationsData?.bank_performance || applicationsData.bank_performance.length === 0) return null
+        return applicationsData.bank_performance[0] // First bank has highest conversion rate due to ORDER BY
     }
 
     if (loading) {
@@ -126,14 +138,18 @@ export default function EnhancedAnalytics() {
         )
     }
 
+    console.log('🔍 EnhancedAnalytics: Rendering with state:', {
+        applicationsData,
+        offersData,
+        timeMetricsData,
+        loading,
+        error
+    })
+    
     return (
         <div className="space-y-6">
             {/* Header with Controls */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Enhanced Analytics Dashboard</h2>
-                    <p className="text-gray-600">Comprehensive insights into application performance and bank behavior</p>
-                </div>
                 <div className="flex items-center space-x-4">
                     <input
                         type="date"
@@ -157,7 +173,7 @@ export default function EnhancedAnalytics() {
                 <div className="bg-white rounded-lg shadow p-6">
                     <div className="flex items-center">
                         <div className="p-2 bg-blue-100 rounded-lg">
-                            <TrendingUpIcon className="h-6 w-6 text-blue-600" />
+                            <ArrowTrendingUpIcon className="h-6 w-6 text-blue-600" />
                         </div>
                         <div className="ml-4">
                             <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
@@ -216,7 +232,11 @@ export default function EnhancedAnalytics() {
                         <div className="ml-4">
                             <p className="text-sm font-medium text-gray-600">Total Applications</p>
                             <p className="text-2xl font-bold text-gray-900">
-                                <AnimatedNumber value={applicationsData?.total_applications || 0} />
+                                {(() => {
+                                    const value = applicationsData?.summary?.total_applications || 0;
+                                    console.log('🔍 EnhancedAnalytics: Total Applications display value:', value);
+                                    return <AnimatedNumber start={0} end={value} />;
+                                })()}
                             </p>
                         </div>
                     </div>
@@ -257,8 +277,8 @@ export default function EnhancedAnalytics() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {timeMetricsData && timeMetricsData.length > 0 ? (
-                                timeMetricsData.map((bank) => (
+                            {applicationsData?.bank_performance && applicationsData.bank_performance.length > 0 ? (
+                                applicationsData.bank_performance.map((bank) => (
                                     <tr key={bank.bank_user_id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
@@ -281,18 +301,18 @@ export default function EnhancedAnalytics() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                (bank.conversion_rate || 0) >= 50 ? 'bg-green-100 text-green-800' :
-                                                (bank.conversion_rate || 0) >= 25 ? 'bg-yellow-100 text-yellow-800' :
+                                                parseFloat(bank.conversion_rate || 0) >= 50 ? 'bg-green-100 text-green-800' :
+                                                parseFloat(bank.conversion_rate || 0) >= 25 ? 'bg-yellow-100 text-yellow-800' :
                                                 'bg-red-100 text-red-800'
                                             }`}>
-                                                {(bank.conversion_rate || 0).toFixed(1)}%
+                                                {parseFloat(bank.conversion_rate || 0).toFixed(1)}%
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {(bank.avg_response_time_minutes || 0).toFixed(1)} min
+                                            {parseFloat(bank.avg_response_time_minutes || 0).toFixed(1)} min
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {(bank.avg_offer_submission_time_minutes || 0).toFixed(1)} min
+                                            {parseFloat(bank.avg_offer_submission_time_minutes || 0).toFixed(1)} min
                                         </td>
                                     </tr>
                                 ))
@@ -320,12 +340,12 @@ export default function EnhancedAnalytics() {
                             </h3>
                             <p className="text-gray-600">
                                 <strong>{getTopPerformingBank().bank_name}</strong> leads with a{' '}
-                                <strong>{(getTopPerformingBank().conversion_rate || 0).toFixed(1)}%</strong> conversion rate
+                                <strong>{parseFloat(getTopPerformingBank().conversion_rate || 0).toFixed(1)}%</strong> conversion rate
                             </p>
                         </div>
                         <div className="text-right">
                             <div className="text-2xl font-bold text-green-600">
-                                {(getTopPerformingBank().conversion_rate || 0).toFixed(1)}%
+                                {parseFloat(getTopPerformingBank().conversion_rate || 0).toFixed(1)}%
                             </div>
                             <div className="text-sm text-gray-500">Conversion Rate</div>
                         </div>
@@ -345,25 +365,25 @@ export default function EnhancedAnalytics() {
                                 <span className="text-sm text-gray-600">Live Auctions</span>
                             </div>
                             <span className="text-sm font-medium text-gray-900">
-                                {applicationsData?.status_distribution?.live_auction || 0}
+                                {applicationsData?.by_status?.find(s => s.status === 'live_auction')?.count || 0}
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                                <span className="text-sm text-gray-600">Approved Leads</span>
+                                <span className="text-sm text-gray-600">Completed</span>
                             </div>
                             <span className="text-sm font-medium text-gray-900">
-                                {applicationsData?.status_distribution?.approved_leads || 0}
+                                {applicationsData?.by_status?.find(s => s.status === 'completed')?.count || 0}
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <div className="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
-                                <span className="text-sm text-gray-600">Completed</span>
+                                <span className="text-sm text-gray-900">Ignored</span>
                             </div>
                             <span className="text-sm font-medium text-gray-900">
-                                {applicationsData?.status_distribution?.complete || 0}
+                                {applicationsData?.by_status?.find(s => s.status === 'ignored')?.count || 0}
                             </span>
                         </div>
                     </div>
@@ -376,20 +396,20 @@ export default function EnhancedAnalytics() {
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Total Offers Submitted</span>
                             <span className="text-sm font-medium text-gray-900">
-                                {offersData?.total_offers || 0}
+                                {offersData?.summary?.total_offers || 0}
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Average Offers per Application</span>
                             <span className="text-sm font-medium text-gray-900">
-                                {applicationsData?.total_applications > 0 ? 
-                                    (offersData?.total_offers / applicationsData?.total_applications).toFixed(1) : 0}
+                                {applicationsData?.summary?.total_applications > 0 ? 
+                                    (offersData?.summary?.total_offers / applicationsData?.summary?.total_applications).toFixed(1) : 0}
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Active Banks</span>
                             <span className="text-sm font-medium text-gray-900">
-                                {timeMetricsData?.length || 0}
+                                {applicationsData?.bank_performance?.length || 0}
                             </span>
                         </div>
                     </div>

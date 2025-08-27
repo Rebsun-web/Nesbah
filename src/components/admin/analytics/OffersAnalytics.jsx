@@ -6,13 +6,13 @@ import {
     CheckCircleIcon, 
     XCircleIcon, 
     ClockIcon,
-    TrendingUpIcon,
     BanknotesIcon,
     StarIcon,
     UserGroupIcon,
     CurrencyDollarIcon,
     ChartBarIcon
 } from '@heroicons/react/24/outline'
+import { ArrowUpIcon, CalendarIcon } from '@heroicons/react/24/outline'
 import { animatedNumber } from '@/components/animated-number'
 
 export default function OffersAnalytics() {
@@ -296,7 +296,7 @@ export default function OffersAnalytics() {
                                     {bank_response_time.avg_bank_response_hours || 0} hours
                                 </p>
                             </div>
-                            <TrendingUpIcon className="h-8 w-8 text-green-500" />
+                            <ArrowUpIcon className="h-8 w-8 text-green-500" />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="text-center p-3 bg-green-50 rounded-lg">
@@ -496,7 +496,7 @@ export default function OffersAnalytics() {
             {/* Recent Activity */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <TrendingUpIcon className="h-5 w-5 mr-2 text-gray-500" />
+                    <ArrowUpIcon className="h-5 w-5 mr-2 text-gray-500" />
                     Recent Offer Activity
                 </h3>
                 <div className="overflow-x-auto">

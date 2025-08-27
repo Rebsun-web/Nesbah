@@ -11,41 +11,86 @@ import {
 } from '@headlessui/react'
 import { Bars3Icon, BellIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useRouter, usePathname } from 'next/navigation'
-
-const user = {
-    name: 'Tom Cook',
-    email: 'tom@example.com',
-    imageUrl: '/logo/blank_profile.png',
-}
-
-const navigation = [
-    { name: 'Dashboard', href: '/bankPortal' },
-    { name: 'History', href: '/bankPortal/bankHistory' },
-]
-
-const userNavigation = [,
-    { name: 'Sign out', action: 'logout' }, // updated here
-]
-
-function classNames(...classes) {
-    return classes.filter(Boolean).join(' ')
-}
+import { useState, useEffect } from 'react'
+import BankLogo from '@/components/BankLogo'
+import BankLogoUploadModal from '@/components/BankLogoUploadModal'
+import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
 
 export default function BankNavbar() {
     const router = useRouter()
     const pathname = usePathname()
+    const [userInfo, setUserInfo] = useState(null)
+    const [dropdownOpen, setDropdownOpen] = useState(false)
+    const [isLogoUploadModalOpen, setIsLogoUploadModalOpen] = useState(false)
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem('user')
+        
+        if (storedUser) {
+            try {
+                const parsedUser = JSON.parse(storedUser)
+                setUserInfo(parsedUser)
+            } catch (error) {
+                console.error('Error parsing user data:', error)
+            }
+        }
+    }, [])
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            const button = event.target.closest('button')
+            
+            if (dropdownOpen && !button?.closest('.relative')) {
+                setDropdownOpen(false)
+            }
+        }
+
+        document.addEventListener('click', handleClickOutside)
+        return () => document.removeEventListener('click', handleClickOutside)
+    }, [dropdownOpen])
+
+    const navigation = [
+        { name: 'Dashboard', href: '/bankPortal' },
+        { name: 'History', href: '/bankPortal/bankHistory' },
+    ]
+
+    const userNavigation = [
+        { name: 'Update Logo', action: 'updateLogo' },
+        { name: 'Sign out', action: 'logout' },
+    ]
+
+    function classNames(...classes) {
+        return classes.filter(Boolean).join(' ')
+    }
 
     const handleNavigation = (item) => {
         if (item.action === 'logout') {
             localStorage.removeItem('user')
             router.push('/login')
+        } else if (item.action === 'updateLogo') {
+            setIsLogoUploadModalOpen(true)
         } else if (item.href) {
             router.push(item.href)
         }
     }
 
+    const handleLogoUploadSuccess = async (newLogoUrl) => {
+        try {
+            // Update user info with new logo URL
+            if (userInfo) {
+                const updatedUserInfo = { ...userInfo, logo_url: newLogoUrl }
+                setUserInfo(updatedUserInfo)
+                localStorage.setItem('user', JSON.stringify(updatedUserInfo))
+            }
+        } catch (error) {
+            console.error('Error updating logo in navbar:', error)
+        }
+    }
+
     return (
-        <Disclosure as="nav" className="bg-[#1E1851]">
+        <>
+            <Disclosure as="nav" className="bg-[#1E1851]">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 justify-between">
                     <div className="flex">
@@ -68,9 +113,9 @@ export default function BankNavbar() {
                             {navigation.map((item) => {
                                 const isActive = pathname === item.href
                                 return (
-                                    <a
+                                    <button
                                         key={item.name}
-                                        href={item.href}
+                                        onClick={() => router.push(item.href)}
                                         aria-current={isActive ? 'page' : undefined}
                                         className={classNames(
                                             isActive
@@ -80,38 +125,69 @@ export default function BankNavbar() {
                                         )}
                                     >
                                         {item.name}
-                                    </a>
+                                    </button>
                                 )
                             })}
                         </div>
                     </div>
                     <div className="flex items-center">
                         <div className="hidden md:ml-4 md:flex md:shrink-0 md:items-center">
+                            {/* Bank information */}
+                            <div className="mr-4 text-white text-sm">
+                                {userInfo ? `Bank: ${userInfo.entity_name || userInfo.email || 'Unknown Bank'}` : 'No user data'}
+                            </div>
+
                             {/* Profile dropdown */}
-                            <Menu as="div" className="relative ml-3">
-                                <div>
-                                    <MenuButton className="relative flex rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
-                                        <span className="absolute -inset-1.5" />
-                                        <span className="sr-only">Open user menu</span>
-                                        <img alt="" src={user.imageUrl} className="size-8 rounded-full" />
-                                    </MenuButton>
-                                </div>
-                                <MenuItems
-                                    transition
-                                    className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition focus:outline-none data-[closed]:scale-95 data-[closed]:transform data-[closed]:opacity-0 data-[enter]:duration-200 data-[leave]:duration-75 data-[enter]:ease-out data-[leave]:ease-in"
+                            <div className="relative ml-3">
+                                <button 
+                                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                                    className="relative flex rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
                                 >
-                                    {userNavigation.map((item) => (
-                                        <MenuItem key={item.name}>
+                                    <span className="absolute -inset-1.5" />
+                                    <span className="sr-only">Open user menu</span>
+                                    {userInfo ? (
+                                        <>
+                                            {userInfo.logo_url ? (
+                                                <img
+                                                    src={userInfo.logo_url}
+                                                    alt={userInfo.entity_name}
+                                                    className="size-8 rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="size-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                                    <span className="text-white text-sm font-bold">
+                                                        {userInfo.entity_name ? userInfo.entity_name.charAt(0).toUpperCase() : 'B'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="size-8 rounded-full bg-gray-600 flex items-center justify-center">
+                                            <span className="text-white text-sm">?</span>
+                                        </div>
+                                    )}
+                                </button>
+                                
+                                {/* Simple dropdown menu */}
+                                {dropdownOpen && (
+                                    <div 
+                                        className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5"
+                                    >
+                                        {userNavigation.map((item) => (
                                             <button
-                                                onClick={() => handleNavigation(item)}
-                                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 data-[focus]:bg-gray-100 data-[focus]:outline-none"
+                                                key={item.name}
+                                                onClick={() => {
+                                                    handleNavigation(item)
+                                                    setDropdownOpen(false)
+                                                }}
+                                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                             >
                                                 {item.name}
                                             </button>
-                                        </MenuItem>
-                                    ))}
-                                </MenuItems>
-                            </Menu>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -124,8 +200,8 @@ export default function BankNavbar() {
                         return (
                             <DisclosureButton
                                 key={item.name}
-                                as="a"
-                                href={item.href}
+                                as="button"
+                                onClick={() => router.push(item.href)}
                                 aria-current={isActive ? 'page' : undefined}
                                 className={classNames(
                                     isActive
@@ -142,12 +218,19 @@ export default function BankNavbar() {
                 <div className="border-t border-gray-700 pb-3 pt-4">
                     <div className="flex items-center px-5 sm:px-6">
                         <div className="shrink-0">
-                            <img alt="" src={user.imageUrl} className="size-10 rounded-full" />
+                            {userInfo ? (
+                                <BankLogo
+                                    bankName={userInfo.entity_name}
+                                    logoUrl={userInfo.logo_url}
+                                    size="md"
+                                />
+                            ) : (
+                                <div className="size-10 rounded-full bg-gray-600 flex items-center justify-center">
+                                    <span className="text-white text-base">?</span>
+                                </div>
+                            )}
                         </div>
-                        <div className="ml-3">
-                            <div className="text-base font-medium text-white">{user.name}</div>
-                            <div className="text-sm font-medium text-gray-400">{user.email}</div>
-                        </div>
+
                         <button
                             type="button"
                             className="relative ml-auto shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
@@ -172,5 +255,15 @@ export default function BankNavbar() {
                 </div>
             </DisclosurePanel>
         </Disclosure>
+
+        {/* Logo Upload Modal */}
+        <BankLogoUploadModal
+            isOpen={isLogoUploadModalOpen}
+            onClose={() => setIsLogoUploadModalOpen(false)}
+            onUploadSuccess={handleLogoUploadSuccess}
+            currentLogoUrl={userInfo?.logo_url}
+            bankName={userInfo?.entity_name || 'Bank'}
+        />
+        </>
     )
 }

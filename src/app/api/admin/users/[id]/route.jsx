@@ -1,14 +1,35 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import AdminAuth from '@/lib/auth/admin-auth';
 
 // GET - Get user by ID
 export async function GET(req, { params }) {
     try {
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
+        }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
+
         const { id } = params;
         const { searchParams } = new URL(req.url);
         const user_type = searchParams.get('user_type') || 'business';
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             let query;
@@ -33,7 +54,7 @@ export async function GET(req, { params }) {
                         bu.contact_person_number,
                         bu.contact_info,
                         bu.store_url,
-                        bu.form_name,
+                        bu.legal_form,
                         bu.issue_date_gregorian,
                         bu.confirmation_date_gregorian,
                         bu.has_ecommerce,
@@ -51,7 +72,7 @@ export async function GET(req, { params }) {
                     GROUP BY bu.user_id, u.email, bu.trade_name, bu.cr_national_number, bu.cr_number, 
                              bu.registration_status, bu.address, bu.sector, bu.city, bu.cr_capital, 
                              bu.cash_capital, bu.in_kind_capital, bu.contact_person, bu.contact_person_number,
-                             bu.contact_info, bu.store_url, bu.form_name, bu.issue_date_gregorian, 
+                             bu.contact_info, bu.store_url, bu.legal_form, bu.issue_date_gregorian, 
                              bu.confirmation_date_gregorian, bu.has_ecommerce, bu.management_structure, 
                              bu.management_managers, bu.created_at, bu.updated_at
                 `;
@@ -131,6 +152,26 @@ export async function GET(req, { params }) {
 // PUT - Update user
 export async function PUT(req, { params }) {
     try {
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
+        }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
+
         const { id } = params;
         const body = await req.json();
         const { user_type, ...updateData } = body;
@@ -142,7 +183,7 @@ export async function PUT(req, { params }) {
             );
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             await client.query('BEGIN');
@@ -305,11 +346,31 @@ export async function PUT(req, { params }) {
 // DELETE - Delete user
 export async function DELETE(req, { params }) {
     try {
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
+        }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
+
         const { id } = params;
         const { searchParams } = new URL(req.url);
         const user_type = searchParams.get('user_type') || 'business';
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             await client.query('BEGIN');
@@ -391,7 +452,7 @@ export async function DELETE(req, { params }) {
                     (action, table_name, record_id, admin_user_id, details, timestamp)
                 VALUES ($1, $2, $3, $4, $5, NOW())
                 `,
-                ['DELETE', tableName, id, 1, JSON.stringify({ 
+                ['DELETE', tableName, id, adminUser.admin_id, JSON.stringify({ 
                     user_id: id, 
                     user_type,
                     user_details: userRecord 

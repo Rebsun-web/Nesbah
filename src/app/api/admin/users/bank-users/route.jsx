@@ -3,7 +3,7 @@ import pool from '@/lib/db'
 import AdminAuth from '@/lib/auth/admin-auth'
 
 export async function GET(request) {
-    const client = await pool.connect()
+    const client = await pool.connectWithRetry()
     
     try {
         // Verify admin authentication
@@ -12,25 +12,31 @@ export async function GET(request) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
         }
 
-        const adminUser = await AdminAuth.verifyToken(adminToken)
-        if (!adminUser) {
-            return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 })
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
         }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
         // Fetch all bank users
         const result = await client.query(`
             SELECT 
-                user_id,
-                email,
-                user_type,
-                created_at
-            FROM users 
-            WHERE user_type = 'bank_user'
-            ORDER BY email
+                u.user_id,
+                u.email,
+                u.user_type,
+                u.entity_name,
+                u.created_at
+            FROM users u
+            WHERE u.user_type = 'bank_user'
+            ORDER BY u.email
         `)
-
-        console.log('🔍 Bank users found:', result.rows.length)
-        console.log('🔍 Bank users data:', result.rows)
 
         return NextResponse.json({
             success: true,

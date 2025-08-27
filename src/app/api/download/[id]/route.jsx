@@ -16,11 +16,38 @@ export async function GET(_, { params }) {
 
         const { uploaded_document, uploaded_filename, uploaded_mimetype } = result.rows[0];
 
-        return new NextResponse(uploaded_document, {
+        // Convert base64 string back to buffer
+        let fileBuffer;
+        try {
+            if (typeof uploaded_document === 'string') {
+                // Handle base64 string
+                fileBuffer = Buffer.from(uploaded_document, 'base64');
+            } else if (Buffer.isBuffer(uploaded_document)) {
+                // Handle buffer directly
+                fileBuffer = uploaded_document;
+            } else {
+                throw new Error('Invalid document format');
+            }
+        } catch (bufferError) {
+            console.error('Buffer conversion error:', bufferError);
+            return new NextResponse('Invalid file format', { status: 400 });
+        }
+
+        // Set proper filename with fallback
+        const filename = uploaded_filename || `application_${id}_document`;
+        
+        // Set proper MIME type with fallback
+        const mimeType = uploaded_mimetype || 'application/octet-stream';
+
+        return new NextResponse(fileBuffer, {
             status: 200,
             headers: {
-                'Content-Type': uploaded_mimetype || 'application/octet-stream',
-                'Content-Disposition': `attachment; filename="${uploaded_filename || `application_${id}_file`}"`,
+                'Content-Type': mimeType,
+                'Content-Disposition': `attachment; filename="${filename}"`,
+                'Content-Length': fileBuffer.length.toString(),
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             },
         });
     } catch (err) {

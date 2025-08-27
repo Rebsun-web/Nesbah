@@ -1,34 +1,20 @@
-import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 import pool from '../db.cjs'
-
-// JWT secret key (should be in environment variables)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
-const JWT_EXPIRES_IN = '8h' // 8 hours
+import JWTUtils from './jwt-utils.js'
+import adminSessionManager from './admin-session.js'
 
 // MFA secret key
 const MFA_SECRET = process.env.MFA_SECRET || 'your-mfa-secret-key-change-in-production'
 
 export class AdminAuth {
-    // Generate JWT token for admin user
+    // Generate JWT token for admin user (using JWTUtils)
     static generateToken(adminUser) {
-        const payload = {
-            admin_id: adminUser.admin_id,
-            email: adminUser.email,
-            role: adminUser.role,
-            permissions: adminUser.permissions
-        }
-        
-        return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
+        return JWTUtils.generateAdminToken(adminUser)
     }
 
-    // Verify JWT token
+    // Verify JWT token (using JWTUtils)
     static verifyToken(token) {
-        try {
-            return jwt.verify(token, JWT_SECRET)
-        } catch (error) {
-            return null
-        }
+        return JWTUtils.verifyToken(token)
     }
 
     // Hash password
@@ -104,9 +90,7 @@ export class AdminAuth {
 
     // Authenticate admin user
     static async authenticateAdmin(email, password) {
-        const client = await pool.connect()
-        
-        try {
+        return await pool.withConnection(async (client) => {
             const result = await client.query(
                 'SELECT * FROM admin_users WHERE email = $1 AND is_active = true',
                 [email]
@@ -129,16 +113,21 @@ export class AdminAuth {
                 [adminUser.admin_id]
             )
             
-            return { success: true, adminUser }
-        } finally {
-            client.release()
-        }
+            // Generate JWT token instead of session (no database storage needed)
+            const token = JWTUtils.generateAdminToken(adminUser);
+            
+            return { 
+                success: true, 
+                adminUser,
+                token: token,
+                expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+            }
+        })
     }
 
-    // Get admin user by ID
+    // Get admin user by ID (database query - use sparingly)
     static async getAdminById(adminId) {
-        const client = await pool.connect()
-        
+        const client = await pool.connectWithRetry();
         try {
             const result = await client.query(
                 'SELECT admin_id, email, full_name, role, permissions, is_active FROM admin_users WHERE admin_id = $1',
@@ -147,8 +136,46 @@ export class AdminAuth {
             
             return result.rows[0] || null
         } finally {
-            client.release()
+            client.release();
         }
+    }
+
+    // Validate admin session (JWT-based, no database query)
+    static async validateAdminSession(token) {
+        try {
+            // Verify JWT token (no database query needed)
+            const decoded = JWTUtils.verifyToken(token);
+            
+            if (!decoded || decoded.user_type !== 'admin_user') {
+                return { valid: false, error: 'Invalid token' };
+            }
+            
+            // Return admin user from JWT payload (no database query)
+            return {
+                valid: true,
+                adminUser: {
+                    admin_id: decoded.admin_id,
+                    email: decoded.email,
+                    full_name: decoded.full_name,
+                    role: decoded.role,
+                    permissions: decoded.permissions,
+                    is_active: true
+                }
+            };
+        } catch (error) {
+            console.error('Admin session validation error:', error);
+            return { valid: false, error: 'Invalid token' };
+        }
+    }
+
+    // Refresh admin session
+    static refreshAdminSession(sessionId) {
+        return adminSessionManager.refreshSession(sessionId);
+    }
+
+    // Invalidate admin session (logout)
+    static async invalidateAdminSession(sessionId) {
+        return await adminSessionManager.invalidateSession(sessionId);
     }
 
     // Check if admin has permission
@@ -196,7 +223,7 @@ export class AdminAuth {
 
     // Create new admin user
     static async createAdminUser(adminData) {
-        const client = await pool.connect()
+        const client = await pool.connectWithRetry()
         
         try {
             const { email, password, full_name, role = 'admin', permissions = {} } = adminData
@@ -242,7 +269,7 @@ export class AdminAuth {
 
     // Update admin user
     static async updateAdminUser(adminId, updateData) {
-        const client = await pool.connect()
+        const client = await pool.connectWithRetry()
         
         try {
             const { email, full_name, role, permissions, is_active } = updateData
@@ -308,7 +335,7 @@ export class AdminAuth {
 
     // Change admin password
     static async changePassword(adminId, currentPassword, newPassword) {
-        const client = await pool.connect()
+        const client = await pool.connectWithRetry()
         
         try {
             // Get current password hash
@@ -346,7 +373,7 @@ export class AdminAuth {
 
     // Enable/disable MFA for admin user
     static async toggleMFA(adminId, enable) {
-        const client = await pool.connect()
+        const client = await pool.connectWithRetry()
         
         try {
             if (enable) {

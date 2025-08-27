@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import ExcelJS from 'exceljs';
+import { authenticateAPIRequest } from '@/lib/auth/api-auth';
 
 export async function GET(req) {
-    const bankUserId = req.headers.get('x-user-id');
-
-    if (!bankUserId) {
-        return NextResponse.json({ success: false, error: 'Missing bank user ID' }, { status: 400 });
+    // Authenticate the request
+    const authResult = await authenticateAPIRequest(req, 'bank_user');
+    if (!authResult.success) {
+        return NextResponse.json(
+            { success: false, error: authResult.error },
+            { status: authResult.status || 401 }
+        );
     }
+    
+    const bankUserId = authResult.user.user_id;
 
     try {
         const result = await pool.query(
@@ -31,7 +37,7 @@ export async function GET(req) {
                 bu.in_kind_capital,
                 bu.has_ecommerce,
                 bu.store_url,
-                bu.form_name,
+                bu.legal_form,
                 bu.issue_date_gregorian,
                 bu.management_structure,
                 bu.management_managers,
@@ -49,22 +55,23 @@ export async function GET(req) {
                 pa.contact_person_number as business_contact_telephone,
                 u.email as business_contact_email,
                 
-                -- Offer Information
-                ao.offer_device_setup_fee,
-                ao.offer_transaction_fee_mada,
-                ao.offer_transaction_fee_visa_mc,
-                ao.offer_settlement_time_mada,
-                ao.offer_comment,
-                ao.submitted_at as offer_submitted_at,
-                ao.status as offer_status
+                -- Approved Lead Information (from approved_leads table)
+                al.purchased_at,
+                al.offer_submitted_at,
+                al.offer_device_setup_fee,
+                al.offer_transaction_fee_mada,
+                al.offer_transaction_fee_visa_mc,
+                al.offer_settlement_time_mada,
+                al.offer_comment,
+                al.status as lead_status
                 
              FROM submitted_applications sa
              JOIN pos_application pa ON sa.application_id = pa.application_id
              JOIN business_users bu ON pa.user_id = bu.user_id
              JOIN users u ON bu.user_id = u.user_id
-             LEFT JOIN application_offers ao ON sa.id = ao.submitted_application_id AND ao.submitted_by_user_id = $1
+             JOIN approved_leads al ON al.application_id = sa.application_id AND al.bank_user_id = $1
              WHERE $1 = ANY(sa.purchased_by)
-             ORDER BY sa.submitted_at DESC`,
+             ORDER BY al.purchased_at DESC`,
             [bankUserId]
         );
 
@@ -93,7 +100,7 @@ export async function GET(req) {
             { header: 'In-Kind Capital', key: 'in_kind_capital', width: 15 },
             { header: 'Has E-commerce', key: 'has_ecommerce', width: 15 },
             { header: 'Store URL', key: 'store_url', width: 30 },
-            { header: 'Form Name', key: 'form_name', width: 25 },
+            { header: 'Legal Form', key: 'legal_form', width: 25 },
             { header: 'Issue Date', key: 'issue_date_gregorian', width: 15 },
             { header: 'Management Structure', key: 'management_structure', width: 25 },
             { header: 'Management Managers', key: 'management_managers', width: 30 },
@@ -110,14 +117,15 @@ export async function GET(req) {
             { header: 'Contact Telephone', key: 'business_contact_telephone', width: 20 },
             { header: 'Contact Email', key: 'business_contact_email', width: 30 },
             
-            // Offer Information
+            // Approved Lead Information
+            { header: 'Purchased Date', key: 'purchased_at', width: 20 },
+            { header: 'Offer Submitted Date', key: 'offer_submitted_at', width: 20 },
             { header: 'Device Setup Fee', key: 'offer_device_setup_fee', width: 20 },
             { header: 'Mada Transaction Fee', key: 'offer_transaction_fee_mada', width: 20 },
             { header: 'Visa/MC Transaction Fee', key: 'offer_transaction_fee_visa_mc', width: 25 },
             { header: 'Mada Settlement Time', key: 'offer_settlement_time_mada', width: 20 },
             { header: 'Offer Comment', key: 'offer_comment', width: 30 },
-            { header: 'Offer Submitted Date', key: 'offer_submitted_at', width: 20 },
-            { header: 'Offer Status', key: 'offer_status', width: 15 }
+            { header: 'Lead Status', key: 'lead_status', width: 15 }
         ];
 
         // Add data rows
@@ -128,6 +136,7 @@ export async function GET(req) {
                 submitted_at: row.submitted_at ? new Date(row.submitted_at).toLocaleDateString() : '',
                 auction_end_time: row.auction_end_time ? new Date(row.auction_end_time).toLocaleDateString() : '',
                 issue_date_gregorian: row.issue_date_gregorian ? new Date(row.issue_date_gregorian).toLocaleDateString() : '',
+                purchased_at: row.purchased_at ? new Date(row.purchased_at).toLocaleDateString() : '',
                 offer_submitted_at: row.offer_submitted_at ? new Date(row.offer_submitted_at).toLocaleDateString() : '',
                 management_managers: Array.isArray(row.management_managers) ? row.management_managers.join(', ') : row.management_managers,
                 has_ecommerce: row.has_ecommerce ? 'Yes' : 'No',

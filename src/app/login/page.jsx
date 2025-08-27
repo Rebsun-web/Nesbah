@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/button';
 import { GradientBackground } from '@/components/gradient';
 import { Link } from '@/components/link';
@@ -12,8 +13,11 @@ import { Mark } from '@/components/logo';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { Navbar } from '@/components/navbar';
 import { Container } from '@/components/container';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
 export default function Login() {
+  const router = useRouter();
+  const { login: adminLogin } = useAdminAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,9 +57,15 @@ export default function Login() {
         console.log('Admin login response:', adminResponse.status, adminData);
 
         if (adminResponse.ok && adminData?.success) {
-          // Admin login successful
-          localStorage.setItem('adminUser', JSON.stringify(adminData.adminUser));
-          window.location.href = '/admin';
+          // Admin login successful - use AdminAuthContext
+          console.log('✅ Admin login successful, using AdminAuthContext');
+          const loginResult = await adminLogin({ email, password, mfaToken });
+          if (loginResult.success) {
+            return;
+          } else {
+            setModalMessage(loginResult.error || 'Admin login failed');
+            setIsModalOpen(true);
+          }
         } else {
           setModalMessage(adminData.error || 'Admin login failed');
           setIsModalOpen(true);
@@ -78,11 +88,11 @@ export default function Login() {
         localStorage.setItem('user', JSON.stringify(user));
 
         if (user.user_type === 'business_user') {
-          window.location.href = '/portal';
+          router.push('/portal');
         } else if (user.user_type === 'bank_user') {
-          window.location.href = '/bankPortal';
+          router.push('/bankPortal');
         } else if (user.user_type === 'admin_user') {
-          window.location.href = '/admin';
+          router.push('/admin');
         } else {
           console.warn('Unknown user_type:', user.user_type);
         }
@@ -98,9 +108,18 @@ export default function Login() {
         console.log('Admin login attempt:', adminResponse.status, adminData);
 
         if (adminResponse.ok && adminData?.success) {
-          // Admin login successful
-          localStorage.setItem('adminUser', JSON.stringify(adminData.adminUser));
-          window.location.href = '/admin';
+          // Admin login successful - use AdminAuthContext
+          console.log('✅ Admin login successful, using AdminAuthContext');
+          const loginResult = await adminLogin({ email, password });
+          console.log('🔧 Login result:', loginResult);
+          if (loginResult.success) {
+            console.log('✅ Login successful, redirecting to admin dashboard...');
+            router.push('/admin');
+            return;
+          } else {
+            setModalMessage(loginResult.error || 'Admin login failed');
+            setIsModalOpen(true);
+          }
         } else if (adminData?.requiresMFA) {
           // Admin requires MFA
           setRequiresMFA(true);
@@ -142,10 +161,20 @@ export default function Login() {
 
       const adminData = await adminResponse.json();
 
-      if (adminResponse.ok && adminData?.success) {
-        localStorage.setItem('adminUser', JSON.stringify(adminData.adminUser));
-        window.location.href = '/admin';
-      } else {
+              if (adminResponse.ok && adminData?.success) {
+          // MFA login successful - use AdminAuthContext
+          console.log('✅ MFA login successful, using AdminAuthContext');
+          const loginResult = await adminLogin({ email, password, mfaToken });
+          console.log('🔧 MFA Login result:', loginResult);
+          if (loginResult.success) {
+            console.log('✅ MFA Login successful, redirecting to admin dashboard...');
+            router.push('/admin');
+            return;
+          } else {
+            setModalMessage(loginResult.error || 'MFA login failed');
+            setIsModalOpen(true);
+          }
+        } else {
         setModalMessage(adminData.error || 'Invalid MFA token');
       }
     } catch (error) {

@@ -73,7 +73,7 @@ class CacheManager {
         }
 
         // Execute query
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             const result = await client.query(query, params);
             const data = result.rows;

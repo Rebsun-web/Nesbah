@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
     ArrowLeftIcon,
@@ -17,20 +17,45 @@ import ProtectedRoute from '@/components/admin/ProtectedRoute'
 export default function ApplicationDetail() {
     const params = useParams()
     const router = useRouter()
+    const resolvedParams = use(params)
     const [application, setApplication] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [isEditing, setIsEditing] = useState(false)
     const [editForm, setEditForm] = useState({})
+    const [timeRemaining, setTimeRemaining] = useState(null)
 
     useEffect(() => {
         fetchApplication()
-    }, [params.id])
+    }, [resolvedParams.id])
+
+    useEffect(() => {
+        if (application && application.status === 'live_auction' && application.auction_end_time) {
+            const updateTimeRemaining = () => {
+                const now = new Date()
+                const endTime = new Date(application.auction_end_time)
+                const diff = endTime - now
+                
+                if (diff <= 0) {
+                    setTimeRemaining('Expired')
+                } else {
+                    const hours = Math.floor(diff / (1000 * 60 * 60))
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+                    setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`)
+                }
+            }
+            
+            updateTimeRemaining()
+            const interval = setInterval(updateTimeRemaining, 1000)
+            return () => clearInterval(interval)
+        }
+    }, [application])
 
     const fetchApplication = async () => {
         try {
             setLoading(true)
-            const response = await fetch(`/api/admin/applications/${params.id}`, {
+            const response = await fetch(`/api/admin/applications/${resolvedParams.id}`, {
                 credentials: 'include'
             })
             const data = await response.json()
@@ -61,7 +86,7 @@ export default function ApplicationDetail() {
 
     const handleSave = async () => {
         try {
-            const response = await fetch(`/api/admin/applications/${params.id}`, {
+            const response = await fetch(`/api/admin/applications/${resolvedParams.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -101,7 +126,7 @@ export default function ApplicationDetail() {
         }
 
         try {
-            const response = await fetch(`/api/admin/applications/${params.id}`, {
+            const response = await fetch(`/api/admin/applications/${resolvedParams.id}`, {
                 method: 'DELETE',
                 credentials: 'include'
             })
@@ -120,31 +145,21 @@ export default function ApplicationDetail() {
 
     const getStatusInfo = (status) => {
         const statusConfig = {
-            'submitted': {
-                label: 'Submitted',
-                color: 'bg-blue-100 text-blue-800',
-                icon: ClockIcon
-            },
-            'pending_offers': {
+            'live_auction': {
                 label: 'Live Auction',
                 color: 'bg-yellow-100 text-yellow-800',
                 icon: ClockIcon
-            },
-            'purchased': {
-                label: 'Purchased',
-                color: 'bg-purple-100 text-purple-800',
-                icon: CheckCircleIcon
             },
             'completed': {
                 label: 'Completed',
                 color: 'bg-green-100 text-green-800',
                 icon: CheckCircleIcon
             },
-            'abandoned': {
-                label: 'Abandoned',
+            'ignored': {
+                label: 'Ignored',
                 color: 'bg-gray-100 text-gray-800',
                 icon: XCircleIcon
-            },
+            }
         }
         return statusConfig[status] || {
             label: status,
@@ -167,6 +182,25 @@ export default function ApplicationDetail() {
             color: 'bg-green-100 text-green-800',
             icon: CheckCircleIcon
         }
+    }
+
+    const formatDateTime = (dateString) => {
+        if (!dateString) return 'N/A'
+        const date = new Date(dateString)
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        })
+    }
+
+    const getAuctionStartTime = (endTime) => {
+        if (!endTime) return null
+        const end = new Date(endTime)
+        return new Date(end.getTime() - (48 * 60 * 60 * 1000)) // 48 hours before
     }
 
     if (loading) {
@@ -232,6 +266,7 @@ export default function ApplicationDetail() {
     const urgencyInfo = getUrgencyInfo(application.urgency_level)
     const StatusIcon = statusInfo.icon
     const UrgencyIcon = urgencyInfo.icon
+    const auctionStartTime = getAuctionStartTime(application.auction_end_time)
 
     return (
         <ProtectedRoute>
@@ -315,6 +350,29 @@ export default function ApplicationDetail() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Auction Timing - Only show for live auction applications */}
+                            {application.status === 'live_auction' && (
+                                <div className="bg-white rounded-lg shadow p-6">
+                                    <h2 className="text-lg font-medium text-gray-900 mb-4">Auction Timing</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Auction Start Time</label>
+                                            <p className="mt-1 text-sm text-gray-900">{formatDateTime(auctionStartTime)}</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Auction End Time</label>
+                                            <p className="mt-1 text-sm text-gray-900">{formatDateTime(application.auction_end_time)}</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Time Remaining</label>
+                                            <p className={`mt-1 text-sm font-medium ${timeRemaining === 'Expired' ? 'text-red-600' : 'text-green-600'}`}>
+                                                {timeRemaining || 'Calculating...'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Business Information */}
                             <div className="bg-white rounded-lg shadow p-6">

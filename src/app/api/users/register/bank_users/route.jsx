@@ -32,7 +32,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             await client.query('BEGIN');
 

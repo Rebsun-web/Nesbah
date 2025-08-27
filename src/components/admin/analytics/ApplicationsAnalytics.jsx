@@ -6,12 +6,12 @@ import {
     CheckCircleIcon, 
     XCircleIcon, 
     ClockIcon,
-    TrendingUpIcon,
     MapPinIcon,
     BuildingOfficeIcon,
     UserIcon,
     CalendarIcon
 } from '@heroicons/react/24/outline'
+import { ArrowUpIcon } from '@heroicons/react/24/outline'
 import { animatedNumber } from '@/components/animated-number'
 
 export default function ApplicationsAnalytics() {
@@ -187,7 +187,7 @@ export default function ApplicationsAnalytics() {
                         {by_status.map((status) => {
                             const percentage = Math.round((status.count / summary.total_applications) * 100)
                             const color = status.status === 'completed' ? 'bg-green-500' :
-                                         status.status === 'abandoned' ? 'bg-red-500' :
+                                         status.status === 'ignored' ? 'bg-red-500' :
                                          status.status === 'submitted' ? 'bg-yellow-500' : 'bg-gray-500'
                             
                             return (
@@ -388,7 +388,7 @@ export default function ApplicationsAnalytics() {
             {/* Recent Activity */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <TrendingUpIcon className="h-5 w-5 mr-2 text-gray-500" />
+                                                <ArrowUpIcon className="h-5 w-5 mr-2 text-gray-500" />
                     Recent Application Activity
                 </h3>
                 <div className="overflow-x-auto">
@@ -429,7 +429,7 @@ export default function ApplicationsAnalytics() {
                                         <span className={`
                                             inline-flex px-2 py-1 text-xs font-semibold rounded-full
                                             ${app.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                              app.status === 'abandoned' ? 'bg-red-100 text-red-800' :
+                                              app.status === 'ignored' ? 'bg-red-100 text-red-800' :
                                               'bg-yellow-100 text-yellow-800'}
                                         `}>
                                             {app.status}

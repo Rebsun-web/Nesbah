@@ -5,7 +5,7 @@ export class AnalyticsService {
      * Track when a bank views an application
      */
     static async trackApplicationView(applicationId, bankUserId) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             // Get auction start time for the application
             const appQuery = await client.query(
@@ -40,7 +40,7 @@ export class AnalyticsService {
      * Track when a bank submits an offer
      */
     static async trackOfferSubmission(applicationId, bankUserId, offerId) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             // Get the first view time for this bank and application
             const viewQuery = await client.query(
@@ -76,7 +76,7 @@ export class AnalyticsService {
      * Calculate and store daily metrics for a specific bank
      */
     static async calculateBankMetrics(bankUserId, date = new Date()) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             const dateStr = date.toISOString().split('T')[0];
             
@@ -154,7 +154,7 @@ export class AnalyticsService {
      * Calculate and store overall application conversion metrics
      */
     static async calculateOverallMetrics(date = new Date()) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             const dateStr = date.toISOString().split('T')[0];
             
@@ -164,8 +164,7 @@ export class AnalyticsService {
                     COUNT(DISTINCT sa.application_id) as total_applications,
                     COUNT(DISTINCT bav.application_id) as total_applications_viewed,
                     COUNT(DISTINCT bos.application_id) as total_offers_submitted,
-                    COUNT(DISTINCT CASE WHEN sa.status = 'approved_leads' THEN sa.application_id END) as total_applications_purchased,
-                    COUNT(DISTINCT CASE WHEN sa.status = 'complete' THEN sa.application_id END) as total_applications_completed,
+                    COUNT(DISTINCT CASE WHEN sa.status = 'completed' THEN sa.application_id END) as total_applications_purchased,
                     AVG(bav.time_to_open_minutes) as avg_time_to_first_offer_minutes,
                     COALESCE(SUM(ao.offer_amount), 0) as total_revenue
                 FROM submitted_applications sa
@@ -235,7 +234,7 @@ export class AnalyticsService {
      * Clean up temporary tracking data when auction ends
      */
     static async cleanupAuctionData(applicationId) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             // Delete tracking data for the completed auction
             await client.query(
@@ -257,7 +256,7 @@ export class AnalyticsService {
      * Get bank metrics for a specific date range
      */
     static async getBankMetrics(bankUserId, startDate, endDate) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             const result = await client.query(`
                 SELECT * FROM time_metrics 
@@ -276,7 +275,7 @@ export class AnalyticsService {
      * Get overall conversion metrics for a date range
      */
     static async getOverallMetrics(startDate, endDate) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             const result = await client.query(`
                 SELECT * FROM application_conversion_metrics 
@@ -294,7 +293,7 @@ export class AnalyticsService {
      * Get top performing banks by conversion rate
      */
     static async getTopPerformingBanks(limit = 10, date = new Date()) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             const dateStr = date.toISOString().split('T')[0];
             

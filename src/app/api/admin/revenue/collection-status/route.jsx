@@ -1,33 +1,46 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function GET(req) {
     try {
-        // TODO: Add admin authentication middleware
-        // const adminUser = await authenticateAdmin(req);
-        // if (!adminUser) {
-        //     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-        // }
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
+        }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
         const { searchParams } = new URL(req.url);
         const start_date = searchParams.get('start_date');
         const end_date = searchParams.get('end_date');
         const status = searchParams.get('status');
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             // Real-time revenue dashboard
-            const revenueQuery = `
+            let revenueQuery = `
                 SELECT 
                     SUM(sa.revenue_collected) as total_revenue,
                     COUNT(CASE WHEN sa.revenue_collected > 0 THEN 1 END) as revenue_generating_applications,
                     AVG(sa.revenue_collected) as avg_revenue_per_application,
                     COUNT(CASE WHEN sa.status = 'completed' THEN 1 END) as completed_applications,
-                    COUNT(CASE WHEN sa.status = 'abandoned' THEN 1 END) as abandoned_applications,
-                    COUNT(CASE WHEN sa.status = 'deal_expired' THEN 1 END) as expired_applications,
-                    COUNT(CASE WHEN sa.status = 'pending_offers' THEN 1 END) as active_auctions,
-                    COUNT(CASE WHEN sa.status = 'offer_received' THEN 1 END) as active_selections
+                    COUNT(CASE WHEN sa.status = 'ignored' THEN 1 END) as ignored_applications,
+                    COUNT(CASE WHEN sa.status = 'live_auction' THEN 1 END) as active_auctions
                 FROM submitted_applications sa
                 WHERE 1=1
             `;
@@ -50,7 +63,7 @@ export async function GET(req) {
             const revenueResult = await client.query(revenueQuery, revenueParams);
 
             // Revenue collection verification
-            const collectionQuery = `
+            let collectionQuery = `
                 SELECT 
                     ar.id,
                     ar.application_id,
@@ -105,8 +118,7 @@ export async function GET(req) {
                     SUM(sa.revenue_collected) as total_revenue,
                     AVG(sa.revenue_collected) as avg_revenue_per_purchase,
                     COUNT(CASE WHEN sa.status = 'completed' THEN 1 END) as successful_deals,
-                    COUNT(CASE WHEN sa.status = 'abandoned' THEN 1 END) as abandoned_deals,
-                    COUNT(CASE WHEN sa.status = 'deal_expired' THEN 1 END) as expired_deals
+                    COUNT(CASE WHEN sa.status = 'ignored' THEN 1 END) as ignored_deals
                 FROM submitted_applications sa
                 JOIN pos_application pa ON sa.application_id = pa.application_id
                 LEFT JOIN bank_users bu ON ANY(sa.purchased_by) = bu.user_id
@@ -120,20 +132,11 @@ export async function GET(req) {
             // Revenue optimization recommendations
             const optimizationQuery = `
                 SELECT 
-                    'abandoned_applications' as metric,
+                    'ignored_applications' as metric,
                     COUNT(*) as count,
                     'Applications with no bank engagement - consider marketing improvements' as recommendation
                 FROM submitted_applications 
-                WHERE status = 'abandoned'
-                
-                UNION ALL
-                
-                SELECT 
-                    'expired_selections' as metric,
-                    COUNT(*) as count,
-                    'Deals expired due to no selection - consider extending selection window' as recommendation
-                FROM submitted_applications 
-                WHERE status = 'deal_expired'
+                WHERE status = 'ignored'
                 
                 UNION ALL
                 
@@ -142,7 +145,7 @@ export async function GET(req) {
                     COUNT(*) as count,
                     'Applications with minimal bank engagement - review application quality' as recommendation
                 FROM submitted_applications 
-                WHERE status = 'pending_offers' 
+                WHERE status = 'live_auction' 
                 AND array_length(opened_by, 1) < 3
                 AND auction_end_time > NOW()
             `;
@@ -160,14 +163,14 @@ export async function GET(req) {
                     array_length(sa.offers_count, 1) as offers_count,
                     CASE 
                         WHEN array_length(sa.purchased_by, 1) > 0 AND sa.revenue_collected = 0 THEN 'payment_failure'
-                        WHEN array_length(sa.purchased_by, 1) = 0 AND sa.status = 'abandoned' THEN 'no_engagement'
+                        WHEN array_length(sa.purchased_by, 1) = 0 AND sa.status = 'ignored' THEN 'no_engagement'
                         ELSE 'normal'
                     END as issue_type
                 FROM submitted_applications sa
                 JOIN pos_application pa ON sa.application_id = pa.application_id
                 WHERE 
-                    (array_length(sa.purchased_by, 1) > 0 AND sa.revenue_collected = 0)
-                    OR (array_length(sa.purchased_by, 1) = 0 AND sa.status = 'abandoned')
+                                (array_length(sa.purchased_by, 1) > 0 AND sa.revenue_collected = 0)
+            OR (array_length(sa.purchased_by, 1) = 0 AND sa.status = 'ignored')
                 ORDER BY sa.created_at DESC
                 LIMIT 50
             `;

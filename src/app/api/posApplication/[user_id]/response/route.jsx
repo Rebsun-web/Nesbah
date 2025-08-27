@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function GET(req, { params }) {
-  const userId = params.user_id;
+  const userId = (await params).user_id;
 
   try {
-    const client = await pool.connect();
+    const client = await pool.connectWithRetry();
 
-    // Get business user's application ID
+    // Get business user's submitted application ID
     const { rows: applicationRows } = await client.query(
       `SELECT id FROM submitted_applications WHERE business_user_id = $1`,
       [userId]
@@ -35,10 +35,10 @@ export async function GET(req, { params }) {
     // Get all rejection reactions
     const { rows: rejections } = await client.query(
       `
-      SELECT ra.*, u.entity_name AS bank_name
-      FROM rejected_applications ra
-      JOIN users u ON ra.bank_user_id = u.id
-      WHERE ra.submitted_application_id = $1
+      SELECT ar.*, u.entity_name AS bank_name
+      FROM application_rejections ar
+      JOIN users u ON ar.bank_user_id = u.user_id
+      WHERE ar.submitted_application_id = $1
       `,
       [submittedApplicationId]
     );

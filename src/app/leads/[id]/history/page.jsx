@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
@@ -21,6 +21,7 @@ import {
 
 export default function LeadPage({ params }) {
     const router = useRouter()
+    const resolvedParams = use(params)
     const [application, setApplication] = useState(null)
     const [bankUser, setBankUser] = useState(null)
     const [isPurchased, setIsPurchased] = useState(false)
@@ -40,7 +41,7 @@ export default function LeadPage({ params }) {
     const fetchApplication = async () => {
         if (!bankUser || !bankUser.user_id) return;
 
-        const res = await fetch(`/api/leads/${params.id}`, {
+        const res = await fetch(`/api/leads/${resolvedParams.id}`, {
             headers: {
                 'x-user-id': bankUser.user_id,
             },
@@ -67,7 +68,7 @@ export default function LeadPage({ params }) {
 
     useEffect(() => {
         fetchApplication()
-    }, [bankUser, params.id])
+    }, [bankUser, resolvedParams.id])
 
     if (!application) {
         return <p className="px-4 py-6">Loading application...</p>

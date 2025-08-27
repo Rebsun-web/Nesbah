@@ -3,17 +3,25 @@ import AdminAuth from '@/lib/auth/admin-auth'
 
 export async function POST(req) {
     try {
-        // Authenticate the request
-        const authResult = await AdminAuth.authenticateRequest(req)
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
         
-        if (!authResult.success) {
-            return NextResponse.json(
-                { success: false, error: authResult.error },
-                { status: 401 }
-            )
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        const adminUser = authResult.adminUser
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
         // Enable MFA for the admin user
         const mfaResult = await AdminAuth.toggleMFA(adminUser.admin_id, true)

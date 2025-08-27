@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
@@ -17,24 +17,18 @@ import {
   CalendarIcon,
   ChevronLeftIcon,
 } from '@heroicons/react/16/solid'
-import LeadPurchasedModal from '@/components/LeadPurchasedModal';
-import ExitLead from '@/components/ExitLead';
-import RejectLeadSlide from '@/components/RejectLeadSlide';
 import OfferSentModal from '@/components/OfferSentModal';
 
 
 export default function LeadPage({ params }) {
   const router = useRouter()
+  const resolvedParams = use(params)
   const [application, setApplication] = useState(null)
   const [bankUser, setBankUser] = useState(null)
-  const [isPurchased, setIsPurchased] = useState(false)
-  const [showPurchasedModal, setShowPurchasedModal] = useState(false);
-  const [isRejectSlideOpen, setIsRejectSlideOpen] = useState(false);
-  const [showRejectedModal, setShowRejectedModal] = useState(false);
   const [showOfferSentModal, setShowOfferSentModal] = useState(false);
-  // Offer and rejection info state
+  // Offer info state
   const [submittedOffer, setSubmittedOffer] = useState(null);
-  const [rejectionInfo, setRejectionInfo] = useState(null);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
@@ -48,7 +42,7 @@ export default function LeadPage({ params }) {
   const fetchApplication = async () => {
     if (!bankUser || !bankUser.user_id) return
 
-    const res = await fetch(`/api/leads/${params.id}`, {
+    const res = await fetch(`/api/leads/${resolvedParams.id}`, {
       headers: {
         'x-user-id': bankUser.user_id,
       },
@@ -57,10 +51,6 @@ export default function LeadPage({ params }) {
     const data = await res.json()
     if (data.success) {
       setApplication(data.data)
-      setIsPurchased(
-        data.data.contact_info &&
-        Object.keys(data.data.contact_info).length > 0
-      )
       const offerByUser = Array.isArray(data.data.offer_data)
         ? data.data.offer_data.find(o => Number(o.submitted_by_user_id) === Number(bankUser.user_id))
         : null;
@@ -84,82 +74,28 @@ export default function LeadPage({ params }) {
             : null,
         });
       }
-      const rejectionByUser = Array.isArray(data.data.rejection_data)
-        ? data.data.rejection_data.find(r => Number(r.user_id) === Number(bankUser.user_id))
-        : null;
-      setRejectionInfo(rejectionByUser);
     }
   }
 
   useEffect(() => {
     fetchApplication()
-  }, [bankUser, params.id])
+  }, [bankUser, resolvedParams.id])
 
 
-  const handleBuy = async () => {
-    if (!bankUser?.user_id) return;
 
-    const formData = new FormData();
-    formData.append('action', 'approve');
-
-    const res = await fetch(`/api/leads/${params.id}/purchased_applications`, {
-      method: 'POST',
-      headers: {
-        'x-user-id': bankUser.user_id,
-      },
-      body: formData,
-    });
-
-    const result = await res.json();
-    if (result.success) {
-      setIsPurchased(true);
-      if (submittedOffer) {
-        setShowPurchasedModal(true);
-      }
-    } else {
-      console.error('❌ Failed to mark lead as purchased:', result.message);
-    }
-  }
-  // Handle back button click: always show exit modal if lead is purchased and no offer submitted
+  // Handle back button click: navigate back to bank portal
   const handleBackClick = () => {
-    if (isPurchased && !submittedOffer) {
-      setShowRejectedModal(true);
-    } else {
-      // Add a key-changing trick to force rerender
-      const timestamp = new Date().getTime();
-      router.push(`${window.location.pathname}?t=${timestamp}`);
-    }
-  };
-
-  const handleIgnore = async () => {
-    if (!bankUser?.user_id) return;
-    setIsRejectSlideOpen(true);
-  };
-
-  // Add the handleReject function
-  const handleReject = async (rejectionReason) => {
-    if (!bankUser?.user_id) return;
-    setIsRejectSlideOpen(true);
-
+    if (isNavigating) return; // Prevent multiple clicks
+    
+    setIsNavigating(true);
     try {
-      const res = await fetch(`/api/leads/${params.id}/ignored_applications`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': bankUser.user_id,
-        },
-        body: JSON.stringify({ reason: rejectionReason }),
-      });
-
-      const result = await res.json();
-      if (result.success) {
-        console.log('✅ Lead rejected successfully');
-        fetchApplication(); // Optionally refresh the state
-      } else {
-        console.error('❌ Failed to reject lead:', result.message);
-      }
+      router.push('/bankPortal');
     } catch (error) {
-      console.error('❌ Error rejecting lead:', error);
+      console.error('Navigation error:', error);
+      // Fallback to home page if bank portal fails
+      router.push('/');
+    } finally {
+      setIsNavigating(false);
     }
   };
 
@@ -174,6 +110,9 @@ export default function LeadPage({ params }) {
   });
 
   const [selectedFile, setSelectedFile] = useState(null);
+  const [feeAccepted, setFeeAccepted] = useState(false);
+  const [showFeeNotification, setShowFeeNotification] = useState(false);
+  const [showOfferForm, setShowOfferForm] = useState(false);
 
   const handleOfferChange = (e) => {
     const { name, value } = e.target;
@@ -191,6 +130,12 @@ export default function LeadPage({ params }) {
     e.preventDefault();
     if (!bankUser?.user_id) return;
 
+    // Show fee notification first if not already accepted
+    if (!feeAccepted) {
+      setShowFeeNotification(true);
+      return;
+    }
+
     const formData = new FormData();
     Object.entries(offerForm).forEach(([key, value]) => {
       // Don't append the file here, will append separately below.
@@ -205,7 +150,7 @@ export default function LeadPage({ params }) {
     formData.append('action', 'approve');
 
     try {
-      const res = await fetch(`/api/leads/${params.id}/purchased_applications`, {
+      const res = await fetch(`/api/leads/${resolvedParams.id}/purchased_applications`, {
         method: 'POST',
         headers: {
           'x-user-id': bankUser.user_id,
@@ -217,6 +162,8 @@ export default function LeadPage({ params }) {
       if (result.success) {
         console.log('✅ Offer submitted successfully');
         setShowOfferSentModal(true);
+        setShowOfferForm(false);
+        setFeeAccepted(false);
         fetchApplication(); // Refresh the lead info
       } else {
         console.error('❌ Failed to submit offer:', result.message);
@@ -224,6 +171,24 @@ export default function LeadPage({ params }) {
     } catch (error) {
       console.error('❌ Error submitting offer:', error);
     }
+  };
+
+  // New handler for starting offer submission
+  const handleStartOffer = () => {
+    setShowFeeNotification(true);
+  };
+
+  // Handler for accepting the fee
+  const handleAcceptFee = () => {
+    setFeeAccepted(true);
+    setShowFeeNotification(false);
+    setShowOfferForm(true);
+  };
+
+  // Handler for declining the fee
+  const handleDeclineFee = () => {
+    setShowFeeNotification(false);
+    setFeeAccepted(false);
   };
 
   if (!application) {
@@ -249,7 +214,7 @@ export default function LeadPage({ params }) {
       </div>
       <div className="lg:hidden">
         <button
-          key={`back-${isPurchased}-${!!submittedOffer}-${showRejectedModal}`}
+          key={`back-${!!submittedOffer}`}
           type="button"
           onClick={handleBackClick}
           className="inline-flex items-center gap-2 text-sm/6 text-zinc-500"
@@ -262,8 +227,8 @@ export default function LeadPage({ params }) {
       <div className="mt-4 lg:mt-8">
         <div className="flex items-center gap-4">
           <Heading>Application #{application.application_id}</Heading>
-          <Badge color={isPurchased ? 'lime' : 'rose'}>
-            {isPurchased ? 'Purchased' : 'Unopened'}
+          <Badge color="rose">
+            Live Auction
           </Badge>
         </div>
 
@@ -285,22 +250,14 @@ export default function LeadPage({ params }) {
             </span>
           </div>
 
-          {!isPurchased && (
-            <div className="flex gap-4">
-              <Button
-                onClick={handleBuy}
-                className="bg-gradient-to-r from-[#1E1851] to-[#4436B7] text-white"
-              >
-                Approve lead
-              </Button>
-              <Button
-                onClick={handleReject}
-                className="bg-gray-200 text-zinc-800"
-              >
-                Reject lead
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-4">
+            <Button
+              onClick={handleStartOffer}
+              className="bg-gradient-to-r from-[#1E1851] to-[#4436B7] text-white"
+            >
+              Submit Offer
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -366,33 +323,21 @@ export default function LeadPage({ params }) {
       <div className="mt-6">
         <Subheading>Contact Information</Subheading>
         <Divider className="mt-4" />
-        <DescriptionList>
-
-          <DescriptionTerm>Contact person</DescriptionTerm>
-          <DescriptionDetails>
-            {isPurchased ? application.contact_person || 'N/A' : 'Hidden'}
-          </DescriptionDetails>
-
-          <DescriptionTerm>Mobile number 1</DescriptionTerm>
-          <DescriptionDetails>
-            {isPurchased ? application.contact_person_number || 'N/A' : 'Hidden'}
-          </DescriptionDetails>
-
-          <DescriptionTerm>Mobile number 2</DescriptionTerm>
-          <DescriptionDetails>
-            {isPurchased ? contactInfo.mobileNo || 'N/A' : 'Hidden'}
-          </DescriptionDetails>
-
-          <DescriptionTerm>Email</DescriptionTerm>
-          <DescriptionDetails>
-            {isPurchased ? contactInfo.email || 'N/A' : 'Hidden'}
-          </DescriptionDetails>
-
-          <DescriptionTerm>Phone</DescriptionTerm>
-          <DescriptionDetails>
-            {isPurchased ? contactInfo.phoneNo || 'N/A' : 'Hidden'}
-          </DescriptionDetails>
-        </DescriptionList>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-800">
+                <strong>Personal information is hidden</strong><br />
+                Contact details and personal information are only available in your purchased leads history after submitting an offer.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Offer and rejection info sections */}
@@ -428,22 +373,8 @@ export default function LeadPage({ params }) {
         </div>
       )}
 
-      {rejectionInfo && (
-        <div className="mt-12">
-          <Subheading>Rejection Information</Subheading>
-          <Divider className="mt-4" />
-          <DescriptionList>
-            <DescriptionTerm>Rejection Reason</DescriptionTerm>
-            <DescriptionDetails>{rejectionInfo.reason || 'N/A'}</DescriptionDetails>
-            <DescriptionTerm>Rejected At</DescriptionTerm>
-            <DescriptionDetails>{new Date(rejectionInfo.created_at).toLocaleString()}</DescriptionDetails>
-          </DescriptionList>
-        </div>
-      )}
-
-      {isPurchased && (
+      {showOfferForm && (
         <div>
-          {console.log('📋 Current offerForm state:', offerForm)}
           <form onSubmit={handleSubmitOffer}>
             <div className="space-y-12 sm:space-y-16">
               <div className="py-12">
@@ -628,38 +559,48 @@ export default function LeadPage({ params }) {
           </form>
         </div>
       )}
-      {showPurchasedModal && (
-          <LeadPurchasedModal
-            onClose={() => {
-              setShowPurchasedModal(false);
-              window.location.reload();
-            }}
-            onComplete={() => {
-              setIsPurchased(true);
-              fetchApplication();
-            }}
-          />
-      )}
-      {isRejectSlideOpen && (
-        <RejectLeadSlide
-          open={isRejectSlideOpen}
-          onClose={() => setIsRejectSlideOpen(false)}
-          leadId={params.id}
-          userId={bankUser?.user_id}
-        />
-      )}
+
       {showOfferSentModal && (
         <OfferSentModal onClose={() => setShowOfferSentModal(false)} />
       )}
-      {showRejectedModal && (
-        <ExitLead
-          onClose={() => setShowRejectedModal(false)}
-          onConfirmLeave={() => {
-            setShowRejectedModal(false);
-            setTimeout(() => router.back(), 10);
-          }}
-        />
-      )}
+        {showFeeNotification && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md">
+              <div className="text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
+                  <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-gray-900">Important Fee Notice</h3>
+                <div className="mt-2 text-sm text-gray-600">
+                  <p className="mb-3">
+                    <strong>We charge a 3% fee from the total deal value</strong> when you submit an offer and it gets accepted.
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    This fee covers our platform services, lead verification, and business facilitation.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleDeclineFee}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Decline
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAcceptFee}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Accept & Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   )
 }

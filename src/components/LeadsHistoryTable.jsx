@@ -17,12 +17,21 @@ export default function LeadsHistoryTable({ data }) {
         router.push(`/leads/${applicationId}/history`);
     };
 
-    if (!data || data.length === 0) {
+    if (!data) {
         return (
-            <div className="text-center text-gray-500 py-10">
-                No application history found.
+            <div className="text-center py-8">
+                <p className="text-gray-500">Loading purchased leads...</p>
             </div>
-        )
+        );
+    }
+
+    if (data.length === 0) {
+        return (
+            <div className="text-center py-8">
+                <p className="text-gray-500">No purchased leads found.</p>
+                <p className="text-sm text-gray-400 mt-2">Submit offers on available leads to see them here.</p>
+            </div>
+        );
     }
 
     return (
@@ -33,12 +42,11 @@ export default function LeadsHistoryTable({ data }) {
                     <th className="bg-gray-100 px-4 py-3 text-start text-sm font-semibold text-gray-700">
                         Application ID
                     </th>
-                    <th className="bg-gray-100 px-4 py-4 text-start text-sm font-semibold text-gray-700">Purchased At
+                    <th className="bg-gray-100 px-4 py-4 text-start text-sm font-semibold text-gray-700">Business Name
                     </th>
-                    <th className="bg-gray-100 px-4 py-3 text-start text-sm font-semibold text-gray-700">Application
-                        Type
+                    <th className="bg-gray-100 px-4 py-3 text-start text-sm font-semibold text-gray-700">Offer Submitted
                     </th>
-                    <th className="bg-gray-100 px-4 py-3 text-start text-sm font-semibold text-gray-700">Status</th>
+                    <th className="bg-gray-100 px-4 py-3 text-start text-sm font-semibold text-gray-700">Application Status</th>
                 </tr>
                 </thead>
                 <TableBody>
@@ -50,15 +58,17 @@ export default function LeadsHistoryTable({ data }) {
                         >
                             <TableCell className="text-start">{lead.application_id}</TableCell>
                             <TableCell className="text-start">
-                                {lead.purchased_by_timestamps && user && lead.purchased_by_timestamps[user.user_id]
-                                    ? new Date(lead.purchased_by_timestamps[user.user_id]).toLocaleString()
+                                {lead.trade_name || 'N/A'}
+                            </TableCell>
+                            <TableCell className="text-start">
+                                {lead.offer_submitted_at 
+                                    ? new Date(lead.offer_submitted_at).toLocaleDateString()
                                     : 'N/A'}
                             </TableCell>
-                            <TableCell className="text-start" >POS Application</TableCell>
                             <TableCell className="text-start">
-                                {lead.purchased_by && lead.purchased_by.length > 0
-                                    ? 'Approved'
-                                    : 'Opened'}
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    Live Auction
+                                </span>
                             </TableCell>
                         </TableRow>
                     ))}

@@ -8,11 +8,16 @@ import { Heading } from '@/components/heading'
 import { Select } from '@/components/select'
 import StackedCard from '@/components/stackedCard'
 import BankLeadsTable from "@/components/BankLeadsTable"
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
+import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
+import BankLogoUploadModal from '@/components/BankLogoUploadModal'
+import { CameraIcon } from '@heroicons/react/24/outline'
 
 function BankPortal() {
     const [userInfo, setUserInfo] = useState(null)
     const [leads, setLeads] = useState([])
     const [stats, setStats] = useState(null)
+    const [isLogoUploadModalOpen, setIsLogoUploadModalOpen] = useState(false)
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user')
@@ -22,29 +27,34 @@ function BankPortal() {
         setUserInfo(user)
 
         // Fetch leads
-        fetch('/api/leads', {
-            headers: { 'x-user-id': user.user_id },
-        })
-            .then((res) => res.json())
+        makeAuthenticatedRequest('/api/leads')
+            .then((res) => res ? res.json() : null)
             .then((data) => {
-                if (data.success) {
+                if (data && data.success) {
                     setLeads(data.data)
                 }
             })
             .catch((err) => console.error('Failed to fetch leads:', err))
 
         // Fetch lead stats
-        fetch('/api/leads/stats', {
-            headers: { 'x-user-id': user.user_id }
-        })
-            .then((res) => res.json())
+        makeAuthenticatedRequest('/api/leads/stats')
+            .then((res) => res ? res.json() : null)
             .then((data) => {
                 console.log('Stats response:', data);  // 👈 Check this
-                if (data.success) {
+                if (data && data.success) {
                     setStats(data.data);
                 }
             });
     }, [])
+
+    const handleLogoUploadSuccess = (newLogoUrl) => {
+        // Update user info with new logo URL
+        if (userInfo) {
+            const updatedUserInfo = { ...userInfo, logo_url: newLogoUrl }
+            setUserInfo(updatedUserInfo)
+            localStorage.setItem('user', JSON.stringify(updatedUserInfo))
+        }
+    }
 
     return (
         <div className="overflow-hidden pb-32">
@@ -52,11 +62,15 @@ function BankPortal() {
             <div className="min-h-full">
                 <div className="pt-10">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                        <Heading>Welcome to Nesbah</Heading>
+                        <div className="flex items-center justify-between">
+                            <Heading>Welcome to Nesbah</Heading>
+                        </div>
                     </div>
+                    
+                    {/* Stats Section */}
                     <main>
                         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                            <div className=" grid gap-8 sm:grid-cols-2 xl:grid-cols-4">
+                            <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4">
                                 <Stat
                                     title="New leads"
                                     value={stats?.incoming_leads ?? '-'}
@@ -78,7 +92,6 @@ function BankPortal() {
                                     change="+0%"
                                 />
                             </div>
-
                         </div>
                     </main>
                 </div>
@@ -93,18 +106,29 @@ function BankPortal() {
                     <BankLeadsTable data={leads} />
                 </div>
             </div>
+
+            {/* Logo Upload Modal */}
+            <BankLogoUploadModal
+                isOpen={isLogoUploadModalOpen}
+                onClose={() => setIsLogoUploadModalOpen(false)}
+                onUploadSuccess={handleLogoUploadSuccess}
+                currentLogoUrl={userInfo?.logo_url}
+                bankName={userInfo?.entity_name || 'Bank'}
+            />
         </div>
     )
 }
 
 export default function BusinessDashboardPage() {
     return (
-        <div>
-            <main className="pb-32">
-                <BankNavbar />
-                <BankPortal />
-            </main>
-            <NewFooter />
-        </div>
+        <ProtectedRoute userType="bank_user" redirectTo="/login">
+            <div>
+                <main className="pb-32">
+                    <BankNavbar />
+                    <BankPortal />
+                </main>
+                <NewFooter />
+            </div>
+        </ProtectedRoute>
     )
 }

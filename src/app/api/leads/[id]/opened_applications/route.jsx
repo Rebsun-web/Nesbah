@@ -12,24 +12,24 @@ export async function POST(req) {
             )
         }
 
-        const client = await pool.connect()
+        const client = await pool.connectWithRetry()
         try {
             await client.query('BEGIN')
 
             // Step 1: Add bank_user_id to opened_by (if not already there)
             await client.query(
                 `
-        UPDATE submitted_applications
-        SET opened_by = (
-          CASE
-            WHEN NOT $2 = ANY(opened_by)
-              THEN array_append(opened_by, $2)
-            ELSE opened_by
-          END
-        ),
-        status = 'open'
-        WHERE application_id = $1
-        `,
+                UPDATE submitted_applications
+                SET opened_by = (
+                CASE
+                    WHEN NOT $2 = ANY(opened_by)
+                    THEN array_append(opened_by, $2)
+                    ELSE opened_by
+                END
+                ),
+
+                WHERE application_id = $1
+                `,
                 [application_id, bank_user_id]
             )
 

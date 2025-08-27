@@ -47,17 +47,13 @@ export default function UrgentApplications({ data }) {
                 label: 'Live Auction',
                 color: 'bg-yellow-100 text-yellow-800'
             },
-            'approved_leads': {
-                label: 'Approved Leads',
-                color: 'bg-purple-100 text-purple-800'
-            },
-            'complete': {
-                label: 'Complete',
-                color: 'bg-green-100 text-green-800'
-            },
             'ignored': {
                 label: 'Ignored',
                 color: 'bg-gray-100 text-gray-800'
+            },
+            'completed': {
+                label: 'Completed',
+                color: 'bg-green-100 text-green-800'
             }
         }
         return statusConfig[status] || {
@@ -179,7 +175,7 @@ export default function UrgentApplications({ data }) {
                                         View
                                     </button>
                                     <button
-                                        onClick={() => handleForceTransition(application.application_id, application.status, 'abandoned')}
+                                        onClick={() => handleForceTransition(application.application_id, application.status, 'ignored')}
                                         className="flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50"
                                     >
                                         <Cog6ToothIcon className="h-4 w-4 mr-2" />

@@ -64,7 +64,7 @@ if (!userResponse.ok) {
 src/app/login/page.jsx              # Unified login page
 src/components/LoginStatusModal.jsx  # Error/status modal
 src/contexts/AdminAuthContext.jsx    # Admin authentication context
-src/app/admin/login/page.jsx         # Redirects to main login
+# Admin login page removed - unified login system
 ```
 
 ### **API Endpoints**

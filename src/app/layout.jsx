@@ -1,4 +1,6 @@
 import '@/styles/tailwind.css'
+import '@/lib/server-init.js'
+import connectionManager from '@/lib/connection-manager'
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 
 export const metadata = {
@@ -9,6 +11,11 @@ export const metadata = {
 }
 
 export default function RootLayout({ children }) {
+  // Initialize connection manager on client side
+  if (typeof window !== 'undefined') {
+    connectionManager.init();
+  }
+
   return (
     <html lang="en">
       <head>

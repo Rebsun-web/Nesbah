@@ -1,8 +1,29 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function POST(req) {
     try {
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
+        }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
+
         const body = await req.json();
         const { 
             cr_national_number, 
@@ -16,7 +37,7 @@ export async function POST(req) {
             in_kind_capital,
             contact_info,
             store_url,
-            form_name,
+            legal_form,
             issue_date_gregorian,
             confirmation_date_gregorian,
             has_ecommerce,
@@ -111,7 +132,7 @@ export async function POST(req) {
             cash_capital: cash_capital || extractedData.cashCapital,
             in_kind_capital: in_kind_capital || extractedData.inKindCapital,
             contact_info: contact_info || extractedData.contactInfo,
-            form_name: form_name || extractedData.formName,
+            legal_form: legal_form || extractedData.formName,
             issue_date_gregorian: issue_date_gregorian || extractedData.issueDateGregorian,
             confirmation_date_gregorian: confirmation_date_gregorian || extractedData.confirmationDateGregorian,
             has_ecommerce: has_ecommerce !== undefined ? has_ecommerce : extractedData.hasEcommerce,
@@ -131,7 +152,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             await client.query('BEGIN');
 
@@ -140,7 +161,7 @@ export async function POST(req) {
                 `INSERT INTO business_users (
                     cr_national_number, cr_number, trade_name, address, sector, 
                     registration_status, cash_capital, in_kind_capital, contact_info, 
-                    store_url, form_name, issue_date_gregorian, confirmation_date_gregorian, 
+                    store_url, legal_form, issue_date_gregorian, confirmation_date_gregorian, 
                     has_ecommerce, management_structure, management_managers, cr_capital,
                     city, contact_person, contact_person_number
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
@@ -156,7 +177,7 @@ export async function POST(req) {
                     finalData.in_kind_capital,
                     finalData.contact_info ? JSON.stringify(finalData.contact_info) : null,
                     finalData.store_url,
-                    finalData.form_name,
+                    finalData.legal_form,
                     finalData.issue_date_gregorian,
                     finalData.confirmation_date_gregorian,
                     finalData.has_ecommerce,

@@ -4,20 +4,35 @@ import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function POST(req) {
     try {
-        // Admin authentication
-        const authResult = await AdminAuth.authenticateRequest(req);
-        if (!authResult.success) {
-            return NextResponse.json({ success: false, error: authResult.error }, { status: 401 });
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
         const body = await req.json();
         const {
             application_id,
             phase, // 'auction' or 'selection'
             extension_hours,
-            reason,
-            admin_user_id = 1 // TODO: Get from authenticated admin session
+            reason
         } = body;
+        
+        const admin_user_id = adminUser.admin_id;
 
         // Validate required fields
         if (!application_id || !phase || !extension_hours || !reason) {
@@ -43,7 +58,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             await client.query('BEGIN');
@@ -65,18 +80,18 @@ export async function POST(req) {
             const application = applicationQuery.rows[0];
 
             // Validate phase matches current status
-            if (phase === 'auction' && application.status !== 'pending_offers') {
+            if (phase === 'auction' && application.status !== 'live_auction') {
                 await client.query('ROLLBACK');
                 return NextResponse.json(
-                    { success: false, error: 'Can only extend auction deadline for applications in pending_offers status' },
+                    { success: false, error: 'Can only extend auction deadline for applications in live_auction status' },
                     { status: 400 }
                 );
             }
 
-            if (phase === 'selection' && application.status !== 'offer_received') {
+            if (phase === 'selection' && application.status !== 'completed') {
                 await client.query('ROLLBACK');
                 return NextResponse.json(
-                    { success: false, error: 'Can only extend selection deadline for applications in offer_received status' },
+                    { success: false, error: 'Can only extend selection deadline for applications in completed status' },
                     { status: 400 }
                 );
             }

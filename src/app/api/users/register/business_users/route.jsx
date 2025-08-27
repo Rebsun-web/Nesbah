@@ -51,45 +51,34 @@ export async function POST(req) {
             return NextResponse.json({ success: false, error: 'Registration status is not active. Cannot proceed.' }, { status: 403 });
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             await client.query('BEGIN');
 
+            // OPTIMIZED: Insert user and get user_id in one step
             const userRes = await client.query(
                 `INSERT INTO users (email, password, user_type) VALUES ($1, $2, $3) RETURNING user_id`,
                 [email, hashedPassword, 'business_user']
             );
             const user_id = userRes.rows[0].user_id;
 
+            // OPTIMIZED: Insert business user data with proper JSON handling
             await client.query(
                 `INSERT INTO business_users
                  (user_id, cr_number, cr_national_number, trade_name, address, sector, registration_status,
-                  cash_capital, in_kind_capital, contact_info, store_url, form_name, issue_date_gregorian,
-                  confirmation_date_gregorian, has_ecommerce, management_structure, management_managers,cr_capital)
+                  cash_capital, in_kind_capital, contact_info, store_url, legal_form, issue_date_gregorian,
+                  confirmation_date_gregorian, has_ecommerce, management_structure, management_managers, cr_capital)
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
                 [
-                    user_id,
-                    crNumber,
-                    crNationalNumber,
-                    trade_name,
-                    address,
-                    sector,
-                    registration_status,
-                    cashCapital,
-                    inKindCapital,
+                    user_id, crNumber, crNationalNumber, trade_name, address, sector, registration_status,
+                    cashCapital, inKindCapital, 
                     contactInfo ? JSON.stringify(contactInfo) : null,
-                    storeUrl,
-                    formName,
-                    issueDateGregorian,
-                    confirmationDateGregorian,
-                    hasEcommerce,
+                    storeUrl, formName, issueDateGregorian, confirmationDateGregorian, hasEcommerce,
                     managementStructure,
                     managementManagers ? JSON.stringify(managementManagers) : null,
-                    crCapital,
+                    crCapital
                 ]
             );
-
-
 
             await client.query('COMMIT');
             return NextResponse.json({ success: true, message: 'Business registered successfully' });

@@ -1,9 +1,30 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import bcrypt from 'bcrypt';
+import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function POST(req) {
     try {
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
+        }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
+
         const body = await req.json();
         const { 
             email, 
@@ -22,7 +43,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         try {
             await client.query('BEGIN');
 
@@ -57,7 +78,7 @@ export async function POST(req) {
                 `INSERT INTO admin_audit_log 
                     (action, table_name, record_id, admin_user_id, details, timestamp)
                  VALUES ($1, $2, $3, $4, $5, NOW())`,
-                ['CREATE', 'bank_users', user_id, 1, JSON.stringify({
+                ['CREATE', 'bank_users', user_id, adminUser.admin_id, JSON.stringify({
                     email,
                     entity_name,
                     credit_limit,

@@ -17,9 +17,6 @@ const nextConfig = {
     }
     return config;
   },
-  experimental: {
-    esmExternals: 'loose',
-  },
 }
 
 export default withFlowbiteReact(nextConfig)

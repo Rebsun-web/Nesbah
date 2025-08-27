@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react'
 import { 
     XMarkIcon,
     CheckIcon,
-    ExclamationTriangleIcon
+    ExclamationTriangleIcon,
+    ChevronDownIcon
 } from '@heroicons/react/24/outline'
+import BankLogo from '@/components/BankLogo'
 
 export default function EditApplicationModal({ isOpen, onClose, application, onSave }) {
     const [formData, setFormData] = useState({
@@ -23,6 +25,7 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [users, setUsers] = useState([])
+    const [userDropdownOpen, setUserDropdownOpen] = useState(false)
 
     useEffect(() => {
         if (isOpen && application) {
@@ -41,6 +44,18 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
             fetchUsers()
         }
     }, [isOpen, application])
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (userDropdownOpen && !event.target.closest('.user-dropdown')) {
+                setUserDropdownOpen(false)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [userDropdownOpen])
 
     const fetchUsers = async () => {
         try {
@@ -62,6 +77,15 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
             ...prev,
             [name]: value
         }))
+    }
+
+    const getSelectedUser = () => {
+        return users.find(user => user.user_id === formData.assigned_user_id)
+    }
+
+    const handleUserSelect = (userId) => {
+        setFormData(prev => ({ ...prev, assigned_user_id: userId }))
+        setUserDropdownOpen(false)
     }
 
     const handleSubmit = async (e) => {
@@ -135,8 +159,7 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                             >
                                 <option value="">Select Status</option>
                                 <option value="live_auction">Live Auction</option>
-                                <option value="approved_leads">Approved Leads</option>
-                                <option value="complete">Complete</option>
+                                <option value="completed">Completed</option>
                                 <option value="ignored">Ignored</option>
                             </select>
                         </div>
@@ -232,19 +255,66 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Assign to User
                                 </label>
-                                <select
-                                    name="assigned_user_id"
-                                    value={formData.assigned_user_id || ''}
-                                    onChange={handleInputChange}
-                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                    <option value="">Not Assigned</option>
-                                    {users.map(user => (
-                                        <option key={user.user_id} value={user.user_id}>
-                                            {user.trade_name || user.email}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="relative user-dropdown">
+                                    <button
+                                        type="button"
+                                        onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white text-left flex items-center justify-between"
+                                    >
+                                        {formData.assigned_user_id ? (
+                                            <div className="flex items-center space-x-3">
+                                                <BankLogo
+                                                    bankName={getSelectedUser()?.trade_name || getSelectedUser()?.entity_name}
+                                                    logoUrl={getSelectedUser()?.logo_url}
+                                                    size="sm"
+                                                />
+                                                <span className="text-gray-900">
+                                                    {getSelectedUser()?.trade_name || getSelectedUser()?.entity_name || getSelectedUser()?.email}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-500">Not Assigned</span>
+                                        )}
+                                        <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                                    </button>
+
+                                    {userDropdownOpen && (
+                                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleUserSelect(null)}
+                                                className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3 border-b border-gray-100"
+                                            >
+                                                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                                    <span className="text-gray-500 text-sm">—</span>
+                                                </div>
+                                                <span className="text-gray-500">Not Assigned</span>
+                                            </button>
+                                            {users.map(user => (
+                                                <button
+                                                    key={user.user_id}
+                                                    type="button"
+                                                    onClick={() => handleUserSelect(user.user_id)}
+                                                    className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-3 border-b border-gray-100 last:border-b-0"
+                                                >
+                                                    <BankLogo
+                                                        bankName={user.trade_name || user.entity_name}
+                                                        logoUrl={user.logo_url}
+                                                        size="sm"
+                                                    />
+                                                    <div>
+                                                        <div className="text-sm font-medium text-gray-900">
+                                                            {user.trade_name || user.entity_name || 'Unnamed Bank'}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500">
+                                                            {user.email}
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>

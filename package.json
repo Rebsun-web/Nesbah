@@ -10,11 +10,12 @@
     "typegen": "sanity schema extract --path=src/sanity/extract.json && sanity typegen generate && rm ./src/sanity/extract.json",
     "postinstall": "flowbite-react patch",
     "migrate": "node scripts/run-migration.js",
-    "status-transitions": "node scripts/run-status-transitions.js",
     "admin-migrate": "node scripts/run-admin-migration.js",
-    "background-jobs": "node scripts/start-background-jobs.js",
-    "event-monitor": "node scripts/start-event-monitor.js",
     "optimize-db": "node scripts/optimize-database.js",
+    "db-monitor": "node scripts/connection-monitor.js",
+    "db-cleanup": "node scripts/manage-db-connections.js cleanup",
+    "db-health": "node scripts/manage-db-connections.js health",
+    "db-check": "node scripts/quick-db-check.js",
     "pre-deploy": "npm run optimize-db && npm run build"
   },
   "dependencies": {
@@ -43,7 +44,7 @@
     "html2canvas": "^1.4.1",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.540.0",
-    "next": "14.2.11",
+    "next": "^15.5.2",
     "next-sanity": "^9.4.7",
     "node-cron": "^3.0.3",
     "pg": "^8.14.1",
@@ -53,17 +54,17 @@
     "react-use-measure": "^2.1.1",
     "styled-components": "^6.1.13",
     "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^3.4.17",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
     "eslint": "^8",
-    "eslint-config-next": "14.2.11",
+    "eslint-config-next": "^15.5.2",
     "postcss": "^8.4.40",
     "prettier": "^3.3.2",
     "prettier-plugin-organize-imports": "^4.0.0",
     "prettier-plugin-tailwindcss": "^0.6.5",
-    "tailwindcss": "^3.4.7",
     "typescript": "^5"
   }
 }

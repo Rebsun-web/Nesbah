@@ -105,6 +105,12 @@ export function BusinessInformation({ businessInfo }) {
           <div>
             <dt className="text-sm font-medium text-gray-900">Contact Info</dt>
             <dd className="mt-1 text-sm text-gray-700">
+              {businessInfo.contact_person && (
+                  <div>Contact Person: {businessInfo.contact_person}</div>
+              )}
+              {businessInfo.contact_person_number && (
+                  <div>Contact Number: {businessInfo.contact_person_number}</div>
+              )}
               {businessInfo.contact_info?.email && (
                   <div>Email: {businessInfo.contact_info.email}</div>
               )}

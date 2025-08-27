@@ -1,10 +1,31 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import bcrypt from 'bcrypt';
+import AdminAuth from '@/lib/auth/admin-auth';
 
 // POST - Bulk operations (status update, deletion, creation)
 export async function POST(req) {
     try {
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
+        }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
+
         const body = await req.json();
         const { operation, user_ids, user_type, ...operationData } = body;
 
@@ -15,7 +36,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             await client.query('BEGIN');
@@ -69,7 +90,7 @@ export async function POST(req) {
                                 `INSERT INTO business_users (
                                     cr_national_number, cr_number, trade_name, address, sector, 
                                     registration_status, cash_capital, in_kind_capital, contact_info, 
-                                    store_url, form_name, issue_date_gregorian, confirmation_date_gregorian, 
+                                    store_url, legal_form, issue_date_gregorian, confirmation_date_gregorian, 
                                     has_ecommerce, management_structure, management_managers, cr_capital,
                                     city, contact_person, contact_person_number
                                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
@@ -85,7 +106,7 @@ export async function POST(req) {
                                     userData.in_kind_capital || null,
                                     userData.contact_info ? JSON.stringify(userData.contact_info) : null,
                                     userData.store_url || null,
-                                    userData.form_name || null,
+                                    userData.legal_form || null,
                                     userData.issue_date_gregorian || null,
                                     userData.confirmation_date_gregorian || null,
                                     userData.has_ecommerce || false,

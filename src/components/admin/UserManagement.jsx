@@ -19,6 +19,7 @@ import {
     ClockIcon
 } from '@heroicons/react/24/solid'
 import BankLogo from '@/components/BankLogo'
+import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
 
 export default function UserManagement() {
     const [users, setUsers] = useState([])
@@ -93,7 +94,11 @@ export default function UserManagement() {
                 params.append('search', searchTerm)
             }
 
-            const response = await fetch(`/api/admin/users?${params}`)
+            const response = await makeAuthenticatedRequest(`/api/admin/users?${params}`)
+            if (!response) {
+                setError('Authentication failed')
+                return
+            }
             const data = await response.json()
             
             if (data.success) {
@@ -356,10 +361,6 @@ export default function UserManagement() {
             {/* Header */}
             <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-                        <p className="text-gray-600">Manage business, individual, and bank users</p>
-                    </div>
                     <div className="flex gap-2">
                         <button
                             onClick={() => setShowBulkModal(true)}
@@ -881,11 +882,11 @@ function UserFormModal({ title, formData, setFormData, onSubmit, onClose }) {
                                     <h4 className="text-md font-medium text-gray-900 mb-4">Registration Details (Wathiq API)</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Form Name</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Legal Form</label>
                                             <input
                                                 type="text"
-                                                value={formData.form_name}
-                                                onChange={(e) => setFormData({ ...formData, form_name: e.target.value })}
+                                                value={formData.legal_form}
+                                                onChange={(e) => setFormData({ ...formData, legal_form: e.target.value })}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
@@ -1187,8 +1188,8 @@ function UserViewModal({ user, onClose }) {
                             <h4 className="text-md font-medium text-gray-900 mb-4">Business Registration Details (Wathiq API)</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Form Name</label>
-                                    <p className="text-sm text-gray-900">{user.form_name || 'N/A'}</p>
+                                    <label className="block text-sm font-medium text-gray-700">Legal Form</label>
+                                    <p className="text-sm text-gray-900">{user.legal_form || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Issue Date</label>

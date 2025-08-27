@@ -75,8 +75,6 @@ export default function UserStats() {
         switch (type) {
             case 'business':
                 return BuildingOfficeIcon
-            case 'individual':
-                return UsersIcon
             case 'bank':
                 return BanknotesIcon
             default:
@@ -88,8 +86,6 @@ export default function UserStats() {
         switch (type) {
             case 'business':
                 return 'bg-blue-500'
-            case 'individual':
-                return 'bg-purple-500'
             case 'bank':
                 return 'bg-green-500'
             default:
@@ -180,7 +176,7 @@ export default function UserStats() {
                     <h3 className="text-lg font-medium text-gray-900">Users by Type</h3>
                 </div>
                 <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {stats.by_type.map((typeStats) => {
                             const Icon = getTypeIcon(typeStats.user_type)
                             const color = getTypeColor(typeStats.user_type)

@@ -3,7 +3,7 @@ import pool from '@/lib/db';
 import { AnalyticsService } from '@/lib/analytics/analytics-service';
 
 export async function GET(req, { params }) {
-    const applicationId = parseInt(params.id);
+    const applicationId = parseInt((await params).id);
     const bankUserId = parseInt(req.headers.get('x-user-id'));
 
     console.log('🔍 Parsed applicationId:', applicationId);
@@ -13,7 +13,7 @@ export async function GET(req, { params }) {
         return NextResponse.json({ success: false, error: 'Missing bank user ID' }, { status: 400 });
     }
 
-    const client = await pool.connect();
+    const client = await pool.connectWithRetry();
 
     try {
         await client.query('BEGIN');
@@ -39,7 +39,7 @@ export async function GET(req, { params }) {
                 pa.contact_person, pa.contact_person_number, pa.number_of_pos_devices, pa.city_of_operation,
                 pa.own_pos_system, pa.submitted_at,
                 bu.trade_name, bu.registration_status, bu.cr_number, bu.cr_national_number,
-                bu.form_name, bu.issue_date_gregorian,
+                bu.legal_form, bu.issue_date_gregorian,
                 bu.address, bu.sector,
                 bu.has_ecommerce, bu.store_url, bu.cr_capital,
                 bu.cash_capital, bu.in_kind_capital,

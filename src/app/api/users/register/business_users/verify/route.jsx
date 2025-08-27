@@ -77,7 +77,7 @@ export async function POST(req) {
             cr_capital: data.crCapital,
             cash_capital: data?.capital?.stockCapital?.cashCapital ?? null,
             in_kind_capital: data?.capital?.stockCapital?.inKindCapital ?? null,
-            form_name: data?.entityType?.formName || null,
+            legal_form: data?.entityType?.formName || null,
             issue_date_gregorian: data?.issueDateGregorian || null,
             confirmation_date_gregorian: data?.status?.confirmationDate?.gregorian || null,
             has_ecommerce: data?.hasEcommerce || false,

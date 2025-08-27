@@ -4,20 +4,35 @@ import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function POST(req) {
     try {
-        // Admin authentication
-        const authResult = await AdminAuth.authenticateRequest(req);
-        if (!authResult.success) {
-            return NextResponse.json({ success: false, error: authResult.error }, { status: 401 });
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
         const body = await req.json();
         const {
             application_id,
             from_status,
             to_status,
-            reason,
-            admin_user_id = 1 // TODO: Get from authenticated admin session
+            reason
         } = body;
+        
+        const admin_user_id = adminUser.admin_id;
 
         // Validate required fields
         if (!application_id || !from_status || !to_status || !reason) {
@@ -29,9 +44,8 @@ export async function POST(req) {
 
         // Validate status transition
         const validTransitions = {
-            'live_auction': ['approved_leads', 'ignored'],
-            'approved_leads': ['complete', 'ignored'],
-            'complete': [],
+            'live_auction': ['completed', 'ignored'],
+            'completed': [], // Completed is a final state
             'ignored': ['live_auction'] // Allow reset
         };
 
@@ -42,7 +56,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             await client.query('BEGIN');
@@ -70,13 +84,10 @@ export async function POST(req) {
                 );
             }
 
-            // Update application status in tracking table
-            let updateQuery;
-            let updateParams;
-
+            // Update application status directly in all tables
             if (to_status === 'live_auction') {
                 // Reset to live_auction with new auction deadline
-                updateQuery = `
+                await client.query(`
                     UPDATE application_offer_tracking 
                     SET current_application_status = $1, 
                         application_window_end = NOW() + INTERVAL '48 hours',
@@ -87,13 +98,13 @@ export async function POST(req) {
                         offer_accepted_at = NULL,
                         offer_rejected_at = NULL
                     WHERE application_id = $2
-                `;
-                updateParams = [to_status, application_id];
+                `, [to_status, application_id]);
                 
                 // Also update submitted_applications table
                 await client.query(
                     `UPDATE submitted_applications 
-                     SET auction_end_time = NOW() + INTERVAL '48 hours',
+                     SET status = $1,
+                         auction_end_time = NOW() + INTERVAL '48 hours',
                          offers_count = 0,
                          revenue_collected = 0,
                          ignored_by = '{}',
@@ -102,48 +113,77 @@ export async function POST(req) {
                      WHERE application_id = $1`,
                     [application_id]
                 );
-            } else if (to_status === 'approved_leads') {
-                // Transition to purchased status
-                updateQuery = `
+                
+                // Update pos_application table
+                await client.query(
+                    `UPDATE pos_application SET status = $1 WHERE application_id = $2`,
+                    [to_status, application_id]
+                );
+                
+                // Log the status transition
+                await client.query(`
+                    INSERT INTO status_audit_log (application_id, from_status, to_status, admin_user_id, reason, timestamp)
+                    VALUES ($1, $2, $3, $4, $5, NOW())
+                `, [application_id, from_status, to_status, admin_user_id, reason]);
+                
+                console.log(`🔄 Application ${application_id} reset to live_auction with new 48-hour deadline`);
+            } else if (to_status === 'completed') {
+                // Transition to completed status
+                await client.query(`
                     UPDATE application_offer_tracking 
                     SET current_application_status = $1,
-                        purchased_at = NOW(),
                         offer_window_start = NOW(),
                         offer_window_end = NOW() + INTERVAL '24 hours'
                     WHERE application_id = $2
-                `;
-                updateParams = [to_status, application_id];
+                `, [to_status, application_id]);
                 
-                // Add 25 SAR revenue for purchased status and set has_been_purchased flag
+                // Update submitted_applications table
                 await client.query(
-                    `UPDATE submitted_applications 
-                     SET revenue_collected = COALESCE(revenue_collected, 0) + 25.00,
-                         has_been_purchased = TRUE
-                     WHERE application_id = $1`,
-                    [application_id]
+                    `UPDATE submitted_applications SET status = $1 WHERE application_id = $2`,
+                    [to_status, application_id]
                 );
                 
-                // Also update pos_application table
+                // Update pos_application table
                 await client.query(
-                    `UPDATE pos_application 
-                     SET revenue_collected = COALESCE(revenue_collected, 0) + 25.00 
-                     WHERE application_id = $1`,
-                    [application_id]
+                    `UPDATE pos_application SET status = $1 WHERE application_id = $2`,
+                    [to_status, application_id]
                 );
                 
-                console.log(`💰 Added 25 SAR revenue for manually purchased application ${application_id}`);
-            } else {
-                // Standard status update for other statuses
-                updateQuery = `
+                console.log(`✅ Application ${application_id} manually transitioned to completed`);
+                
+                // Log the status transition
+                await client.query(`
+                    INSERT INTO status_audit_log (application_id, from_status, to_status, admin_user_id, reason, timestamp)
+                    VALUES ($1, $2, $3, $4, $5, NOW())
+                `, [application_id, from_status, to_status, admin_user_id, reason]);
+            } else if (to_status === 'ignored') {
+                // Transition to ignored status
+                await client.query(`
                     UPDATE application_offer_tracking 
                     SET current_application_status = $1
                     WHERE application_id = $2
-                `;
-                updateParams = [to_status, application_id];
+                `, [to_status, application_id]);
+                
+                // Update submitted_applications table
+                await client.query(
+                    `UPDATE submitted_applications SET status = $1 WHERE application_id = $2`,
+                    [to_status, application_id]
+                );
+                
+                // Update pos_application table
+                await client.query(
+                    `UPDATE pos_application SET status = $1 WHERE application_id = $2`,
+                    [to_status, application_id]
+                );
+                
+                console.log(`❌ Application ${application_id} manually transitioned to ignored`);
+                
+                // Log the status transition
+                await client.query(`
+                    INSERT INTO status_audit_log (application_id, from_status, to_status, admin_user_id, reason, timestamp)
+                    VALUES ($1, $2, $3, $4, $5, NOW())
+                `, [application_id, from_status, to_status, admin_user_id, reason]);
             }
-
-            // Execute the update query
-            const updateResult = await client.query(updateQuery, updateParams);
             
             // If no rows were affected, it means there's no tracking record
             // Create one if it doesn't exist

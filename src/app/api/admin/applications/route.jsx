@@ -12,17 +12,18 @@ export async function GET(req) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Verify admin token
-        const decoded = AdminAuth.verifyToken(adminToken);
-        if (!decoded) {
-            return NextResponse.json({ success: false, error: 'Invalid admin token' }, { status: 401 });
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
         }
 
-        // Get admin user from database
-        const adminUser = await AdminAuth.getAdminById(decoded.admin_id);
-        if (!adminUser || !adminUser.is_active) {
-            return NextResponse.json({ success: false, error: 'Admin user not found or inactive' }, { status: 401 });
-        }
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get('page')) || 1;
@@ -34,7 +35,7 @@ export async function GET(req) {
         
         const offset = (page - 1) * limit;
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             // Build WHERE clause
@@ -97,10 +98,10 @@ export async function GET(req) {
                     pa.notes,
                     bu.trade_name as business_trade_name,
                     u.email as business_email,
-                    COALESCE(assigned_bu.trade_name, assigned_bank.entity_name) as assigned_trade_name,
+                    COALESCE(assigned_bu.trade_name, assigned_u.entity_name) as assigned_trade_name,
                     assigned_u.email as assigned_email,
                     assigned_u.user_type as assigned_user_type,
-                    COALESCE(assigned_bu.logo_url, assigned_bank.logo_url) as assigned_logo_url
+                    assigned_bank.logo_url as assigned_logo_url
                 FROM submitted_applications sa
                 JOIN pos_application pa ON sa.application_id = pa.application_id
                 JOIN business_users bu ON sa.business_user_id = bu.user_id
@@ -156,17 +157,18 @@ export async function POST(req) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Verify admin token
-        const decoded = AdminAuth.verifyToken(adminToken);
-        if (!decoded) {
-            return NextResponse.json({ success: false, error: 'Invalid admin token' }, { status: 401 });
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
         }
 
-        // Get admin user from database
-        const adminUser = await AdminAuth.getAdminById(decoded.admin_id);
-        if (!adminUser || !adminUser.is_active) {
-            return NextResponse.json({ success: false, error: 'Admin user not found or inactive' }, { status: 401 });
-        }
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
         const body = await req.json();
         const {
@@ -219,7 +221,7 @@ export async function POST(req) {
         // Clean up date fields - convert empty strings to null
         const cleanIssueDate = issue_date === '' ? null : issue_date
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             await client.query('BEGIN');

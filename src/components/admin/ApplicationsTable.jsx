@@ -17,6 +17,7 @@ import ViewApplicationModal from './ViewApplicationModal'
 import EditApplicationModal from './EditApplicationModal'
 import DeleteApplicationModal from './DeleteApplicationModal'
 import BankLogo from '@/components/BankLogo'
+import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
 
 export default function ApplicationsTable() {
     const [applications, setApplications] = useState([])
@@ -50,9 +51,14 @@ export default function ApplicationsTable() {
                 sortOrder
             })
 
-            const response = await fetch(`/api/admin/applications?${params}`, {
+            const response = await makeAuthenticatedRequest(`/api/admin/applications?${params}`, {
                 credentials: 'include'
             })
+            
+            if (!response) {
+                setError('Authentication failed')
+                return
+            }
             
             const data = await response.json()
             
@@ -125,20 +131,15 @@ export default function ApplicationsTable() {
                 color: 'bg-yellow-100 text-yellow-800',
                 icon: ClockIcon
             },
-            'approved_leads': {
-                label: 'Approved Leads',
-                color: 'bg-purple-100 text-purple-800',
-                icon: CheckCircleIcon
-            },
-            'complete': {
-                label: 'Complete',
-                color: 'bg-green-100 text-green-800',
-                icon: CheckCircleIcon
-            },
             'ignored': {
                 label: 'Ignored',
                 color: 'bg-gray-100 text-gray-800',
                 icon: XCircleIcon
+            },
+            'completed': {
+                label: 'Completed',
+                color: 'bg-green-100 text-green-800',
+                icon: CheckCircleIcon
             }
         }
         return statusConfig[status] || {
@@ -260,13 +261,9 @@ export default function ApplicationsTable() {
                                 className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="all">All Statuses</option>
-                                <option value="submitted">Submitted</option>
-                                <option value="pending_offers">Live Auction</option>
-                                <option value="purchased">Purchased</option>
-                                <option value="offer_received">Offer Received</option>
+                                <option value="live_auction">Live Auction</option>
+                                <option value="ignored">Ignored</option>
                                 <option value="completed">Completed</option>
-                                <option value="abandoned">Abandoned</option>
-                                <option value="deal_expired">Deal Expired</option>
                             </select>
                             <select
                                 value={`${sortBy}-${sortOrder}`}

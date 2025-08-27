@@ -14,6 +14,7 @@ import {
     MagnifyingGlassIcon,
     FunnelIcon
 } from '@heroicons/react/24/outline'
+import NewOfferModal from './NewOfferModal'
 
 export default function OfferManagement() {
     const [offers, setOffers] = useState([])
@@ -21,6 +22,7 @@ export default function OfferManagement() {
     const [error, setError] = useState(null)
     const [selectedOffer, setSelectedOffer] = useState(null)
     const [showModal, setShowModal] = useState(false)
+    const [showNewOfferModal, setShowNewOfferModal] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
     const [bankFilter, setBankFilter] = useState('all')
@@ -79,14 +81,23 @@ export default function OfferManagement() {
         }
     }
 
+    const handleNewOfferSuccess = (newOffer) => {
+        // Add the new offer to the list
+        setOffers(prev => [newOffer, ...prev])
+        // Close the modal
+        setShowNewOfferModal(false)
+    }
+
     const getStatusInfo = (status) => {
         switch (status) {
-            case 'active':
+            case 'submitted':
+                return { color: 'text-blue-600', bgColor: 'bg-blue-100', icon: <ClockIcon className="h-4 w-4" /> }
+            case 'accepted':
                 return { color: 'text-green-600', bgColor: 'bg-green-100', icon: <CheckCircleIcon className="h-4 w-4" /> }
-            case 'pending':
-                return { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: <ClockIcon className="h-4 w-4" /> }
             case 'rejected':
                 return { color: 'text-red-600', bgColor: 'bg-red-100', icon: <XCircleIcon className="h-4 w-4" /> }
+            case 'expired':
+                return { color: 'text-gray-600', bgColor: 'bg-gray-100', icon: <XCircleIcon className="h-4 w-4" /> }
             default:
                 return { color: 'text-gray-600', bgColor: 'bg-gray-100', icon: <ClockIcon className="h-4 w-4" /> }
         }
@@ -141,12 +152,11 @@ export default function OfferManagement() {
             {/* Header */}
             <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Offer Management</h2>
-                        <p className="text-gray-600">Manage bank offers and applications</p>
-                    </div>
                     <div className="flex items-center space-x-3">
-                        <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center">
+                        <button 
+                            onClick={() => setShowNewOfferModal(true)}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
+                        >
                             <PlusIcon className="h-4 w-4 mr-2" />
                             New Offer
                         </button>
@@ -172,9 +182,10 @@ export default function OfferManagement() {
                         className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     >
                         <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="pending">Pending</option>
+                        <option value="submitted">Submitted</option>
+                        <option value="accepted">Accepted</option>
                         <option value="rejected">Rejected</option>
+                        <option value="expired">Expired</option>
                     </select>
 
                     <select
@@ -420,6 +431,13 @@ export default function OfferManagement() {
                     </div>
                 </div>
             )}
+
+            {/* New Offer Modal */}
+            <NewOfferModal
+                isOpen={showNewOfferModal}
+                onClose={() => setShowNewOfferModal(false)}
+                onSuccess={handleNewOfferSuccess}
+            />
         </div>
     )
 }

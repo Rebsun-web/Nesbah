@@ -121,7 +121,7 @@ export default function RevenueMetrics({ data, detailed = false }) {
             color: 'bg-green-100 text-green-600'
         },
         {
-            name: 'Leads Sold',
+            name: 'Offers Submitted',
             value: revenueData.metrics?.revenue_generating_applications || 0,
             change: `${(revenueData.changes?.apps_change || 0) >= 0 ? '+' : ''}${(revenueData.changes?.apps_change || 0).toFixed(1)}%`,
             changeType: (revenueData.changes?.apps_change || 0) >= 0 ? 'positive' : 'negative',
@@ -129,7 +129,7 @@ export default function RevenueMetrics({ data, detailed = false }) {
             color: 'bg-blue-100 text-blue-600'
         },
         {
-            name: 'Lead Conversion Rate',
+            name: 'Offer Conversion Rate',
             value: `${revenueData.conversion_rate ? revenueData.conversion_rate.toFixed(1) : 0}%`,
             change: `${(revenueData.changes?.completed_change || 0) >= 0 ? '+' : ''}${(revenueData.changes?.completed_change || 0).toFixed(1)}%`,
             changeType: (revenueData.changes?.completed_change || 0) >= 0 ? 'positive' : 'negative',
@@ -138,9 +138,9 @@ export default function RevenueMetrics({ data, detailed = false }) {
         },
         {
             name: 'Revenue per Lead',
-            value: 'SAR 25.00',
-            change: 'Fixed',
-            changeType: 'positive',
+            value: `SAR ${(Number(revenueData.metrics?.avg_revenue_per_application) || 0).toFixed(2)}`,
+            change: `${(revenueData.changes?.avg_revenue_change || 0) >= 0 ? '+' : ''}${(revenueData.changes?.avg_revenue_change || 0).toFixed(1)}%`,
+            changeType: (revenueData.changes?.avg_revenue_change || 0) >= 0 ? 'positive' : 'negative',
             icon: ArrowTrendingUpIcon,
             color: 'bg-emerald-100 text-emerald-600'
         }
@@ -261,7 +261,7 @@ export default function RevenueMetrics({ data, detailed = false }) {
                                 <div className="text-2xl font-bold text-gray-900">
                                     {revenueData.daily_trend.reduce((sum, day) => sum + (Number(day.applications) || 0), 0)}
                                 </div>
-                                <div className="text-sm text-gray-600 font-medium">Total Leads</div>
+                                <div className="text-sm text-gray-600 font-medium">Total Applications</div>
                                 <div className="text-xs text-gray-500 mt-1">Applications sold</div>
                             </div>
                             <div className="text-center">

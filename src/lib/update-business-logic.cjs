@@ -42,12 +42,6 @@ async function updateBusinessLogic() {
             WHERE status = 'submitted';
         `);
 
-        await client.query(`
-            UPDATE pos_application 
-            SET status = 'live_auction' 
-            WHERE status = 'submitted';
-        `);
-
         // Change 'pending_offers' to 'live_auction'
         await client.query(`
             UPDATE submitted_applications 
@@ -55,36 +49,11 @@ async function updateBusinessLogic() {
             WHERE status = 'pending_offers';
         `);
 
-        await client.query(`
-            UPDATE pos_application 
-            SET status = 'live_auction' 
-            WHERE status = 'pending_offers';
-        `);
-
-        // Change 'purchased' and 'offer_received' to 'approved_leads'
+        // Change 'purchased' and 'offer_received' to 'completed'
         await client.query(`
             UPDATE submitted_applications 
-            SET status = 'approved_leads' 
+            SET status = 'completed' 
             WHERE status IN ('purchased', 'offer_received');
-        `);
-
-        await client.query(`
-            UPDATE pos_application 
-            SET status = 'approved_leads' 
-            WHERE status IN ('purchased', 'offer_received');
-        `);
-
-        // Change 'completed' to 'complete'
-        await client.query(`
-            UPDATE submitted_applications 
-            SET status = 'complete' 
-            WHERE status = 'completed';
-        `);
-
-        await client.query(`
-            UPDATE pos_application 
-            SET status = 'complete' 
-            WHERE status = 'completed';
         `);
 
         // Change 'abandoned' and 'deal_expired' to 'ignored'
@@ -93,24 +62,18 @@ async function updateBusinessLogic() {
             SET status = 'ignored' 
             WHERE status IN ('abandoned', 'deal_expired');
         `);
-
-        await client.query(`
-            UPDATE pos_application 
-            SET status = 'ignored' 
-            WHERE status IN ('abandoned', 'deal_expired');
-        `);
         
         // Handle any other statuses by converting them to 'ignored'
         await client.query(`
             UPDATE submitted_applications 
             SET status = 'ignored' 
-            WHERE status NOT IN ('live_auction', 'approved_leads', 'complete', 'ignored');
+            WHERE status NOT IN ('live_auction', 'completed', 'ignored');
         `);
 
         await client.query(`
             UPDATE pos_application 
             SET status = 'ignored' 
-            WHERE status NOT IN ('live_auction', 'approved_leads', 'complete', 'ignored');
+            WHERE status NOT IN ('live_auction', 'completed', 'ignored');
         `);
 
         // 3. Add auction_end_time column back for live_auction status
@@ -165,13 +128,13 @@ async function updateBusinessLogic() {
         await client.query(`
             ALTER TABLE submitted_applications 
             ADD CONSTRAINT submitted_applications_status_check 
-            CHECK (status IN ('live_auction', 'approved_leads', 'complete', 'ignored'));
+            CHECK (status IN ('live_auction', 'completed', 'ignored'));
         `);
 
         await client.query(`
             ALTER TABLE pos_application 
             ADD CONSTRAINT pos_application_status_check 
-            CHECK (status IN ('live_auction', 'approved_leads', 'complete', 'ignored'));
+            CHECK (status IN ('live_auction', 'completed', 'ignored'));
         `);
 
         await client.query('COMMIT');

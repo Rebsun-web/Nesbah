@@ -12,25 +12,26 @@ export async function GET(req, { params }) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Verify admin token
-        const decoded = AdminAuth.verifyToken(adminToken);
-        if (!decoded) {
-            return NextResponse.json({ success: false, error: 'Invalid admin token' }, { status: 401 });
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
         }
 
-        // Get admin user from database
-        const adminUser = await AdminAuth.getAdminById(decoded.admin_id);
-        if (!adminUser || !adminUser.is_active) {
-            return NextResponse.json({ success: false, error: 'Admin user not found or inactive' }, { status: 401 });
-        }
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
-        const applicationId = parseInt(params.id);
+        const applicationId = parseInt((await params).id);
         
         if (!applicationId || isNaN(applicationId)) {
             return NextResponse.json({ success: false, error: 'Invalid application ID' }, { status: 400 });
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             // Get application details
@@ -75,10 +76,10 @@ export async function GET(req, { params }) {
                     assigned_bu.trade_name as assigned_trade_name,
                     assigned_u.email as assigned_email,
                     CASE 
-                        WHEN sa.status = 'pending_offers' AND sa.auction_end_time <= NOW() + INTERVAL '1 hour' THEN 'auction_ending_soon'
-                        WHEN sa.status = 'offer_received' AND sa.offer_selection_end_time <= NOW() + INTERVAL '1 hour' THEN 'selection_ending_soon'
-                        WHEN sa.status = 'pending_offers' AND sa.auction_end_time <= NOW() THEN 'auction_expired'
-                        WHEN sa.status = 'offer_received' AND sa.offer_selection_end_time <= NOW() THEN 'selection_expired'
+                        WHEN sa.status = 'live_auction' AND sa.auction_end_time <= NOW() + INTERVAL '1 hour' THEN 'auction_ending_soon'
+                        WHEN sa.status = 'completed' AND sa.offer_selection_end_time <= NOW() + INTERVAL '1 hour' THEN 'selection_ending_soon'
+                        WHEN sa.status = 'live_auction' AND sa.auction_end_time <= NOW() THEN 'auction_expired'
+                        WHEN sa.status = 'completed' AND sa.offer_selection_end_time <= NOW() THEN 'selection_expired'
                         ELSE 'normal'
                     END as urgency_level
                 FROM submitted_applications sa
@@ -168,19 +169,20 @@ export async function PUT(req, { params }) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Verify admin token
-        const decoded = AdminAuth.verifyToken(adminToken);
-        if (!decoded) {
-            return NextResponse.json({ success: false, error: 'Invalid admin token' }, { status: 401 });
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
         }
 
-        // Get admin user from database
-        const adminUser = await AdminAuth.getAdminById(decoded.admin_id);
-        if (!adminUser || !adminUser.is_active) {
-            return NextResponse.json({ success: false, error: 'Admin user not found or inactive' }, { status: 401 });
-        }
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
-        const applicationId = parseInt(params.id);
+        const applicationId = parseInt((await params).id);
         
         if (!applicationId || isNaN(applicationId)) {
             return NextResponse.json({ success: false, error: 'Invalid application ID' }, { status: 400 });
@@ -211,7 +213,7 @@ export async function PUT(req, { params }) {
             }
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             await client.query('BEGIN');
@@ -239,8 +241,20 @@ export async function PUT(req, { params }) {
                 return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
             }
 
-            // Also update application_offer_tracking table if status is provided
+            // Also update application status in all tables if status is provided
             if (status) {
+                // Update submitted_applications table
+                await client.query(
+                    'UPDATE submitted_applications SET status = $1 WHERE application_id = $2',
+                    [status, applicationId]
+                );
+                
+                // Update pos_application table
+                await client.query(
+                    'UPDATE pos_application SET status = $1 WHERE application_id = $2',
+                    [status, applicationId]
+                );
+                
                 // Check if tracking record exists
                 const trackingCheck = await client.query(
                     'SELECT COUNT(*) as count FROM application_offer_tracking WHERE application_id = $1',
@@ -279,13 +293,13 @@ export async function PUT(req, { params }) {
                     `, [status, applicationId]);
                 }
                 
-                // Set has_been_purchased flag if status is 'purchased'
-                if (status === 'purchased') {
-                    await client.query(
-                        'UPDATE submitted_applications SET has_been_purchased = TRUE WHERE application_id = $1',
-                        [applicationId]
-                    );
-                }
+                // Log the status transition
+                await client.query(`
+                    INSERT INTO status_audit_log (application_id, from_status, to_status, admin_user_id, reason, timestamp)
+                    VALUES ($1, $2, $3, $4, $5, NOW())
+                `, [applicationId, 'unknown', status, adminUser.admin_id, 'Admin direct update']);
+                
+                console.log(`✅ Application ${applicationId} status updated to ${status} by admin`);
             }
 
             // Update POS application if fields provided
@@ -354,25 +368,26 @@ export async function DELETE(req, { params }) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Verify admin token
-        const decoded = AdminAuth.verifyToken(adminToken);
-        if (!decoded) {
-            return NextResponse.json({ success: false, error: 'Invalid admin token' }, { status: 401 });
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
         }
 
-        // Get admin user from database
-        const adminUser = await AdminAuth.getAdminById(decoded.admin_id);
-        if (!adminUser || !adminUser.is_active) {
-            return NextResponse.json({ success: false, error: 'Admin user not found or inactive' }, { status: 401 });
-        }
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
-        const applicationId = parseInt(params.id);
+        const applicationId = parseInt((await params).id);
         
         if (!applicationId || isNaN(applicationId)) {
             return NextResponse.json({ success: false, error: 'Invalid application ID' }, { status: 400 });
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             await client.query('BEGIN');

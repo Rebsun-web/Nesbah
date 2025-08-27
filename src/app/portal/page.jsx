@@ -11,10 +11,11 @@ import { ApplicationLimit } from '@/components/ApplicationLimit'
 import YourApplication from '@/components/YourApplication'
 import RejectionReaction from '@/components/RejectionReaction'
 import BankOffersDisplay from '@/components/BankOffersDisplay'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 import { useEffect, useState } from 'react'
 import ApplicationSubmittedModal from '@/components/ApplicationSubmittedModal'
-import ApprovedLeadReaction from '@/components/ApprovedLeadReaction'
+import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
 
 const tabs = [
     { name: 'POS finance', value: 'pos' },
@@ -54,7 +55,7 @@ function BusinessPortal() {
                     // Show notification for important status changes
                     if (application.status === 'completed') {
                         alert('✅ Congratulations! Your deal has been completed successfully.');
-                    } else if (application.status === 'abandoned') {
+                    } else if (application.status === 'ignored') {
                         alert('ℹ️ No banks submitted offers for your application. You can submit a new application if needed.');
                     }
                 } else {
@@ -63,14 +64,16 @@ function BusinessPortal() {
                 
                 setHasApplication(true);
                 
-                // Fetch additional application details if needed
-                if (application.application_id) {
-                    const detailsResponse = await fetch(`/api/leads/${application.application_id}`);
+            // Fetch additional application details if needed
+            if (application.application_id) {
+                const detailsResponse = await makeAuthenticatedRequest(`/api/leads/${application.application_id}`);
+                if (detailsResponse) {
                     const detailsData = await detailsResponse.json();
                     if (detailsData.success) {
                         setApplicationData(prev => ({ ...prev, ...detailsData.data }));
                     }
                 }
+            }
             } else {
                 setHasApplication(false);
                 setApplicationStatus(null);
@@ -93,13 +96,7 @@ function BusinessPortal() {
                 color: 'bg-yellow-100 text-yellow-800',
                 icon: '⏰'
             },
-            'approved_leads': {
-                label: 'Offers Received',
-                description: 'Banks have submitted offers for your application. You can view all offers.',
-                color: 'bg-purple-100 text-purple-800',
-                icon: '💰'
-            },
-            'complete': {
+            'completed': {
                 label: 'Deal Completed',
                 description: 'Your application has been successfully processed.',
                 color: 'bg-green-100 text-green-800',
@@ -128,10 +125,10 @@ function BusinessPortal() {
             setUserInfo(parsedUser);
 
             // Fetch business info
-            fetch(`/api/portal/client/${parsedUser.user_id}`)
-                .then(res => res.json())
+            makeAuthenticatedRequest(`/api/portal/client/${parsedUser.user_id}`)
+                .then(res => res ? res.json() : null)
                 .then(data => {
-                    if (data.success) {
+                    if (data && data.success) {
                         setBusinessInfo(data.data);
                     }
                 })
@@ -143,7 +140,7 @@ function BusinessPortal() {
             // Optimized polling: only poll if user has active application
             const interval = setInterval(() => {
                 if (hasApplication && applicationStatus && 
-                    ['live_auction', 'pending_offers', 'approved_leads'].includes(applicationStatus)) {
+                    ['live_auction'].includes(applicationStatus)) {
                     fetchApplicationData(parsedUser.user_id);
                 }
             }, 60000); // Increased to 60 seconds to reduce server load
@@ -164,7 +161,8 @@ function BusinessPortal() {
     };
 
     return (
-      <div className="overflow-hidden pb-32">
+      <ProtectedRoute userType="business_user" redirectTo="/login">
+        <div className="overflow-hidden pb-32">
         {isSubmitted && <ApplicationSubmittedModal />}
         <BusinessNavbar />
 
@@ -232,10 +230,13 @@ function BusinessPortal() {
                     </div>
                   )}
                   
-                  <YourApplication user={userInfo} />
-                  <BankOffersDisplay user={userInfo} />
-                  <ApprovedLeadReaction user={userInfo} />
-                  <RejectionReaction user={userInfo} />
+                  {/* Only show application-related components if user has submitted an application */}
+                  {hasApplication && (
+                    <div className="space-y-8">
+                      <YourApplication user={userInfo} />
+                      <BankOffersDisplay userInfo={userInfo} applicationStatus={applicationStatus} />
+                    </div>
+                  )}
 
                 </div>
                 {!hasApplication && (
@@ -302,6 +303,7 @@ function BusinessPortal() {
           </div>
         </div>
       </div>
+      </ProtectedRoute>
     )
 }
 

@@ -11,6 +11,7 @@ import {
     CalendarIcon,
     CurrencyDollarIcon
 } from '@heroicons/react/24/outline'
+import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
 
 export default function BoughtLeadsDisplay({ userInfo }) {
     const [purchasedLeads, setPurchasedLeads] = useState([])
@@ -27,9 +28,11 @@ export default function BoughtLeadsDisplay({ userInfo }) {
     const fetchPurchasedLeads = async () => {
         try {
             setLoading(true)
-            const response = await fetch('/api/leads/purchased', {
-                headers: { 'x-user-id': userInfo.user_id }
-            })
+            const response = await makeAuthenticatedRequest('/api/leads/purchased')
+            if (!response) {
+                setError('Authentication failed')
+                return
+            }
             const data = await response.json()
             
             if (data.success) {
@@ -48,9 +51,12 @@ export default function BoughtLeadsDisplay({ userInfo }) {
     const handleExportXLSX = async () => {
         try {
             setExporting(true)
-            const response = await fetch('/api/leads/purchased/export', {
-                headers: { 'x-user-id': userInfo.user_id }
-            })
+            const response = await makeAuthenticatedRequest('/api/leads/purchased/export')
+            
+            if (!response) {
+                setError('Authentication failed')
+                return
+            }
             
             if (response.ok) {
                 const blob = await response.blob()
@@ -63,7 +69,8 @@ export default function BoughtLeadsDisplay({ userInfo }) {
                 window.URL.revokeObjectURL(url)
                 document.body.removeChild(a)
             } else {
-                setError('Failed to export leads')
+                const errorData = await response.json()
+                setError(errorData.error || 'Failed to export leads')
             }
         } catch (err) {
             console.error('Export failed:', err)
@@ -80,13 +87,9 @@ export default function BoughtLeadsDisplay({ userInfo }) {
                 color: 'bg-yellow-100 text-yellow-800',
                 icon: '⏰'
             },
-            'approved_leads': {
-                label: 'Approved Leads',
-                color: 'bg-purple-100 text-purple-800',
-                icon: '💰'
-            },
-            'complete': {
-                label: 'Complete',
+
+            'completed': {
+                label: 'Completed',
                 color: 'bg-green-100 text-green-800',
                 icon: '✅'
             },

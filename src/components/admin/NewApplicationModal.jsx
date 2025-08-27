@@ -73,7 +73,7 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
                     trade_name: selectedUser.entity_name || '', // Fixed: was selectedUser.trade_name
                     cr_number: selectedUser.cr_number || '',
                     cr_national_number: selectedUser.cr_national_number || '',
-                    legal_form: selectedUser.form_name || '',
+                    legal_form: selectedUser.legal_form || '',
                     registration_status: selectedUser.registration_status || 'active',
                     issue_date: selectedUser.issue_date_gregorian || null, // Fixed: send null instead of empty string
                     city: selectedUser.city || selectedUser.address || '',

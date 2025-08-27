@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { authenticateAPIRequest } from '@/lib/auth/api-auth';
+import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function GET(req) {
     try {
-        // TODO: Add admin authentication middleware
-        // const adminUser = await authenticateAdmin(req);
-        // if (!adminUser) {
-        //     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-        // }
+        // Authenticate the request
+        const authResult = await authenticateAPIRequest(req, 'admin_user');
+        if (!authResult.success) {
+            return NextResponse.json(
+                { success: false, error: authResult.error },
+                { status: authResult.status || 401 }
+            );
+        }
 
         const { searchParams } = new URL(req.url);
         const user_type = searchParams.get('user_type'); // 'business', 'individual', 'bank'
@@ -19,7 +24,7 @@ export async function GET(req) {
 
         let client;
         try {
-            client = await pool.connect();
+            client = await pool.connectWithRetry();
             
             let query = '';
             const queryParams = [];
@@ -271,11 +276,25 @@ export async function GET(req) {
 
 export async function POST(req) {
     try {
-        // TODO: Add admin authentication middleware
-        // const adminUser = await authenticateAdmin(req);
-        // if (!adminUser) {
-        //     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-        // }
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
+        }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
         const body = await req.json();
         const {
@@ -284,9 +303,10 @@ export async function POST(req) {
             entity_name,
             first_name,
             last_name,
-            registration_status = 'active',
-            admin_user_id = 1 // TODO: Get from authenticated admin session
+            registration_status = 'active'
         } = body;
+        
+        const admin_user_id = adminUser.admin_id;
 
         // Validate required fields
         if (!user_type || !email) {
@@ -305,7 +325,7 @@ export async function POST(req) {
 
         let client;
         try {
-            client = await pool.connect();
+            client = await pool.connectWithRetry();
             
             await client.query('BEGIN');
 

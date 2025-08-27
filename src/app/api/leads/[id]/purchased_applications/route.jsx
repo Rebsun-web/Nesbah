@@ -3,7 +3,7 @@ import pool from '@/lib/db';
 import { AnalyticsService } from '@/lib/analytics/analytics-service';
 
 export async function POST(req, { params }) {
-    const applicationId = params.id;
+    const applicationId = (await params).id;
     const bankUserId = req.headers.get('x-user-id');
 
     if (!bankUserId) {
@@ -34,17 +34,33 @@ export async function POST(req, { params }) {
                 [applicationId, bankUserId, 25.00, 'lead_purchase']
             );
 
+            // Add to approved_leads table to track bank purchases
+            await pool.query(
+                `INSERT INTO approved_leads (application_id, bank_user_id, purchased_at)
+                 VALUES ($1, $2, NOW())
+                 ON CONFLICT (application_id, bank_user_id) DO NOTHING`,
+                [applicationId, bankUserId]
+            );
+
             // Update submitted_applications with purchase tracking
             await pool.query(
                 `UPDATE submitted_applications
                  SET
                      purchased_by = array_append(purchased_by, $1),
-                     revenue_collected = revenue_collected + $2
+                     revenue_collected = revenue_collected + $2,
+                     offers_count = offers_count + 1
                  WHERE application_id = $3`,
                 [bankUserId, 25.00, applicationId]
             );
 
-            // Keep pos_application status as 'live_auction' - don't change to 'approved_leads'
+            // Update the tracking table to mark this as purchased
+            await pool.query(`
+                UPDATE application_offer_tracking 
+                SET purchased_at = NOW()
+                WHERE application_id = $1 AND bank_user_id = $2
+            `, [applicationId, bankUserId]);
+
+            // Keep pos_application status as 'live_auction' - don't change to 'completed'
             // This allows multiple banks to purchase the same application
         }
 
@@ -124,7 +140,17 @@ export async function POST(req, { params }) {
                 // Don't fail the request if analytics tracking fails
             }
 
-            // The trigger will automatically update the tracking table with offer details
+            // Manually update the tracking table with offer details
+            await pool.query(`
+                UPDATE application_offer_tracking 
+                SET 
+                    offer_id = $1,
+                    offer_sent_at = NOW(),
+                    current_offer_status = 'submitted',
+                    offer_window_start = NOW(),
+                    offer_window_end = NOW() + INTERVAL '24 hours'
+                WHERE application_id = $2 AND bank_user_id = $3
+            `, [offerResult.rows[0].offer_id, applicationId, bankUserId]);
 
             // Update offers count in submitted_applications
             await pool.query(
@@ -134,25 +160,19 @@ export async function POST(req, { params }) {
               [applicationId]
             );
 
-            // Check if this is the first offer - if so, transition to approved_leads
-            const offersCountResult = await pool.query(
-              `SELECT offers_count FROM submitted_applications WHERE application_id = $1`,
-              [applicationId]
-            );
-
-            if (offersCountResult.rows[0]?.offers_count === 1) {
-              // First offer submitted - transition to approved_leads
-              await pool.query(
-                `UPDATE submitted_applications SET status = 'approved_leads' WHERE application_id = $1`,
-                [applicationId]
-              );
-              
-              await pool.query(
-                `UPDATE pos_application SET status = 'approved_leads' WHERE application_id = $1`,
-                [applicationId]
-              );
-            }
+            // Note: Application status remains 'live_auction' until auction period ends
+            // Status will be updated to 'completed' or 'ignored' after 48-hour auction period
+            console.log(`📝 Offer recorded for application #${applicationId} - status remains live_auction until auction ends`);
           }
+        }
+
+        // Check for expired auctions that need to be processed
+        try {
+            const { AuctionExpiryHandler } = await import('@/lib/auction-expiry-handler');
+            await AuctionExpiryHandler.handleExpiredAuctions();
+        } catch (error) {
+            console.error('❌ Error handling expired auctions:', error);
+            // Don't fail the request if auction expiry handling fails
         }
 
         return NextResponse.json({ success: true, message: 'Offer submitted or lead purchased.' });
@@ -163,7 +183,7 @@ export async function POST(req, { params }) {
 }
 
 export async function GET(req, { params }) {
-    const businessUserId = params.id;
+    const businessUserId = (await params).id;
 
     try {
         const result = await pool.query(

@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { withAdminSession, getAdminUserFromRequest } from '@/lib/auth/admin-session-middleware';
 
-export async function GET() {
+export const GET = withAdminSession(async (req) => {
     try {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
-            // Get user counts by type
+            // Get user counts by type (business and bank only)
             const userTypeStats = await client.query(`
                 SELECT 
                     'business' as user_type,
@@ -15,17 +16,6 @@ export async function GET() {
                     COUNT(CASE WHEN bu.registration_status = 'suspended' THEN 1 END) as suspended_count,
                     COUNT(CASE WHEN bu.registration_status = 'inactive' THEN 1 END) as inactive_count
                 FROM business_users bu
-                
-                UNION ALL
-                
-                SELECT 
-                    'individual' as user_type,
-                    COUNT(*) as count,
-                    COUNT(CASE WHEN u.account_status = 'active' THEN 1 END) as active_count,
-                    COUNT(CASE WHEN u.account_status = 'suspended' THEN 1 END) as suspended_count,
-                    COUNT(CASE WHEN u.account_status = 'inactive' THEN 1 END) as inactive_count
-                FROM individual_users iu
-                JOIN users u ON iu.national_id = u.entity_name
                 
                 UNION ALL
                 
@@ -39,22 +29,13 @@ export async function GET() {
                 JOIN users u ON bu.user_id = u.user_id
             `);
 
-            // Get recent user registrations (last 30 days)
+            // Get recent user registrations (last 30 days) - business and bank only
             const recentRegistrations = await client.query(`
                 SELECT 
                     'business' as user_type,
                     COUNT(*) as count
                 FROM business_users bu
                 JOIN users u ON bu.user_id = u.user_id
-                WHERE u.created_at >= NOW() - INTERVAL '30 days'
-                
-                UNION ALL
-                
-                SELECT 
-                    'individual' as user_type,
-                    COUNT(*) as count
-                FROM individual_users iu
-                JOIN users u ON iu.national_id = u.entity_name
                 WHERE u.created_at >= NOW() - INTERVAL '30 days'
                 
                 UNION ALL
@@ -83,15 +64,13 @@ export async function GET() {
                 LIMIT 10
             `);
 
-            // Get registration trends (last 12 months)
+            // Get registration trends (last 12 months) - business and bank only
             const registrationTrends = await client.query(`
                 SELECT 
                     DATE_TRUNC('month', all_users.created_at) as month,
                     COUNT(*) as count
                 FROM (
                     SELECT bu.user_id::text as user_id, u.created_at FROM business_users bu JOIN users u ON bu.user_id = u.user_id
-                    UNION ALL
-                    SELECT iu.national_id::text as user_id, u.created_at FROM individual_users iu JOIN users u ON iu.national_id = u.entity_name
                     UNION ALL
                     SELECT bu.user_id::text as user_id, u.created_at FROM bank_users bu JOIN users u ON bu.user_id = u.user_id
                 ) all_users
@@ -132,4 +111,4 @@ export async function GET() {
             { status: 500 }
         );
     }
-}
+});

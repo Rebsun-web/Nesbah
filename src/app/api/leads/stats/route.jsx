@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { authenticateAPIRequest } from '@/lib/auth/api-auth';
 
 export async function GET(req) {
-    const userId = req.headers.get('x-user-id');
-    if (!userId) {
+    // Authenticate the request
+    const authResult = await authenticateAPIRequest(req, 'bank_user');
+    if (!authResult.success) {
         return NextResponse.json(
-            { success: false, error: 'Missing user ID' },
-            { status: 400 }
+            { success: false, error: authResult.error },
+            { status: authResult.status || 401 }
         );
     }
+    
+    const userId = authResult.user.user_id;
 
     try {
         // Optimized single query instead of multiple subqueries
@@ -16,10 +20,10 @@ export async function GET(req) {
             `
             WITH stats AS (
                 SELECT 
-                    COUNT(*) FILTER (WHERE status = 'pending_offers' 
+                    COUNT(*) FILTER (WHERE status IN ('live_auction')
                         AND NOT $1 = ANY(ignored_by) 
                         AND NOT $1 = ANY(purchased_by) 
-                        AND auction_end_time > NOW()) as incoming_leads,
+                        AND (auction_end_time IS NULL OR auction_end_time > NOW())) as incoming_leads,
                     COUNT(*) FILTER (WHERE $1 = ANY(purchased_by)) as purchased_leads,
                     COUNT(*) FILTER (WHERE $1 = ANY(ignored_by)) as ignored_leads,
                     COALESCE(SUM(amount), 0) as total_revenue

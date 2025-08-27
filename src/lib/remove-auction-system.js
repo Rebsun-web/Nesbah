@@ -1,7 +1,7 @@
 import pool from './db.js';
 
 export async function removeAuctionSystem() {
-    const client = await pool.connect();
+    const client = await pool.connectWithRetry();
     
     try {
         await client.query('BEGIN');

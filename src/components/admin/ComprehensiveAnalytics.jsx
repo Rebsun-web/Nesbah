@@ -228,7 +228,7 @@ export default function ComprehensiveAnalytics() {
                     {appStatus.map((status) => {
                         const percentage = appSummary.total_applications > 0 ? Math.round((status.count / appSummary.total_applications) * 100) : 0
                         const color = status.status === 'completed' ? 'bg-green-500' :
-                                     status.status === 'abandoned' ? 'bg-red-500' :
+                                     status.status === 'ignored' ? 'bg-red-500' :
                                      status.status === 'submitted' ? 'bg-yellow-500' : 'bg-gray-500'
                         
                         return (

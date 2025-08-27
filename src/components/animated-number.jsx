@@ -23,3 +23,6 @@ export function AnimatedNumber({ start, end, decimals = 0 }) {
 
   return <motion.span ref={ref}>{display}</motion.span>
 }
+
+// Export as animatedNumber for compatibility
+export const animatedNumber = AnimatedNumber;

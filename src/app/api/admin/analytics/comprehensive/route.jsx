@@ -11,24 +11,25 @@ export async function GET(req) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Verify admin token
-        const decoded = AdminAuth.verifyToken(adminToken);
-        if (!decoded) {
-            return NextResponse.json({ success: false, error: 'Invalid admin token' }, { status: 401 });
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
         }
 
-        // Get admin user from database
-        const adminUser = await AdminAuth.getAdminById(decoded.admin_id);
-        if (!adminUser || !adminUser.is_active) {
-            return NextResponse.json({ success: false, error: 'Admin user not found or inactive' }, { status: 401 });
-        }
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
         const { searchParams } = new URL(req.url);
         const startDate = searchParams.get('start_date') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days ago
         const endDate = searchParams.get('end_date') || new Date().toISOString().split('T')[0]; // today
         const bankUserId = searchParams.get('bank_user_id'); // optional filter
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
             // 1. Overall Conversion Metrics

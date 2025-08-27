@@ -41,14 +41,9 @@ export default function DashboardOverview({ data, loading }) {
                 color: 'bg-yellow-100 text-yellow-600',
                 bgColor: 'bg-yellow-50'
             },
-            'approved_leads': {
-                label: 'Approved Leads',
-                icon: CheckCircleIcon,
-                color: 'bg-purple-100 text-purple-600',
-                bgColor: 'bg-purple-50'
-            },
-            'complete': {
-                label: 'Complete',
+
+            'completed': {
+                label: 'Completed',
                 icon: CheckCircleIcon,
                 color: 'bg-green-100 text-green-600',
                 bgColor: 'bg-green-50'
@@ -58,7 +53,8 @@ export default function DashboardOverview({ data, loading }) {
                 icon: XCircleIcon,
                 color: 'bg-gray-100 text-gray-600',
                 bgColor: 'bg-gray-50'
-            }
+            },
+
         }
         
         return statusConfig[status] || {
@@ -80,7 +76,7 @@ export default function DashboardOverview({ data, loading }) {
         },
         {
             name: 'Completed Applications',
-            value: revenueAnalytics.completed_applications || 0,
+            value: statusCounts.find(s => s.status === 'completed')?.count || 0,
             change: '+8.2%',
             changeType: 'positive',
             icon: CheckCircleIcon,
@@ -88,7 +84,7 @@ export default function DashboardOverview({ data, loading }) {
         },
         {
             name: 'Active Auctions',
-            value: statusCounts.find(s => s.status === 'pending_offers')?.active_auctions || 0,
+            value: statusCounts.find(s => s.status === 'live_auction')?.count || 0,
             change: '-2.1%',
             changeType: 'negative',
             icon: ClockIcon,
@@ -96,7 +92,12 @@ export default function DashboardOverview({ data, loading }) {
         },
         {
             name: 'Conversion Rate',
-            value: `${((revenueAnalytics.completed_applications / (revenueAnalytics.completed_applications + (revenueAnalytics.abandoned_applications || 0) + (revenueAnalytics.expired_applications || 0))) * 100).toFixed(1)}%`,
+            value: (() => {
+                const completed = statusCounts.find(s => s.status === 'completed')?.count || 0;
+                const ignored = statusCounts.find(s => s.status === 'ignored')?.count || 0;
+                const total = completed + ignored;
+                return total > 0 ? `${((completed / total) * 100).toFixed(1)}%` : '0%';
+            })(),
             change: '+5.3%',
             changeType: 'positive',
             icon: ChartBarIcon,
@@ -152,55 +153,38 @@ export default function DashboardOverview({ data, loading }) {
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {statusCounts.map((status) => {
-                                const statusInfo = getStatusInfo(status.status)
-                                const Icon = statusInfo.icon
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {(() => {
+                                // Define the order we want to display statuses - only 3 statuses
+                                const statusOrder = ['live_auction', 'completed', 'ignored'];
                                 
-                                return (
-                                    <div key={status.status} className={`p-4 rounded-lg ${statusInfo.bgColor}`}>
-                                        <div className="flex items-center">
-                                            <div className={`p-2 rounded-lg ${statusInfo.color}`}>
-                                                <Icon className="h-5 w-5" />
-                                            </div>
-                                            <div className="ml-3 flex-1">
-                                                <p className="text-sm font-medium text-gray-900">{statusInfo.label}</p>
+                                // Create a map of status counts for easy lookup
+                                const statusCountMap = statusCounts.reduce((acc, status) => {
+                                    acc[status.status] = status;
+                                    return acc;
+                                }, {});
+                                
+                                // Render statuses in the specified order
+                                return statusOrder.map((statusKey) => {
+                                    const status = statusCountMap[statusKey];
+                                    if (!status) return null; // Skip if status doesn't exist
+                                    
+                                    const statusInfo = getStatusInfo(status.status)
+                                    const Icon = statusInfo.icon
+                                    
+                                    return (
+                                        <div key={status.status} className={`p-4 rounded-lg ${statusInfo.bgColor}`}>
+                                            <div className="flex flex-col items-center text-center">
+                                                <div className={`p-2 rounded-lg ${statusInfo.color} mb-2`}>
+                                                    <Icon className="h-5 w-5" />
+                                                </div>
+                                                <p className="text-sm font-medium text-gray-900 mb-1">{statusInfo.label}</p>
                                                 <p className="text-2xl font-bold text-gray-900">{status.count}</p>
                                             </div>
                                         </div>
-                                        
-                                        {status.status === 'pending_offers' && status.active_auctions !== undefined && (
-                                            <div className="mt-3 pt-3 border-t border-gray-200">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-600">Active Auctions</span>
-                                                    <span className="font-medium text-green-600">{status.active_auctions}</span>
-                                                </div>
-                                                {status.expired_auctions > 0 && (
-                                                    <div className="flex justify-between text-sm mt-1">
-                                                        <span className="text-gray-600">Expired</span>
-                                                        <span className="font-medium text-red-600">{status.expired_auctions}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                        
-                                        {status.status === 'offer_received' && status.active_selections !== undefined && (
-                                            <div className="mt-3 pt-3 border-t border-gray-200">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-600">Active Selections</span>
-                                                    <span className="font-medium text-green-600">{status.active_selections}</span>
-                                                </div>
-                                                {status.expired_selections > 0 && (
-                                                    <div className="flex justify-between text-sm mt-1">
-                                                        <span className="text-gray-600">Expired</span>
-                                                        <span className="font-medium text-red-600">{status.expired_selections}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
+                                    )
+                                })
+                            })()}
                         </div>
                     )}
                 </div>

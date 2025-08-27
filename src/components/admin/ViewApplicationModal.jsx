@@ -20,12 +20,36 @@ export default function ViewApplicationModal({ isOpen, onClose, applicationId })
     const [application, setApplication] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
+    const [timeRemaining, setTimeRemaining] = useState(null)
 
     useEffect(() => {
         if (isOpen && applicationId) {
             fetchApplication()
         }
     }, [isOpen, applicationId])
+
+    useEffect(() => {
+        if (application && application.status === 'live_auction' && application.auction_end_time) {
+            const updateTimeRemaining = () => {
+                const now = new Date()
+                const endTime = new Date(application.auction_end_time)
+                const diff = endTime - now
+                
+                if (diff <= 0) {
+                    setTimeRemaining('Expired')
+                } else {
+                    const hours = Math.floor(diff / (1000 * 60 * 60))
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+                    setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`)
+                }
+            }
+            
+            updateTimeRemaining()
+            const interval = setInterval(updateTimeRemaining, 1000)
+            return () => clearInterval(interval)
+        }
+    }, [application])
 
     const fetchApplication = async () => {
         try {
@@ -56,13 +80,8 @@ export default function ViewApplicationModal({ isOpen, onClose, applicationId })
                 color: 'bg-yellow-100 text-yellow-800',
                 icon: ExclamationTriangleIcon
             },
-            'approved_leads': {
-                label: 'Approved Leads',
-                color: 'bg-purple-100 text-purple-800',
-                icon: CheckCircleIcon
-            },
-            'complete': {
-                label: 'Complete',
+            'completed': {
+                label: 'Completed',
                 color: 'bg-green-100 text-green-800',
                 icon: CheckCircleIcon
             },
@@ -102,6 +121,25 @@ export default function ViewApplicationModal({ isOpen, onClose, applicationId })
             label: 'Normal',
             color: 'bg-green-100 text-green-800'
         }
+    }
+
+    const formatDateTime = (dateString) => {
+        if (!dateString) return 'N/A'
+        const date = new Date(dateString)
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        })
+    }
+
+    const getAuctionStartTime = (endTime) => {
+        if (!endTime) return null
+        const end = new Date(endTime)
+        return new Date(end.getTime() - (48 * 60 * 60 * 1000)) // 48 hours before
     }
 
     if (!isOpen) return null
@@ -163,6 +201,32 @@ export default function ViewApplicationModal({ isOpen, onClose, applicationId })
                                 </div>
                             </div>
                         </div>
+
+                        {/* Auction Timing - Only show for live auction applications */}
+                        {application.status === 'live_auction' && (
+                            <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                <h5 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                                    <ClockIcon className="h-5 w-5 mr-2" />
+                                    Auction Timing
+                                </h5>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Auction Start Time</label>
+                                        <p className="mt-1 text-sm text-gray-900">{formatDateTime(getAuctionStartTime(application.auction_end_time))}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Auction End Time</label>
+                                        <p className="mt-1 text-sm text-gray-900">{formatDateTime(application.auction_end_time)}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Time Remaining</label>
+                                        <p className={`mt-1 text-sm font-medium ${timeRemaining === 'Expired' ? 'text-red-600' : 'text-green-600'}`}>
+                                            {timeRemaining || 'Calculating...'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Business Information */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

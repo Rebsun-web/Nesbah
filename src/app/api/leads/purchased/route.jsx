@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { authenticateAPIRequest } from '@/lib/auth/api-auth';
 
 export async function GET(req) {
-    const bankUserId = req.headers.get('x-user-id');
-
-    if (!bankUserId) {
-        return NextResponse.json({ success: false, error: 'Missing bank user ID' }, { status: 400 });
+    // Authenticate the request
+    const authResult = await authenticateAPIRequest(req, 'bank_user');
+    if (!authResult.success) {
+        return NextResponse.json(
+            { success: false, error: authResult.error },
+            { status: authResult.status || 401 }
+        );
     }
+    
+    const bankUserId = authResult.user.user_id;
 
     try {
         const result = await pool.query(
@@ -30,7 +36,7 @@ export async function GET(req) {
                 bu.in_kind_capital,
                 bu.has_ecommerce,
                 bu.store_url,
-                bu.form_name,
+                bu.legal_form,
                 bu.issue_date_gregorian,
                 bu.management_structure,
                 bu.management_managers,
@@ -48,22 +54,23 @@ export async function GET(req) {
                 pa.contact_person_number as business_contact_telephone,
                 u.email as business_contact_email,
                 
-                -- Offer Information
-                ao.offer_device_setup_fee,
-                ao.offer_transaction_fee_mada,
-                ao.offer_transaction_fee_visa_mc,
-                ao.offer_settlement_time_mada,
-                ao.offer_comment,
-                ao.submitted_at as offer_submitted_at,
-                ao.status as offer_status
+                -- Approved Lead Information
+                al.purchased_at,
+                al.offer_submitted_at,
+                al.offer_device_setup_fee,
+                al.offer_transaction_fee_mada,
+                al.offer_transaction_fee_visa_mc,
+                al.offer_settlement_time_mada,
+                al.offer_comment,
+                al.status as lead_status
                 
              FROM submitted_applications sa
              JOIN pos_application pa ON sa.application_id = pa.application_id
              JOIN business_users bu ON pa.user_id = bu.user_id
              JOIN users u ON bu.user_id = u.user_id
-             LEFT JOIN application_offers ao ON sa.id = ao.submitted_application_id AND ao.submitted_by_user_id = $1
+             JOIN approved_leads al ON al.application_id = sa.application_id AND al.bank_user_id = $1
              WHERE $1 = ANY(sa.purchased_by)
-             ORDER BY sa.submitted_at DESC`,
+             ORDER BY al.purchased_at DESC`,
             [bankUserId]
         );
 

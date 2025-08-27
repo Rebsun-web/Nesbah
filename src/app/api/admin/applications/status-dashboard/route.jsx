@@ -1,42 +1,30 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import AdminAuth from '@/lib/auth/admin-auth';
+import { withAdminSession, getAdminUserFromRequest } from '@/lib/auth/admin-session-middleware';
 
-export async function GET(req) {
+export const GET = withAdminSession(async (req) => {
     try {
-        // Get admin token from cookies
-        const adminToken = req.cookies.get('admin_token')?.value;
+        console.log('🔧 StatusDashboard API: Request received')
         
-        if (!adminToken) {
-            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
-        }
+        // Get admin user from session (no database query needed)
+        const adminUser = getAdminUserFromRequest(req);
+        console.log('🔧 StatusDashboard API: Admin user from session:', adminUser.email)
 
-        // Verify admin token
-        const decoded = AdminAuth.verifyToken(adminToken);
-        if (!decoded) {
-            return NextResponse.json({ success: false, error: 'Invalid admin token' }, { status: 401 });
-        }
-
-        // Get admin user from database
-        const adminUser = await AdminAuth.getAdminById(decoded.admin_id);
-        if (!adminUser || !adminUser.is_active) {
-            return NextResponse.json({ success: false, error: 'Admin user not found or inactive' }, { status: 401 });
-        }
-
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry();
         
         try {
-            // Get real-time status counts with deadline information from tracking table
+            // Get real-time status counts with simplified status structure
             const statusCountsQuery = `
                 SELECT 
                     COALESCE(aot.current_application_status, sa.status) as status,
                     COUNT(DISTINCT sa.application_id) as count,
-                    COUNT(DISTINCT CASE WHEN aot.application_window_end > NOW() AND aot.current_application_status = 'pending_offers' THEN sa.application_id END) as active_auctions,
-                    COUNT(DISTINCT CASE WHEN aot.offer_window_end > NOW() AND aot.current_application_status = 'offer_received' THEN sa.application_id END) as active_selections,
-                    COUNT(DISTINCT CASE WHEN aot.application_window_end <= NOW() AND aot.current_application_status = 'pending_offers' THEN sa.application_id END) as expired_auctions,
-                    COUNT(DISTINCT CASE WHEN aot.offer_window_end <= NOW() AND aot.current_application_status = 'offer_received' THEN sa.application_id END) as expired_selections
+                    COUNT(DISTINCT CASE WHEN aot.application_window_end > NOW() AND aot.current_application_status = 'live_auction' THEN sa.application_id END) as active_auctions,
+                    COUNT(DISTINCT CASE WHEN aot.offer_window_end > NOW() AND aot.current_application_status = 'completed' THEN sa.application_id END) as active_selections,
+                    COUNT(DISTINCT CASE WHEN aot.application_window_end <= NOW() AND aot.current_application_status = 'live_auction' THEN sa.application_id END) as expired_auctions,
+                    COUNT(DISTINCT CASE WHEN aot.offer_window_end <= NOW() AND aot.current_application_status = 'completed' THEN sa.application_id END) as expired_selections
                 FROM submitted_applications sa
                 LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
+                WHERE COALESCE(aot.current_application_status, sa.status) IN ('live_auction', 'completed', 'ignored')
                 GROUP BY COALESCE(aot.current_application_status, sa.status)
                 ORDER BY COALESCE(aot.current_application_status, sa.status);
             `;
@@ -60,10 +48,8 @@ export async function GET(req) {
                 JOIN pos_application pa ON sa.application_id = pa.application_id
                 LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
                 WHERE 
-                    (COALESCE(aot.current_application_status, sa.status) = 'pending_offers' AND aot.application_window_end <= NOW() + INTERVAL '1 hour')
-                    OR (COALESCE(aot.current_application_status, sa.status) = 'offer_received' AND aot.offer_window_end <= NOW() + INTERVAL '1 hour')
-                    OR (COALESCE(aot.current_application_status, sa.status) = 'pending_offers' AND aot.application_window_end <= NOW())
-                    OR (COALESCE(aot.current_application_status, sa.status) = 'offer_received' AND aot.offer_window_end <= NOW())
+                    (COALESCE(aot.current_application_status, sa.status) = 'live_auction' AND aot.application_window_end <= NOW() + INTERVAL '1 hour')
+                    OR (COALESCE(aot.current_application_status, sa.status) = 'live_auction' AND aot.application_window_end <= NOW())
                 ORDER BY 
                     CASE 
                         WHEN aot.application_window_end <= NOW() THEN 1
@@ -77,21 +63,6 @@ export async function GET(req) {
 
             const urgentApplications = await client.query(urgentApplicationsQuery);
 
-            // Get revenue analytics
-            const revenueQuery = `
-                SELECT 
-                    (SELECT COUNT(*) * 25 FROM submitted_applications WHERE has_been_purchased = TRUE) as total_revenue,
-                    (SELECT COUNT(*) FROM submitted_applications WHERE has_been_purchased = TRUE) as revenue_generating_applications,
-                    25 as avg_revenue_per_application,
-                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'completed' THEN sa.application_id END) as completed_applications,
-                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'abandoned' THEN sa.application_id END) as abandoned_applications,
-                    COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'deal_expired' THEN sa.application_id END) as expired_applications
-                FROM submitted_applications sa
-                LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id;
-            `;
-
-            const revenueAnalytics = await client.query(revenueQuery);
-
             // Get bank engagement metrics
             const bankEngagementQuery = `
                 SELECT 
@@ -104,20 +75,31 @@ export async function GET(req) {
                     pa.trade_name
                 FROM submitted_applications sa
                 JOIN pos_application pa ON sa.application_id = pa.application_id
-                WHERE sa.status IN ('pending_offers', 'offer_received', 'completed')
+                WHERE sa.status IN ('live_auction', 'completed', 'ignored')
                 ORDER BY pa.submitted_at DESC
                 LIMIT 50;
             `;
 
             const bankEngagement = await client.query(bankEngagementQuery);
 
+            // Get revenue analytics
+            const revenueAnalyticsQuery = `
+                SELECT 
+                    COALESCE(SUM(sa.revenue_collected), 0) as total_revenue,
+                    COUNT(DISTINCT CASE WHEN sa.revenue_collected > 0 THEN sa.application_id END) as revenue_generating_applications,
+                    COALESCE(AVG(CASE WHEN sa.revenue_collected > 0 THEN sa.revenue_collected END), 0) as avg_revenue_per_application
+                FROM submitted_applications sa
+            `;
+
+            const revenueAnalytics = await client.query(revenueAnalyticsQuery);
+
             return NextResponse.json({
                 success: true,
                 data: {
                     statusCounts: statusCounts.rows,
                     urgentApplications: urgentApplications.rows,
-                    revenueAnalytics: revenueAnalytics.rows[0],
                     bankEngagement: bankEngagement.rows,
+                    revenueAnalytics: revenueAnalytics.rows[0],
                     timestamp: new Date().toISOString()
                 }
             });
@@ -133,4 +115,4 @@ export async function GET(req) {
             { status: 500 }
         );
     }
-}
+});

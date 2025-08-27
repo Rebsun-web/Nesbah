@@ -164,8 +164,7 @@ class AnalyticsService {
                     COUNT(DISTINCT sa.application_id) as total_applications,
                     COUNT(DISTINCT bav.application_id) as total_applications_viewed,
                     COUNT(DISTINCT bos.application_id) as total_offers_submitted,
-                    COUNT(DISTINCT CASE WHEN sa.status = 'approved_leads' THEN sa.application_id END) as total_applications_purchased,
-                    COUNT(DISTINCT CASE WHEN sa.status = 'complete' THEN sa.application_id END) as total_applications_completed,
+                    COUNT(DISTINCT CASE WHEN sa.status = 'completed' THEN sa.application_id END) as total_applications_purchased,
                     AVG(bav.time_to_open_minutes) as avg_time_to_first_offer_minutes,
                     COALESCE(SUM(ao.offer_amount), 0) as total_revenue
                 FROM submitted_applications sa

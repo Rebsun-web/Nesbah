@@ -33,7 +33,8 @@ export default function BankLeadsTable({ data }) {
     };
 
     const formatCountdown = (submittedAt, auctionEndTime) => {
-        const endTime = auctionEndTime ? new Date(auctionEndTime) : new Date(submittedAt);
+        // If auction_end_time is available, use it; otherwise calculate 48 hours from submission
+        const endTime = auctionEndTime ? new Date(auctionEndTime) : new Date(new Date(submittedAt).getTime() + 48 * 60 * 60 * 1000);
         const now = new Date();
         const timeLeft = endTime - now;
 
@@ -49,8 +50,9 @@ export default function BankLeadsTable({ data }) {
     const sortedData = [...data].sort((a, b) => {
         const now = new Date();
 
-        const aEndTime = a.auction_end_time ? new Date(a.auction_end_time) : new Date(a.submitted_at);
-        const bEndTime = b.auction_end_time ? new Date(b.auction_end_time) : new Date(b.submitted_at);
+        // Use the same logic as formatCountdown for consistency
+        const aEndTime = a.auction_end_time ? new Date(a.auction_end_time) : new Date(new Date(a.submitted_at).getTime() + 48 * 60 * 60 * 1000);
+        const bEndTime = b.auction_end_time ? new Date(b.auction_end_time) : new Date(new Date(b.submitted_at).getTime() + 48 * 60 * 60 * 1000);
 
         const aTimeLeft = aEndTime - now;
         const bTimeLeft = bEndTime - now;
@@ -76,10 +78,11 @@ export default function BankLeadsTable({ data }) {
               </thead>
               <TableBody>
                 {sortedData.map((lead) => {
-                  const endTime = lead.auction_end_time ? new Date(lead.auction_end_time) : new Date(lead.submitted_at)
-                  const now = new Date()
-                  const timeLeft = endTime - now
-                  const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60))
+                  // Use the same logic as formatCountdown for consistency
+                  const endTime = lead.auction_end_time ? new Date(lead.auction_end_time) : new Date(new Date(lead.submitted_at).getTime() + 48 * 60 * 60 * 1000);
+                  const now = new Date();
+                  const timeLeft = endTime - now;
+                  const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
 
                   return (
                     <TableRow

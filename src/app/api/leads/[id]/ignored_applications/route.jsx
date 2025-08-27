@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
 export async function POST(req, { params }) {
-    const applicationId = params.id;
+    const applicationId = (await params).id;
     const bankUserId = req.headers.get('x-user-id');
 
     if (!bankUserId) {
@@ -59,7 +59,7 @@ export async function POST(req, { params }) {
 }
 
 export async function GET(req, { params }) {
-    const businessUserId = params.id;
+    const businessUserId = (await params).id;
 
     try {
         const { rows } = await pool.query(

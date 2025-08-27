@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import AdminAuth from '@/lib/auth/admin-auth'
+import JWTUtils from '@/lib/auth/jwt-utils'
 
 export async function POST(req) {
     try {
@@ -51,29 +52,29 @@ export async function POST(req) {
             }
         }
 
-        // Generate JWT token
-        const token = AdminAuth.generateToken(adminUser)
+        // The authenticateAdmin method now returns JWT token
+        const { token, expiresAt } = authResult;
 
-        // Set HTTP-only cookie
+        // Set HTTP-only cookie with JWT token
         const response = NextResponse.json({
             success: true,
-            message: 'Login successful',
             adminUser: {
                 admin_id: adminUser.admin_id,
                 email: adminUser.email,
                 full_name: adminUser.full_name,
                 role: adminUser.role,
                 permissions: adminUser.permissions,
-                mfa_enabled: adminUser.mfa_enabled
-            }
+                is_active: adminUser.is_active
+            },
+            message: 'Admin login successful'
         })
 
-        // Set secure HTTP-only cookie
+        // Set JWT token as HTTP-only cookie
         response.cookies.set('admin_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 8 * 60 * 60, // 8 hours
+            sameSite: 'lax',
+            maxAge: 24 * 60 * 60, // 24 hours
             path: '/'
         })
 

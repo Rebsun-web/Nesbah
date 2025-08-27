@@ -35,7 +35,7 @@ The admin user creation system now supports three types of users:
 - `in_kind_capital`
 - `contact_info`
 - `store_url`
-- `form_name`
+- `legal_form`
 - `issue_date_gregorian`
 - `confirmation_date_gregorian`
 - `has_ecommerce`
@@ -213,7 +213,7 @@ CREATE TABLE business_users (
     in_kind_capital DECIMAL(15,2),
     contact_info JSONB,
     store_url VARCHAR(500),
-    form_name VARCHAR(255),
+    legal_form VARCHAR(255),
     issue_date_gregorian DATE,
     confirmation_date_gregorian DATE,
     has_ecommerce BOOLEAN DEFAULT false,
