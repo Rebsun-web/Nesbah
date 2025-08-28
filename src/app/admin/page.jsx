@@ -6,25 +6,43 @@ import AdminNavbar from '@/components/admin/AdminNavbar'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import DashboardOverview from '@/components/admin/DashboardOverview'
 import ApplicationsTable from '@/components/admin/ApplicationsTable'
-import RevenueMetrics from '@/components/admin/RevenueMetrics'
 import UserManagement from '@/components/admin/UserManagement'
 import UserStats from '@/components/admin/UserStats'
 import OfferAnalytics from '@/components/admin/OfferAnalytics'
 import OfferManagement from '@/components/admin/OfferManagement'
 import EnhancedAnalytics from '@/components/admin/EnhancedAnalytics'
-import ProtectedRoute from '@/components/admin/ProtectedRoute'
-import { useAdminAuth } from '@/contexts/AdminAuthContext'
 import { ChartBarIcon } from '@heroicons/react/24/outline'
 import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
 
 
 export default function AdminDashboard() {
-    const { adminUser, logout } = useAdminAuth()
+    const [adminUser, setAdminUser] = useState(null)
     const [activeTab, setActiveTab] = useState('overview')
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [dashboardData, setDashboardData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+
+    // Get admin user from localStorage
+    useEffect(() => {
+        const storedUser = localStorage.getItem('adminUser')
+        if (storedUser) {
+            try {
+                const userData = JSON.parse(storedUser)
+                if (userData.user_type === 'admin_user') {
+                    setAdminUser(userData)
+                }
+            } catch (error) {
+                console.error('Error parsing admin user:', error)
+            }
+        }
+    }, [])
+
+    // Logout function
+    const logout = () => {
+        localStorage.removeItem('adminUser')
+        window.location.href = '/login'
+    }
 
     // Fetch dashboard data
     const fetchDashboardData = async () => {
@@ -76,15 +94,13 @@ export default function AdminDashboard() {
         switch (activeTab) {
             case 'overview':
                 return (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                         <DashboardOverview data={dashboardData} loading={loading} />
                         <UserStats />
                     </div>
                 )
             case 'applications':
                 return <ApplicationsTable />
-            case 'revenue':
-                return <RevenueMetrics detailed={true} />
             case 'users':
                 return <UserManagement />
             case 'offers':
@@ -96,85 +112,85 @@ export default function AdminDashboard() {
         }
     }
 
+
+
     if (error) {
         return (
-            <ProtectedRoute>
-                <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 p-6">
-                    <div className="flex gap-6 items-start">
-                        <div className="flex-shrink-0">
-                            <AdminSidebar 
-                                activeTab={activeTab} 
-                                onTabChange={setActiveTab}
-                                isOpen={sidebarOpen}
-                                onClose={() => setSidebarOpen(false)}
-                            />
-                        </div>
-                        
-                        <div className="flex-1">
-                            <AdminNavbar onMenuClick={() => setSidebarOpen(true)} adminUser={adminUser} onLogout={logout} />
-                            
-                            <div className="bg-white rounded-2xl shadow-2xl p-8 min-h-screen flex items-center justify-center">
-                                <div className="text-center">
-                                    <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Dashboard Error</h2>
-                                    <p className="text-gray-600 mb-4">{error}</p>
-                                    <button
-                                        onClick={fetchDashboardData}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                                    >
-                                        Retry
-                                    </button>
-                                </div>
+            <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 p-6">
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white rounded-lg shadow-lg p-8">
+                        <div className="text-center">
+                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                            </div>
+                            <h1 className="text-2xl font-bold text-gray-900 mb-4">Dashboard Error</h1>
+                            <p className="text-gray-600 mb-6">{error}</p>
+                            <div className="space-y-3">
+                                <button
+                                    onClick={fetchDashboardData}
+                                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                                >
+                                    Retry
+                                </button>
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors font-medium"
+                                >
+                                    Refresh Page
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-            </ProtectedRoute>
+            </div>
         )
     }
 
     return (
-        <ProtectedRoute>
-            <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 p-6">
-                <div className="flex gap-6 items-start">
-                    <div className="flex-shrink-0">
-                        <AdminSidebar 
-                            activeTab={activeTab} 
-                            onTabChange={setActiveTab}
-                            isOpen={sidebarOpen}
-                            onClose={() => setSidebarOpen(false)}
-                        />
-                    </div>
-                    
-                    <div className="flex-1">
-                        <AdminNavbar onMenuClick={() => setSidebarOpen(true)} adminUser={adminUser} onLogout={logout} />
-                        
-                        <main className="bg-white rounded-2xl shadow-2xl p-8 min-h-screen">
-                            <div className="max-w-7xl mx-auto">
-                                <div className="mb-6">
+        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100">
+            <AdminNavbar 
+                adminUser={adminUser} 
+                onLogout={logout}
+                onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+            />
+            
+            <div className="flex">
+                <AdminSidebar 
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    isOpen={sidebarOpen}
+                    onClose={() => setSidebarOpen(false)}
+                />
+                
+                <main className="flex-1 p-8">
+                    <div className="px-8 lg:px-12">
+                        <div className="mx-auto max-w-7xl">
+                            <div className="bg-white rounded-lg shadow-lg p-8">
+                                <div className="mb-8">
                                     <h1 className="text-3xl font-bold text-gray-900">
-                                        {activeTab === 'overview' && 'Admin Dashboard'}
+                                        {activeTab === 'overview' && 'Dashboard Overview'}
                                         {activeTab === 'applications' && 'Applications Management'}
-                                        {activeTab === 'revenue' && 'Revenue Analytics'}
                                         {activeTab === 'users' && 'User Management'}
                                         {activeTab === 'offers' && 'Offer Management'}
-                                        {activeTab === 'analytics' && 'Analytics Dashboard'}
+                                        {activeTab === 'analytics' && 'Enhanced Analytics'}
                                     </h1>
                                     <p className="text-gray-600 mt-2">
-                                        {activeTab === 'overview' && 'Real-time monitoring of the dual-auction system'}
-                                        {activeTab === 'applications' && 'Manage application lifecycle and status transitions'}
-                                        {activeTab === 'revenue' && 'Track revenue and financial performance'}
+                                        {activeTab === 'overview' && 'Monitor your platform performance and key metrics'}
+                                        {activeTab === 'applications' && 'Manage and track all business applications'}
                                         {activeTab === 'users' && 'Manage business and bank users'}
-                                        {activeTab === 'offers' && 'Manage bank offers and their status'}
-                                        {activeTab === 'analytics' && 'Analytics for applications and offers'}
+                                        {activeTab === 'offers' && 'Monitor and manage bank offers'}
+                                        {activeTab === 'analytics' && 'Advanced analytics and insights'}
                                     </p>
                                 </div>
+                                
                                 {renderActiveTab()}
                             </div>
-                        </main>
+                        </div>
                     </div>
-                </div>
+                </main>
             </div>
-        </ProtectedRoute>
+        </div>
     )
 }

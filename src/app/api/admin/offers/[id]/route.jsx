@@ -5,7 +5,7 @@ import AdminAuth from '@/lib/auth/admin-auth';
 // DELETE - Delete an offer
 export async function DELETE(req, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         
         // Get admin token from cookies
         const adminToken = req.cookies.get('admin_token')?.value;
@@ -30,18 +30,25 @@ export async function DELETE(req, { params }) {
         const client = await pool.connectWithRetry();
         
         try {
-            // Check if offer exists
+            await client.query('BEGIN');
+
+            // Get offer details before deleting
             const offerCheck = await client.query(
-                'SELECT offer_id FROM application_offers WHERE offer_id = $1',
+                'SELECT offer_id, submitted_application_id, submitted_by_user_id FROM application_offers WHERE offer_id = $1',
                 [id]
             );
             
             if (offerCheck.rows.length === 0) {
+                await client.query('ROLLBACK');
                 return NextResponse.json(
                     { success: false, error: 'Offer not found' },
                     { status: 404 }
                 );
             }
+
+            const offer = offerCheck.rows[0];
+            const applicationId = offer.submitted_application_id;
+            const bankUserId = offer.submitted_by_user_id;
 
             // Delete the offer
             await client.query(
@@ -49,11 +56,28 @@ export async function DELETE(req, { params }) {
                 [id]
             );
 
+            // Update the pos_application table to remove the bank user from purchased_by array
+            // and decrease the offers_count
+            await client.query(
+                `UPDATE pos_application 
+                 SET 
+                     purchased_by = array_remove(purchased_by, $1),
+                     offers_count = GREATEST(offers_count - 1, 0),
+                     revenue_collected = GREATEST(revenue_collected - 25.00, 0)
+                 WHERE application_id = $2`,
+                [bankUserId, applicationId]
+            );
+
+            await client.query('COMMIT');
+
             return NextResponse.json({
                 success: true,
                 message: 'Offer deleted successfully'
             });
 
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
         } finally {
             client.release();
         }
@@ -70,7 +94,7 @@ export async function DELETE(req, { params }) {
 // PUT - Update an offer
 export async function PUT(req, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         
         // Get admin token from cookies
         const adminToken = req.cookies.get('admin_token')?.value;
@@ -133,18 +157,16 @@ export async function PUT(req, { params }) {
                     pricing_tier = $19,
                     volume_discount_threshold = $20,
                     volume_discount_percentage = $21,
-                    compliance_certifications = $22,
-                    regulatory_approvals = $23,
-                    settlement_time = $24,
-                    deal_value = $25,
-                    commission_rate = $26,
-                    commission_amount = $27,
-                    bank_revenue = $28,
-                    admin_notes = $29,
-                    is_featured = $30,
-                    featured_reason = $31,
+                    settlement_time = $22,
+                    deal_value = $23,
+                    commission_rate = $24,
+                    commission_amount = $25,
+                    bank_revenue = $26,
+                    admin_notes = $27,
+                    is_featured = $28,
+                    featured_reason = $29,
                     updated_at = NOW()
-                WHERE offer_id = $32
+                WHERE offer_id = $30
                 RETURNING offer_id
             `, [
                 body.offer_device_setup_fee || 0,
@@ -168,8 +190,6 @@ export async function PUT(req, { params }) {
                 body.pricing_tier || '',
                 body.volume_discount_threshold || 0,
                 body.volume_discount_percentage || 0,
-                body.compliance_certifications || [],
-                body.regulatory_approvals || [],
                 body.settlement_time || '',
                 body.deal_value || 0,
                 body.commission_rate || 0,

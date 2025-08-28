@@ -45,13 +45,13 @@ export async function GET(req) {
 
             if (search) {
                 paramCount++;
-                whereConditions.push(`(pa.trade_name ILIKE $${paramCount} OR sa.application_id::text ILIKE $${paramCount})`);
+                whereConditions.push(`(pa.trade_name ILIKE $${paramCount} OR pa.application_id::text ILIKE $${paramCount})`);
                 queryParams.push(`%${search}%`);
             }
 
             if (status !== 'all') {
                 paramCount++;
-                whereConditions.push(`COALESCE(aot.current_application_status, sa.status) = $${paramCount}`);
+                whereConditions.push(`COALESCE(pa.current_application_status, pa.status) = $${paramCount}`);
                 queryParams.push(status);
             }
 
@@ -59,57 +59,43 @@ export async function GET(req) {
 
             // Count total applications
             const countQuery = `
-                SELECT COUNT(DISTINCT sa.application_id) as total
-                FROM submitted_applications sa
-                JOIN pos_application pa ON sa.application_id = pa.application_id
-                JOIN business_users bu ON sa.business_user_id = bu.user_id
+                SELECT COUNT(DISTINCT pa.application_id) as total
+                FROM pos_application pa
+                JOIN business_users bu ON pa.business_user_id = bu.user_id
                 JOIN users u ON bu.user_id = u.user_id
-                LEFT JOIN users assigned_u ON sa.assigned_user_id = assigned_u.user_id
-                LEFT JOIN business_users assigned_bu ON sa.assigned_user_id = assigned_bu.user_id AND assigned_u.user_type = 'business_user'
-                LEFT JOIN bank_users assigned_bank ON sa.assigned_user_id = assigned_bank.user_id AND assigned_u.user_type = 'bank_user'
-                LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
                 WHERE 1=1 ${whereClause}
             `;
             
             const countResult = await client.query(countQuery, queryParams);
             const total = parseInt(countResult.rows[0].total);
 
-            // Build the main query
+            // Build the main query - simplified to use only pos_application
             const query = `
                 SELECT DISTINCT
-                    sa.id,
-                    sa.application_id,
-                    sa.application_type,
-                    sa.business_user_id,
-                    sa.assigned_user_id,
-                    COALESCE(aot.current_application_status, sa.status) as status,
-                    sa.revenue_collected,
-                    sa.offers_count,
-                    sa.admin_notes,
-                    sa.priority_level,
-                    sa.submitted_at,
-                    sa.auction_end_time,
-                    sa.offer_selection_end_time,
+                    pa.application_id,
+                    pa.business_user_id,
+                    COALESCE(pa.current_application_status, pa.status) as status,
+                    pa.revenue_collected,
+                    pa.offers_count,
+                    pa.admin_notes,
+                    pa.submitted_at,
+                    pa.auction_end_time,
+                    pa.offer_selection_end_time,
                     pa.trade_name,
                     pa.cr_number,
                     pa.city,
                     pa.contact_person,
                     pa.contact_person_number,
                     pa.notes,
+                    pa.opened_by,
+                    pa.purchased_by,
                     bu.trade_name as business_trade_name,
                     u.email as business_email,
-                    COALESCE(assigned_bu.trade_name, assigned_u.entity_name) as assigned_trade_name,
-                    assigned_u.email as assigned_email,
-                    assigned_u.user_type as assigned_user_type,
-                    assigned_bank.logo_url as assigned_logo_url
-                FROM submitted_applications sa
-                JOIN pos_application pa ON sa.application_id = pa.application_id
-                JOIN business_users bu ON sa.business_user_id = bu.user_id
+                    array_length(pa.opened_by, 1) as opened_count,
+                    array_length(pa.purchased_by, 1) as purchased_count
+                FROM pos_application pa
+                JOIN business_users bu ON pa.business_user_id = bu.user_id
                 JOIN users u ON bu.user_id = u.user_id
-                LEFT JOIN users assigned_u ON sa.assigned_user_id = assigned_u.user_id
-                LEFT JOIN business_users assigned_bu ON sa.assigned_user_id = assigned_bu.user_id AND assigned_u.user_type = 'business_user'
-                LEFT JOIN bank_users assigned_bank ON sa.assigned_user_id = assigned_bank.user_id AND assigned_u.user_type = 'bank_user'
-                LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
                 WHERE 1=1 ${whereClause}
                 ORDER BY ${sortBy} ${sortOrder.toUpperCase()}
                 LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
@@ -192,8 +178,7 @@ export async function POST(req) {
             number_of_pos_devices,
             city_of_operation,
             own_pos_system,
-            notes,
-            assigned_user_id
+            notes
         } = body;
 
         // Validate required fields
@@ -204,19 +189,7 @@ export async function POST(req) {
             )
         }
 
-        // Validate assigned user if provided
-        if (assigned_user_id) {
-            const assignedUserCheck = await pool.query(
-                'SELECT user_id FROM business_users WHERE user_id = $1',
-                [assigned_user_id]
-            )
-            if (assignedUserCheck.rows.length === 0) {
-                return NextResponse.json(
-                    { success: false, error: 'Invalid assigned user ID' },
-                    { status: 400 }
-                )
-            }
-        }
+
 
         // Clean up date fields - convert empty strings to null
         const cleanIssueDate = issue_date === '' ? null : issue_date
@@ -290,46 +263,31 @@ export async function POST(req) {
             
             const businessUserId = businessUserResult.rows[0].user_id;
 
-            // Create POS application
+            // Create POS application with all consolidated fields
             const posApplicationQuery = `
                 INSERT INTO pos_application (
-                    user_id, status, trade_name, cr_number, cr_national_number, legal_form,
+                    user_id, business_user_id, status, current_application_status,
+                    trade_name, cr_number, cr_national_number, legal_form,
                     registration_status, issue_date, city, activities, contact_info,
                     has_ecommerce, store_url, cr_capital, cash_capital, management_structure,
                     management_names, contact_person, contact_person_number,
-                    number_of_pos_devices, city_of_operation, own_pos_system, notes
+                    number_of_pos_devices, city_of_operation, own_pos_system, notes,
+                    revenue_collected, offers_count, opened_by, purchased_by
                 ) VALUES (
-                    $1, 'submitted', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+                    $1, $2, 'submitted', 'live_auction', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
                 ) RETURNING application_id
             `;
             
             const posApplicationResult = await client.query(posApplicationQuery, [
-                userId, trade_name, cr_number, cr_national_number, legal_form,
+                userId, businessUserId, trade_name, cr_number, uniqueCrNationalNumber, legal_form,
                 registration_status, cleanIssueDate, city, JSON.stringify(activities || []),
                 JSON.stringify(contact_info || {}), has_ecommerce, store_url, cr_capital,
                 cash_capital, management_structure, JSON.stringify(management_names || []),
                 contact_person, contact_person_number, number_of_pos_devices,
-                city_of_operation, own_pos_system, notes
+                city_of_operation, own_pos_system, notes, 0, 0, '{}', '{}'
             ]);
             
             const applicationId = posApplicationResult.rows[0].application_id;
-
-            // Create submitted application
-            const submittedApplicationQuery = `
-                INSERT INTO submitted_applications (
-                    application_id, application_type, business_user_id, status, submitted_at, assigned_user_id
-                ) VALUES ($1, 'pos', $2, 'submitted', NOW(), $3)
-                RETURNING id
-            `;
-            
-            await client.query(submittedApplicationQuery, [applicationId, userId, assigned_user_id]);
-
-            // Log the application creation
-            await client.query(
-                `INSERT INTO admin_audit_log (action, table_name, record_id, admin_user_id, details, timestamp)
-                 VALUES ($1, $2, $3, $4, $5, NOW())`,
-                ['CREATE', 'pos_application', applicationId, adminUser.admin_id, JSON.stringify(body)]
-            );
 
             await client.query('COMMIT');
 
@@ -340,7 +298,7 @@ export async function POST(req) {
                     application_id: applicationId,
                     business_user_id: userId,
                     trade_name,
-                    status: 'submitted',
+                    status: 'live_auction',
                     timestamp: new Date().toISOString()
                 }
             });

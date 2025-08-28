@@ -11,8 +11,8 @@ export default function AdminNavbar({ onMenuClick, adminUser, onLogout }) {
     const [userMenuOpen, setUserMenuOpen] = useState(false)
 
     return (
-        <nav className="bg-white shadow-lg border-b border-gray-200 rounded-2xl mb-6">
-            <div className="flex justify-between items-center h-16 px-6">
+        <nav className="bg-white shadow-lg border-b border-gray-200 rounded-2xl mb-6 mx-4 mt-4">
+            <div className="flex justify-between items-center h-16 px-8">
                 {/* Left side - Logo and menu button */}
                 <div className="flex items-center space-x-4">
                     <button
@@ -88,10 +88,6 @@ export default function AdminNavbar({ onMenuClick, adminUser, onLogout }) {
                                     
                                     {/* Menu options */}
                                     <div className="py-1">
-                                        <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3 transition-colors duration-150">
-                                            <UserCircleIcon className="h-4 w-4 text-gray-400" />
-                                            <span>View Profile</span>
-                                        </button>
                                         <button 
                                             onClick={onLogout}
                                             className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3 transition-colors duration-150"

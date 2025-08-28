@@ -9,10 +9,11 @@ import React, { useState, useEffect } from 'react';
 import { CloudArrowUpIcon, LockClosedIcon, ServerIcon, CalculatorIcon, BanknotesIcon } from '@heroicons/react/20/solid'
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react'
 import { MinusSmallIcon, PlusSmallIcon } from '@heroicons/react/24/outline'
-
-
+import { useLanguage } from '@/contexts/LanguageContext'
 
 function Hero() {
+  const { t } = useLanguage()
+  
   return (
     <div className="relative">
       <Container className="relative">
@@ -25,12 +26,10 @@ function Hero() {
               as="h2"
               className="max-w-sm text-center tracking-wide font-medium text-xl text-[#1E1851] lg:max-w-lg lg:text-start"
             >
-              قراراتك المالية أسهل مع منصة نسبة!
+              {t('hero.mainTitle')}
             </Heading>
             <p className="my-6 tracking-wide max-w-xl font-normal text-center lg:my-12 lg:text-start">
-              تساعدك منصة نسبة على العثور والمقارنة واختيار أفضل المنتجات
-              المالية في المملكة العربية السعودية. نربطك مباشرةً بالبنوك
-              والمؤسسات المالية المرخصة والموثوقة، لتوفّر وقتك وجهدك ومالك.
+              {t('hero.description')}
             </p>
             <div className="grid grid-cols-2 justify-start gap-2 sm:grid-cols-[auto_auto_auto]">
               {/* First Button */}
@@ -45,7 +44,7 @@ function Hero() {
                   src="/characters/personalloanIcon.png"
                   className="h-5 w-5 object-contain"
                 />
-                التمويل الشخصي
+                {t('services.personalLoans')}
               </Button>
 
               {/* Second Button */}
@@ -60,7 +59,7 @@ function Hero() {
                   src="/characters/ccIcon.png"
                   className="h-5 w-5 object-contain"
                 />
-                البطاقات الائتمانية
+                {t('services.creditCards')}
               </Button>
 
               {/* Third Button - POS */}
@@ -75,7 +74,7 @@ function Hero() {
                   src="/characters/PosIcon.png"
                   className="h-5 w-5 object-contain"
                 />
-                اجهزة نقاط البيع
+                {t('services.pos')}
               </Button>
             </div>
           </div>
@@ -88,7 +87,7 @@ function Hero() {
             </div>
             <div>
               <Button
-                href="./login"
+                href="/login"
                 type="button"
                 className="w-full items-center rounded-full px-2 py-1 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 style={{
@@ -96,7 +95,7 @@ function Hero() {
                     'linear-gradient(87.69deg, #1E1851 -9.53%, #4436B7 89.33%)',
                 }}
               >
-                تسجيل
+                {t('nav.login')}
               </Button>
             </div>
           </div>
@@ -107,6 +106,8 @@ function Hero() {
 }
 
 function BentoSection() {
+  const { t } = useLanguage()
+  
   return (
     <div className="relative bg-[#F5F5F5] bg-opacity-50 py-8 lg:py-16">
       <div className="flex justify-center">
@@ -120,7 +121,7 @@ function BentoSection() {
 
       <div className="flex justify-center lg:pt-3 lg:pb-0 pb-8">
         <span className="rounded-md bg-white px-5 py-3 text-base font-medium text-[#742CFF] shadow-lg">
-          خدماتنا
+          {t('services.ourServices')}
         </span>
       </div>
 
@@ -138,11 +139,11 @@ function BentoSection() {
             <div className="my-2 flex flex-col lg:items-start items-center px-4 text-[#1E1851] lg:my-16 pt-6">
               {/* Heading */}
               <h2 className="mb-2 text-center text-base font-bold text-[#6B3FC4] lg:text-xl">
-                اجهزة نقاط البيع
+                {t('services.pos')}
               </h2>
               {/* Subheading */}
               <p className="mb-6 max-w-xl lg:text-start text-center text-sm lg:text-lg">
-                اعثر على أفضل حلول نقاط البيع لشركتك
+                {t('services.posDescription')}
               </p>
 
               {/* Features List */}
@@ -154,7 +155,7 @@ function BentoSection() {
                     className="h-7 w-7 lg:h-10 lg:w-10"
                   />
                   <span className="text-sm font-medium lg:text-lg">
-                    مقارنات واضحة وشفافة
+                    {t('services.transparentComparison')}
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
@@ -164,7 +165,7 @@ function BentoSection() {
                     className="h-7 w-7 lg:h-10 lg:w-10"
                   />
                   <span className="text-sm font-medium lg:text-lg">
-                    وفر وقتك
+                    {t('services.saveTime')}
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
@@ -174,7 +175,7 @@ function BentoSection() {
                     className="h-7 w-7 lg:h-10 lg:w-10"
                   />
                   <span className="text-sm font-medium lg:text-lg">
-                    تواصل مباشر
+                    {t('services.directCommunication')}
                   </span>
                 </div>
               </div>
@@ -189,7 +190,7 @@ function BentoSection() {
                     'linear-gradient(87.69deg, #1E1851 -9.53%, #4436B7 89.33%)',
                 }}
               >
-                قارن حلول نقاط البيع
+                {t('services.comparePOS')}
               </Button>
             </div>
           </div>
@@ -200,6 +201,8 @@ function BentoSection() {
 }
 
 function SecondBentoSection() {
+  const { t } = useLanguage()
+  
   return (
     <div className="relative py-16 sm:py-16">
       <div className="mx-auto max-w-7xl px-1 sm:px-2 lg:px-4">
@@ -217,10 +220,10 @@ function SecondBentoSection() {
           <div className="order-2 grid grid-rows-[auto_auto_auto] items-center justify-center lg:order-1 lg:pl-12">
             <div className="flex flex-col lg:items-start items-center px-4 text-[#1E1851] lg:my-16">
               <h2 className="mb-2 text-center text-base font-bold text-[#6B3FC4] lg:text-xl">
-                قارن البطاقات الائتمانية
+                {t('services.compareCreditCards')}
               </h2>
               <p className="mb-6 max-w-xl text-start text-sm lg:text-lg">
-                قارن واختر البطاقة الائتمانية المثالية لك
+                {t('services.creditCardDescription')}
               </p>
               <div className="mb-8 flex flex-col gap-6">
                 <div className="flex items-center gap-4">
@@ -230,7 +233,7 @@ function SecondBentoSection() {
                     className="h-10 w-10"
                   />
                   <span className="text-sm font-medium lg:text-lg">
-                    توصيات مخصصة
+                    {t('services.personalizedRecommendations')}
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
@@ -240,7 +243,7 @@ function SecondBentoSection() {
                     className="h-10 w-10"
                   />
                   <span className="text-sm font-medium lg:text-lg">
-                    مقارنات واضحة
+                    {t('services.clearComparison')}
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
@@ -250,7 +253,7 @@ function SecondBentoSection() {
                     className="h-10 w-10"
                   />
                   <span className="text-sm font-medium lg:text-lg">
-                    قدم طلبك إلكترونيًا بسهولة
+                    {t('services.easyApplication')}
                   </span>
                 </div>
               </div>
@@ -263,7 +266,7 @@ function SecondBentoSection() {
                     'linear-gradient(87.69deg, #1E1851 -9.53%, #4436B7 89.33%)',
                 }}
               >
-                تقدم بطلبك بكل سهولة
+                {t('services.applyEasily')}
               </Button>
             </div>
           </div>
@@ -274,10 +277,10 @@ function SecondBentoSection() {
           <div className="order-2 grid grid-rows-[auto_auto_auto] lg:justify-items-start justify-items-center pl-0 lg:order-2">
             <div className="my-2 flex flex-col lg:items-start items-center px-4 text-[#1E1851] lg:my-16">
               <h2 className="mb-2 text-center text-base font-bold text-[#6B3FC4] lg:text-xl">
-                قارن التمويل الشخصي
+                {t('services.comparePersonalLoans')}
               </h2>
               <p className="mb-6 max-w-xl lg:text-start text-center text-sm lg:text-lg">
-                توفر لك منصة نسبة مقارنات شفافة وحيادية لعروض التمويل الشخصي من أهم البنوك في السعودية. اكتشف بسرعة أفضل الأسعار والرسوم والمزايا التي تتناسب مع وضعك المالي – دون الحاجة لزيارة عدة مواقع أو فروع.
+                {t('services.personalLoanDescription')}
               </p>
               <div className="mb-8 flex flex-col gap-6">
                 <div className="flex items-center gap-4">
@@ -287,7 +290,7 @@ function SecondBentoSection() {
                     className="h-10 w-10"
                   />
                   <span className="text-sm font-medium lg:text-lg">
-                    عروض مخصصة
+                    {t('services.customOffers')}
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
@@ -297,7 +300,7 @@ function SecondBentoSection() {
                     className="h-10 w-10"
                   />
                   <span className="text-sm font-medium lg:text-lg">
-                    مقارنات فورية
+                    {t('services.instantComparison')}
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
@@ -307,7 +310,7 @@ function SecondBentoSection() {
                     className="h-10 w-10"
                   />
                   <span className="text-sm font-medium lg:text-lg">
-                    تقدم بطلبك بكل سهولة
+                    {t('services.applyEasily')}
                   </span>
                 </div>
               </div>
@@ -320,7 +323,7 @@ function SecondBentoSection() {
                     'linear-gradient(87.69deg, #1E1851 -9.53%, #4436B7 89.33%)',
                 }}
               >
-                تقدم بطلبك بكل سهولة
+                {t('services.applyEasily')}
               </Button>
             </div>
           </div>
@@ -338,6 +341,8 @@ function SecondBentoSection() {
 }
 
 function CalculatorHome() {
+  const { t } = useLanguage()
+  
   return (
     <div className="overflow-hidden py-6 sm:py-10">
       <div className="mx-auto max-w-7xl md:px-6 lg:px-8">
@@ -345,17 +350,17 @@ function CalculatorHome() {
           <div className="px-6 lg:px-0 lg:pr-4 lg:pt-4">
             <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-lg">
               <h2 className="text-base/7 font-semibold text-indigo-600">
-                حاسبة نسبة
+                {t('calculator.title')}
               </h2>
               <p className="mt-2 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
-                اكتشف خياراتك المالية
+                {t('calculator.discoverTitle')}
               </p>
               <p className="mt-6 text-lg/8 text-gray-600">
-                استخدم حاسبة نسبة لمعرفة خيارات التمويل المتاحة لك بسهولة
+                {t('calculator.description')}
               </p>
               <div className="mt-10 flex items-start justify-start gap-x-3">
                 <p className="text-xs font-medium text-purple-800 md:text-sm">
-                  حالة السوق الحالية :
+                  {t('calculator.marketStatus')}
                 </p>
                 <span className="inline-flex items-center gap-x-1.5 rounded-md bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800">
                   <svg
@@ -365,7 +370,7 @@ function CalculatorHome() {
                   >
                     <circle r={3} cx={3} cy={3} />
                   </svg>
-                  متوسطة
+                  {t('calculator.marketStatusValue')}
                 </span>
               </div>
               <dl className="mt-10 max-w-xl space-y-8 text-base/7 text-gray-600 lg:max-w-none">
@@ -377,7 +382,7 @@ function CalculatorHome() {
                     />
                   </dt>{' '}
                   <dd className="inline">
-                    تحقق فورًا من أهليتك، قارن بين عدة عروض مخصصة، واختر الحل التمويلي الأنسب لاحتياجاتك المالية بكل سهولة وشفافية.
+                    {t('calculator.feature1')}
                   </dd>
                 </div>
                 <div className="relative pr-9">
@@ -389,7 +394,7 @@ function CalculatorHome() {
 
                   </dt>{' '}
                   <dd className="inline">
-                    تعرّف فورًا على الأقساط المتوقعة، نسب الربح، وحدود التمويل حسب بياناتك الشخصية.
+                    {t('calculator.feature2')}
                   </dd>
                 </div>
               </dl>
@@ -403,7 +408,7 @@ function CalculatorHome() {
                       'linear-gradient(87.69deg, #1E1851 -9.53%, #4436B7 89.33%)',
                   }}
                 >
-                  احسب الآن
+                  {t('calculator.calculateNow')}
                 </Button>
               </div>
             </div>
@@ -436,24 +441,26 @@ function CalculatorHome() {
 }
 
 function Newsletter() {
+  const { t } = useLanguage()
+  
   return (
     <div className=" py-16 sm:py-24">
       <div className="mx-auto max-w-7xl sm:px-3 lg:px-5">
         <div className="relative isolate flex flex-col gap-10 overflow-hidden bg-gray-900 px-6 py-24 shadow-2xl sm:rounded-3xl sm:px-24 xl:flex-row xl:items-center xl:py-32">
           <h2 className="max-w-xl text-balance tracking-wide text-3xl font-semibold text-white sm:text-4xl xl:flex-auto">
-            ابقَ على اطلاع ! اشترك في نشرتنا البريدية
+            {t('newsletter.title')}
           </h2>
           <form className="w-full max-w-md">
             <div className="flex gap-x-4">
               <label htmlFor="email-address" className="sr-only">
-                Email address
+                {t('newsletter.emailLabel')}
               </label>
               <input
                 id="email-address"
                 name="email"
                 type="email"
                 required
-                placeholder="Enter your email"
+                placeholder={t('newsletter.emailPlaceholder')}
                 autoComplete="email"
                 className="min-w-0 flex-auto rounded-md bg-white/5 px-3.5 py-2 text-base text-white outline outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-white sm:text-sm/6"
               />
@@ -461,13 +468,13 @@ function Newsletter() {
                 type="submit"
                 className="flex-none rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
-                اشترك الآن
+                {t('newsletter.subscribeButton')}
               </button>
             </div>
             <p className="mt-4 text-sm/6 text-gray-300">
-              خصوصيتك تهمنا.{' '}
+              {t('newsletter.privacyText')}{' '}
               <a href="#" className="font-semibold text-white">
-                اقرأ سياسة الخصوصية
+                {t('newsletter.privacyLink')}
               </a>
               .
             </p>
@@ -499,50 +506,41 @@ function Newsletter() {
 }
 
 function FAQ () {
+  const { t } = useLanguage()
 
   const faqs = [
     {
-      question: "ماذا تقدم نسبة بالضبط للمؤسسات المالية؟",
-      answer:
-        "توفر نسبة منصة للمؤسسات المالية للتواصل مع قاعدة عملاء أوسع، مع تقديم حلول مبتكرة مثل توليد العملاء المحتملين وتقييم معايير قبول المخاطر، وغيرها، لتعزيز كفاءة ووصول خدماتكم.",
+      question: t('faq.question1'),
+      answer: t('faq.answer1'),
     },
     {
-      question: "كيف تعود الشراكة مع نسبة بالفائدة على مؤسستنا؟",
-      answer:
-        "            تسمح لكم الشراكة مع نسبة بالوصول إلى شرائح سوقية جديدة، والاستفادة من حلول التكنولوجيا المالية الحديثة، وتحسين العروض الخدمية من خلال التعاونات الاستراتيجية والرؤى.",
+      question: t('faq.question2'),
+      answer: t('faq.answer2'),
     },
     {
-      question: "هل منصة نسبة متوافقة مع الأنظمة المصرفية القائمة؟",
-      answer:
-        "نعم، منصتنا مصممة للاندماج بسلاسة مع الأنظمة المصرفية القائمة، مما يضمن انتقالاً سلساً واستمرارية في عملياتكم.",
+      question: t('faq.question3'),
+      answer: t('faq.answer3'),
     },
     {
-      question: " ما نوع الدعم الذي يمكننا توقعه من نسبة؟",
-      answer:
-        "نقدم دعماً شاملاً لشركائنا، بما في ذلك المساعدة في التكامل التقني والنصح في التخطيط الاستراتيجي والدعم التشغيلي المستمر.",
+      question: t('faq.question4'),
+      answer: t('faq.answer4'),
     },
     {
-      question: "كيف تضمن نسبة سرية وأمان البيانات؟",
-      answer:
-        "نلتزم ببروتوكولات أمان البيانات الصارمة ونضمن التعامل مع معلومات الشركاء والعملاء بأقصى درجات السرية والتوافق مع اللوائح المعمول بها.",
+      question: t('faq.question5'),
+      answer: t('faq.answer5'),
     },
     {
-      question: "هل يمكننا تخصيص الخدمات المقدمة من خلال نسبة؟",
-      answer:
-        "بالتأكيد. نعمل عن كثب مع شركائنا لتخصيص خدماتنا لتلائم احتياجاتكم وأهدافكم الخاصة.",
+      question: t('faq.question6'),
+      answer: t('faq.answer6'),
     },
     {
-      question: "ما هي عملية أن تصبح شريكًا مع نسبة؟",
-      answer:
-        "لتصبحوا شركاء لنسبة، ما عليكم سوى إرسال بريدًا إلكترونيًا وإخبارنا عن أنفسكم. سيتواصل فريقنا بعد ذلك لمناقشة الفرص المحتملة والخطوات التالية.",
+      question: t('faq.question7'),
+      answer: t('faq.answer7'),
     },
     {
-      question: "هل هناك أي رسوم مرتبطة بالشراكة مع نسبة؟",
-      answer:
-        "يمكن أن تختلف هيكلة الرسوم بناءً على الخدمات ومستوى التخصيص المطلوب. نوصي بمناقشة هذا بتفصيل خلال استشاراتنا الأولية.",
+      question: t('faq.question8'),
+      answer: t('faq.answer8'),
     },
-
-    // More questions...
   ]
 
   return (
@@ -550,12 +548,12 @@ function FAQ () {
       <div className="mx-auto max-w-7xl px-6 py-6 lg:px-8 lg:py-20">
         <div className="mx-auto max-w-4xl">
           <h2 className="text-center text-pretty text-2xl font-semibold tracking-tight bg-gradient-to-r from-[#6250f2] via-[#4436B7] to-[#281B66] bg-clip-text text-transparent lg:text-4xl">
-            هل لديك سؤال ؟
+            {t('faq.title')}
           </h2>
           <dl className="mt-16 grid gap-x-8 gap-y-10 sm:grid-cols-1 lg:grid-cols-2">
-            {faqs.map((faq) => (
+            {faqs.map((faq, index) => (
               <div
-                key={faq.question}
+                key={index}
                 className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
               >
                 <Disclosure as="div" className="space-y-2">

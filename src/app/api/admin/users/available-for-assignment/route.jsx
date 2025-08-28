@@ -32,21 +32,20 @@ export async function GET(req) {
             // First, let's debug what applications exist for the problematic business
             const debugQuery = `
                 SELECT 
-                    sa.application_id,
-                    sa.assigned_user_id,
-                    sa.business_user_id,
+                    pa.application_id,
+                    pa.business_user_id,
                     bu.trade_name,
                     bu.user_id,
                     u.email
-                FROM submitted_applications sa
-                LEFT JOIN business_users bu ON sa.business_user_id = bu.user_id
+                FROM pos_application pa
+                LEFT JOIN business_users bu ON pa.business_user_id = bu.user_id
                 LEFT JOIN users u ON bu.user_id = u.user_id
                 WHERE bu.trade_name LIKE '%Agricultural Development%'
                    OR u.email LIKE '%cr012@nesbah.com%'
-                   OR sa.business_user_id IN (
+                   OR pa.business_user_id IN (
                        SELECT user_id FROM business_users WHERE trade_name LIKE '%Agricultural Development%'
                    )
-                ORDER BY sa.application_id DESC
+                ORDER BY pa.application_id DESC
             `;
             
             const debugResult = await client.query(debugQuery);
@@ -85,16 +84,15 @@ export async function GET(req) {
                 FROM business_users bu
                 JOIN users u ON bu.user_id = u.user_id
                 WHERE NOT EXISTS (
-                    SELECT 1 FROM submitted_applications sa 
-                    WHERE sa.assigned_user_id = bu.user_id
-                       OR sa.business_user_id = bu.user_id
+                    SELECT 1 FROM pos_application pa 
+                    WHERE pa.business_user_id = bu.user_id
                 )
                 AND NOT EXISTS (
-                    SELECT 1 FROM submitted_applications sa2
-                    JOIN business_users bu2 ON sa2.business_user_id = bu2.user_id
+                    SELECT 1 FROM pos_application pa2
+                    JOIN business_users bu2 ON pa2.business_user_id = bu2.user_id
                     JOIN users u2 ON bu2.user_id = u2.user_id
                     WHERE (bu2.trade_name = bu.trade_name OR u2.email = u.email)
-                      AND (sa2.assigned_user_id IS NOT NULL OR sa2.business_user_id IS NOT NULL)
+                      AND pa2.business_user_id IS NOT NULL
                 )
                 AND bu.registration_status = 'active'
                 AND u.user_type = 'business_user'
@@ -123,19 +121,15 @@ export async function GET(req) {
                         u.user_type,
                         bu.registration_status,
                         EXISTS (
-                            SELECT 1 FROM submitted_applications sa 
-                            WHERE sa.assigned_user_id = bu.user_id
-                        ) as has_assigned_apps,
-                        EXISTS (
-                            SELECT 1 FROM submitted_applications sa 
-                            WHERE sa.business_user_id = bu.user_id
+                            SELECT 1 FROM pos_application pa 
+                            WHERE pa.business_user_id = bu.user_id
                         ) as has_business_apps,
                         EXISTS (
-                            SELECT 1 FROM submitted_applications sa2
-                            JOIN business_users bu2 ON sa2.business_user_id = bu2.user_id
+                            SELECT 1 FROM pos_application pa2
+                            JOIN business_users bu2 ON pa2.business_user_id = bu2.user_id
                             JOIN users u2 ON bu2.user_id = u2.user_id
                             WHERE (bu2.trade_name = bu.trade_name OR u2.email = u.email)
-                              AND (sa2.assigned_user_id IS NOT NULL OR sa2.business_user_id IS NOT NULL)
+                              AND pa2.business_user_id IS NOT NULL
                         ) as has_related_apps
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id

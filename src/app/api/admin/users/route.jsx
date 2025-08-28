@@ -387,16 +387,6 @@ export async function POST(req) {
                 );
             }
 
-            // Log the user creation
-            await client.query(
-                `
-                INSERT INTO admin_audit_log 
-                    (action, table_name, record_id, admin_user_id, details, timestamp)
-                VALUES ($1, $2, $3, $4, $5, NOW())
-                `,
-                ['CREATE', `${user_type}_users`, userId, admin_user_id, JSON.stringify(body)]
-            );
-
             await client.query('COMMIT');
 
             return NextResponse.json({

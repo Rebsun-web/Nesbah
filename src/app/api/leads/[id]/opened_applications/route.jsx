@@ -16,18 +16,17 @@ export async function POST(req) {
         try {
             await client.query('BEGIN')
 
-            // Step 1: Add bank_user_id to opened_by (if not already there)
+            // UPDATED: Add bank_user_id to opened_by array in pos_application table
             await client.query(
                 `
-                UPDATE submitted_applications
+                UPDATE pos_application
                 SET opened_by = (
                 CASE
                     WHEN NOT $2 = ANY(opened_by)
                     THEN array_append(opened_by, $2)
                     ELSE opened_by
                 END
-                ),
-
+                )
                 WHERE application_id = $1
                 `,
                 [application_id, bank_user_id]

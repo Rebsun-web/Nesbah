@@ -94,7 +94,7 @@ export default function UserStats() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-white rounded-lg shadow p-6">
@@ -172,11 +172,11 @@ export default function UserStats() {
 
             {/* User Types Breakdown */}
             <div className="bg-white rounded-lg shadow">
-                <div className="px-6 py-4 border-b border-gray-200">
+                <div className="px-8 py-6 border-b border-gray-200">
                     <h3 className="text-lg font-medium text-gray-900">Users by Type</h3>
                 </div>
-                <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {stats.by_type.map((typeStats) => {
                             const Icon = getTypeIcon(typeStats.user_type)
                             const color = getTypeColor(typeStats.user_type)

@@ -61,21 +61,26 @@ export async function POST(req) {
         try {
             await client.query('BEGIN');
 
-            // Verify current status from tracking table
+            // Verify current status from pos_application table
             const currentStatusQuery = await client.query(
-                'SELECT DISTINCT current_application_status FROM application_offer_tracking WHERE application_id = $1 LIMIT 1',
+                `SELECT 
+                    COALESCE(current_application_status, status) as current_status,
+                    auction_end_time,
+                    offer_selection_end_time
+                FROM pos_application 
+                WHERE application_id = $1`,
                 [application_id]
             );
 
             if (currentStatusQuery.rows.length === 0) {
                 await client.query('ROLLBACK');
                 return NextResponse.json(
-                    { success: false, error: 'Application not found in tracking table' },
+                    { success: false, error: 'Application not found' },
                     { status: 404 }
                 );
             }
 
-            const currentStatus = currentStatusQuery.rows[0].current_application_status;
+            const currentStatus = currentStatusQuery.rows[0].current_status;
             if (currentStatus !== from_status) {
                 await client.query('ROLLBACK');
                 return NextResponse.json(
@@ -84,176 +89,61 @@ export async function POST(req) {
                 );
             }
 
-            // Update application status directly in all tables
+            // Update application status in pos_application table
             if (to_status === 'live_auction') {
                 // Reset to live_auction with new auction deadline
                 await client.query(`
-                    UPDATE application_offer_tracking 
-                    SET current_application_status = $1, 
-                        application_window_end = NOW() + INTERVAL '48 hours',
-                        offer_window_start = NULL,
-                        offer_window_end = NULL,
-                        purchased_at = NULL,
-                        offer_sent_at = NULL,
-                        offer_accepted_at = NULL,
-                        offer_rejected_at = NULL
+                    UPDATE pos_application 
+                    SET current_application_status = $1,
+                        status = $1,
+                        auction_end_time = NOW() + INTERVAL '48 hours',
+                        offer_selection_end_time = NULL,
+                        offers_count = 0,
+                        revenue_collected = 0,
+                        opened_by = '{}',
+                        purchased_by = '{}',
+                        offer_selection_end_time = NULL
                     WHERE application_id = $2
                 `, [to_status, application_id]);
-                
-                // Also update submitted_applications table
-                await client.query(
-                    `UPDATE submitted_applications 
-                     SET status = $1,
-                         auction_end_time = NOW() + INTERVAL '48 hours',
-                         offers_count = 0,
-                         revenue_collected = 0,
-                         ignored_by = '{}',
-                         purchased_by = '{}',
-                         opened_by = '{}'
-                     WHERE application_id = $1`,
-                    [application_id]
-                );
-                
-                // Update pos_application table
-                await client.query(
-                    `UPDATE pos_application SET status = $1 WHERE application_id = $2`,
-                    [to_status, application_id]
-                );
-                
-                // Log the status transition
-                await client.query(`
-                    INSERT INTO status_audit_log (application_id, from_status, to_status, admin_user_id, reason, timestamp)
-                    VALUES ($1, $2, $3, $4, $5, NOW())
-                `, [application_id, from_status, to_status, admin_user_id, reason]);
                 
                 console.log(`🔄 Application ${application_id} reset to live_auction with new 48-hour deadline`);
             } else if (to_status === 'completed') {
                 // Transition to completed status
                 await client.query(`
-                    UPDATE application_offer_tracking 
+                    UPDATE pos_application 
                     SET current_application_status = $1,
-                        offer_window_start = NOW(),
-                        offer_window_end = NOW() + INTERVAL '24 hours'
+                        status = $1,
+                        offer_selection_end_time = NOW() + INTERVAL '24 hours'
                     WHERE application_id = $2
                 `, [to_status, application_id]);
                 
-                // Update submitted_applications table
-                await client.query(
-                    `UPDATE submitted_applications SET status = $1 WHERE application_id = $2`,
-                    [to_status, application_id]
-                );
-                
-                // Update pos_application table
-                await client.query(
-                    `UPDATE pos_application SET status = $1 WHERE application_id = $2`,
-                    [to_status, application_id]
-                );
-                
                 console.log(`✅ Application ${application_id} manually transitioned to completed`);
-                
-                // Log the status transition
-                await client.query(`
-                    INSERT INTO status_audit_log (application_id, from_status, to_status, admin_user_id, reason, timestamp)
-                    VALUES ($1, $2, $3, $4, $5, NOW())
-                `, [application_id, from_status, to_status, admin_user_id, reason]);
             } else if (to_status === 'ignored') {
                 // Transition to ignored status
                 await client.query(`
-                    UPDATE application_offer_tracking 
-                    SET current_application_status = $1
+                    UPDATE pos_application 
+                    SET current_application_status = $1,
+                        status = $1
                     WHERE application_id = $2
                 `, [to_status, application_id]);
                 
-                // Update submitted_applications table
-                await client.query(
-                    `UPDATE submitted_applications SET status = $1 WHERE application_id = $2`,
-                    [to_status, application_id]
-                );
-                
-                // Update pos_application table
-                await client.query(
-                    `UPDATE pos_application SET status = $1 WHERE application_id = $2`,
-                    [to_status, application_id]
-                );
-                
                 console.log(`❌ Application ${application_id} manually transitioned to ignored`);
-                
-                // Log the status transition
-                await client.query(`
-                    INSERT INTO status_audit_log (application_id, from_status, to_status, admin_user_id, reason, timestamp)
-                    VALUES ($1, $2, $3, $4, $5, NOW())
-                `, [application_id, from_status, to_status, admin_user_id, reason]);
             }
-            
-            // If no rows were affected, it means there's no tracking record
-            // Create one if it doesn't exist
-            if (updateResult.rowCount === 0) {
-                console.log(`No tracking record found for application ${application_id}, creating one...`);
-                
-                // Get application details
-                const appDetails = await client.query(
-                    'SELECT business_user_id, submitted_at FROM submitted_applications WHERE application_id = $1',
-                    [application_id]
-                );
-                
-                if (appDetails.rows.length > 0) {
-                    const { business_user_id, submitted_at } = appDetails.rows[0];
-                    
-                    // Get all bank users
-                    const bankUsers = await client.query(
-                        'SELECT user_id FROM users WHERE user_type = $1',
-                        ['bank_user']
-                    );
-                    
-                    // Create tracking records for all bank users
-                    for (const bankUser of bankUsers.rows) {
-                        await client.query(`
-                            INSERT INTO application_offer_tracking (
-                                application_id,
-                                business_user_id,
-                                bank_user_id,
-                                application_submitted_at,
-                                application_window_start,
-                                application_window_end,
-                                current_application_status
-                            ) VALUES ($1, $2, $3, $4, $4, $4 + INTERVAL '48 hours', $5)
-                        `, [application_id, business_user_id, bankUser.user_id, submitted_at, to_status]);
-                    }
-                    
-                    console.log(`Created ${bankUsers.rows.length} tracking records for application ${application_id}`);
-                }
-            }
-
-            // Also update submitted_applications table for backward compatibility
-            await client.query(
-                'UPDATE submitted_applications SET status = $1 WHERE application_id = $2',
-                [to_status, application_id]
-            );
-            
-            // Also update pos_application table
-            await client.query(
-                'UPDATE pos_application SET status = $1 WHERE application_id = $2',
-                [to_status, application_id]
-            );
 
             // Log the status transition
-            await client.query(
-                `
-                INSERT INTO status_audit_log 
-                    (application_id, from_status, to_status, admin_user_id, reason, timestamp)
+            await client.query(`
+                INSERT INTO status_audit_log (application_id, from_status, to_status, admin_user_id, reason, timestamp)
                 VALUES ($1, $2, $3, $4, $5, NOW())
-                `,
-                [application_id, from_status, to_status, admin_user_id, reason]
-            );
+            `, [application_id, from_status, to_status, admin_user_id, reason]);
 
-            // Handle offer status updates if transitioning to complete
-            if (to_status === 'complete') {
+            // Handle offer status updates if transitioning to completed
+            if (to_status === 'completed') {
                 // Mark all offers as deal_lost except the selected one
                 await client.query(
                     `
                     UPDATE application_offers 
                     SET status = 'deal_lost' 
-                    WHERE application_id = $1 AND status = 'submitted'
+                    WHERE submitted_application_id = $1 AND status = 'submitted'
                     `,
                     [application_id]
                 );

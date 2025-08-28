@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import AdminAuth from '@/lib/auth/admin-auth';
+import JWTUtils from '@/lib/auth/jwt-utils';
 
 export async function GET(req) {
     try {
@@ -11,18 +11,28 @@ export async function GET(req) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Validate admin session using session manager
-        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        // Verify JWT token directly
+        const jwtResult = JWTUtils.verifyToken(adminToken);
         
-        if (!sessionValidation.valid) {
+        if (!jwtResult.valid || !jwtResult.payload || jwtResult.payload.user_type !== 'admin_user') {
+            console.log('🔧 Time metrics: JWT verification failed:', jwtResult);
             return NextResponse.json({ 
                 success: false, 
-                error: sessionValidation.error || 'Invalid admin session' 
+                error: 'Invalid admin token' 
             }, { status: 401 });
         }
 
-        // Get admin user from session (no database query needed)
-        const adminUser = sessionValidation.adminUser;
+        const decoded = jwtResult.payload;
+
+        // Get admin user from JWT payload
+        const adminUser = {
+            admin_id: decoded.admin_id,
+            email: decoded.email,
+            full_name: decoded.full_name,
+            role: decoded.role,
+            permissions: decoded.permissions,
+            is_active: true
+        };
 
         const { searchParams } = new URL(req.url);
         const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
@@ -30,30 +40,36 @@ export async function GET(req) {
         const client = await pool.connectWithRetry();
         
         try {
-            // Calculate average response time (time from application submission to first offer)
+            // Calculate average response time (time from application submission to first bank view)
             const avgResponseTimeQuery = `
                 SELECT 
-                    AVG(EXTRACT(EPOCH FROM (ao.submitted_at - sa.submitted_at))/60) as avg_response_time_minutes
-                FROM submitted_applications sa
-                JOIN application_offers ao ON sa.id = ao.submitted_application_id
+                    AVG(EXTRACT(EPOCH FROM (bav.viewed_at - pa.submitted_at))/3600) as avg_response_time_hours
+                FROM pos_application pa
+                JOIN bank_application_views bav ON pa.application_id = bav.application_id
+                WHERE pa.submitted_at IS NOT NULL AND bav.viewed_at IS NOT NULL
+                AND bav.viewed_at > pa.submitted_at
             `;
 
             const avgResponseTime = await client.query(avgResponseTimeQuery);
 
-            // Calculate average offer time (time from application view to offer submission)
+            // Calculate average offer time (time from first view to offer submission)
             const avgOfferTimeQuery = `
                 SELECT 
-                    AVG(EXTRACT(EPOCH FROM (ao.submitted_at - aot.application_submitted_at))/60) as avg_offer_time_minutes
-                FROM application_offer_tracking aot
-                JOIN application_offers ao ON aot.application_id = ao.submitted_application_id
+                    AVG(EXTRACT(EPOCH FROM (ao.submitted_at - bav.viewed_at))/3600) as avg_offer_time_hours
+                FROM pos_application pa
+                JOIN bank_application_views bav ON pa.application_id = bav.application_id
+                JOIN application_offers ao ON pa.application_id = ao.submitted_application_id 
+                    AND ao.bank_user_id = bav.bank_user_id
+                WHERE bav.viewed_at IS NOT NULL AND ao.submitted_at IS NOT NULL
+                AND ao.submitted_at > bav.viewed_at
             `;
 
             const avgOfferTime = await client.query(avgOfferTimeQuery);
 
             // Get total applications
             const totalApplicationsQuery = `
-                SELECT COUNT(DISTINCT sa.application_id) as total_applications
-                FROM submitted_applications sa
+                SELECT COUNT(DISTINCT application_id) as total_applications
+                FROM pos_application
             `;
 
             const totalApplications = await client.query(totalApplicationsQuery);
@@ -74,12 +90,14 @@ export async function GET(req) {
             return NextResponse.json({
                 success: true,
                 data: {
-                    avg_response_time_minutes: parseFloat(avgResponseTime.rows[0]?.avg_response_time_minutes || 0),
-                    avg_offer_time_minutes: parseFloat(avgOfferTime.rows[0]?.avg_offer_time_minutes || 0),
+                    avg_response_time_hours: parseFloat(avgResponseTime.rows[0]?.avg_response_time_hours || 0),
+                    avg_offer_time_hours: parseFloat(avgOfferTime.rows[0]?.avg_offer_time_hours || 0),
                     total_applications: parseInt(totalApplications.rows[0]?.total_applications || 0),
                     total_offers: parseInt(totalOffers.rows[0]?.total_offers || 0),
                     conversion_rate: parseFloat(conversionRate.toFixed(2)),
-                    date: date
+                    date: date,
+                    // Data accuracy note: Now using actual view tracking data for accurate metrics
+                    data_accuracy_note: "Response time calculated from application submission to first bank view. Offer time calculated from first view to offer submission."
                 }
             });
 

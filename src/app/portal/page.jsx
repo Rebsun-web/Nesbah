@@ -9,13 +9,15 @@ import { BusinessFinancialInformation } from '@/components/businessFinancialInfo
 import { PosApplication } from '@/components/posApplication'
 import { ApplicationLimit } from '@/components/ApplicationLimit'
 import YourApplication from '@/components/YourApplication'
-import RejectionReaction from '@/components/RejectionReaction'
-import BankOffersDisplay from '@/components/BankOffersDisplay'
-import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react'
 import ApplicationSubmittedModal from '@/components/ApplicationSubmittedModal'
 import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
+import { useLanguage } from '@/contexts/LanguageContext'
+
+// Lazy load heavy components
+const LazyYourApplication = lazy(() => import('@/components/YourApplication'))
+const LazyPosApplication = lazy(() => import('@/components/posApplication'))
 
 const tabs = [
     { name: 'POS finance', value: 'pos' },
@@ -26,6 +28,7 @@ function classNames(...classes) {
 }
 
 function BusinessPortal() {
+    const { t } = useLanguage()
     const [activeTab, setActiveTab] = useState('pos');
     const [userInfo, setUserInfo] = useState(null);
     const [businessInfo, setBusinessInfo] = useState(null);
@@ -36,8 +39,39 @@ function BusinessPortal() {
     const [lastUpdate, setLastUpdate] = useState(null);
     const [previousStatus, setPreviousStatus] = useState(null);
 
-    // Function to fetch application data
-    const fetchApplicationData = async (userId) => {
+    // Memoize status info to prevent unnecessary recalculations
+    const statusInfo = useMemo(() => {
+        const statusConfig = {
+            'live_auction': {
+                label: t('portal.liveAuction'),
+                description: t('portal.liveAuctionDesc'),
+                color: 'bg-yellow-100 text-yellow-800',
+                icon: '⏰'
+            },
+            'completed': {
+                label: t('portal.dealCompleted'),
+                description: t('portal.dealCompletedDesc'),
+                color: 'bg-green-100 text-green-800',
+                icon: '✅'
+            },
+            'ignored': {
+                label: t('portal.applicationIgnored'),
+                description: t('portal.applicationIgnoredDesc'),
+                color: 'bg-gray-100 text-gray-800',
+                icon: '❌'
+            },
+        };
+        
+        return statusConfig[applicationStatus] || {
+            label: t('portal.unknownStatus'),
+            description: t('portal.unknownStatusDesc'),
+            color: 'bg-gray-100 text-gray-800',
+            icon: '❓'
+        };
+    }, [applicationStatus, t]);
+
+    // Function to fetch application data - memoized with useCallback
+    const fetchApplicationData = useCallback(async (userId) => {
         try {
             // Fetch POS applications
             const appResponse = await fetch(`/api/posApplication/${userId}`);
@@ -64,16 +98,8 @@ function BusinessPortal() {
                 
                 setHasApplication(true);
                 
-            // Fetch additional application details if needed
-            if (application.application_id) {
-                const detailsResponse = await makeAuthenticatedRequest(`/api/leads/${application.application_id}`);
-                if (detailsResponse) {
-                    const detailsData = await detailsResponse.json();
-                    if (detailsData.success) {
-                        setApplicationData(prev => ({ ...prev, ...detailsData.data }));
-                    }
-                }
-            }
+                // Note: Removed the call to /api/leads/[id] as it's designed for bank users
+                // Business users already have all necessary data from pos_application table
             } else {
                 setHasApplication(false);
                 setApplicationStatus(null);
@@ -85,38 +111,23 @@ function BusinessPortal() {
             console.error('Error fetching application data:', err);
             setHasApplication(false);
         }
-    };
+    }, [applicationStatus]);
 
-    // Function to get status display info
-    const getStatusInfo = (status) => {
-        const statusConfig = {
-            'live_auction': {
-                label: 'Live Auction Active',
-                description: 'Banks are viewing and submitting offers for your application. Auction ends in 48 hours.',
-                color: 'bg-yellow-100 text-yellow-800',
-                icon: '⏰'
-            },
-            'completed': {
-                label: 'Deal Completed',
-                description: 'Your application has been successfully processed.',
-                color: 'bg-green-100 text-green-800',
-                icon: '✅'
-            },
-            'ignored': {
-                label: 'Application Ignored',
-                description: 'No banks submitted offers for your application.',
-                color: 'bg-gray-100 text-gray-800',
-                icon: '❌'
-            },
-        };
-        
-        return statusConfig[status] || {
-            label: 'Unknown Status',
-            description: 'Application status is unknown.',
-            color: 'bg-gray-100 text-gray-800',
-            icon: '❓'
-        };
-    };
+    // Memoize the form renderer
+    const renderForm = useCallback(() => {
+        switch (activeTab) {
+            case 'pos':
+                return (
+                    <Suspense fallback={<div className="text-center py-8">Loading application form...</div>}>
+                        <LazyPosApplication user={{ ...userInfo, business: businessInfo }} onSuccess={() => setIsSubmitted(true)} />
+                    </Suspense>
+                );
+            case 'account':
+                return <div className="text-gray-600">My Account form goes here.</div>;
+            default:
+                return null;
+        }
+    }, [activeTab, userInfo, businessInfo]);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
@@ -147,33 +158,16 @@ function BusinessPortal() {
 
             return () => clearInterval(interval);
         }
-    }, [hasApplication, applicationStatus]); // Added dependencies to prevent unnecessary re-renders
-
-    const renderForm = () => {
-        switch (activeTab) {
-            case 'pos':
-                return <PosApplication user={{ ...userInfo, business: businessInfo }} onSuccess={() => setIsSubmitted(true)} />;
-            case 'account':
-                return <div className="text-gray-600">My Account form goes here.</div>;
-            default:
-                return null;
-        }
-    };
+    }, [hasApplication, applicationStatus, fetchApplicationData]);
 
     return (
-      <ProtectedRoute userType="business_user" redirectTo="/login">
-        <div className="overflow-hidden pb-32">
+      <div className="overflow-hidden pb-32">
         {isSubmitted && <ApplicationSubmittedModal />}
         <BusinessNavbar />
 
         {/* 🟪 Container 1 (Business Info) */}
         <div className="min-h-full">
           <div className="pt-5">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-                About you
-              </h1>
-            </div>
             <main>
               <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 gap-6">
@@ -182,49 +176,107 @@ function BusinessPortal() {
                 <div className="mx-auto max-w-7xl py-2">
                   {/* Application Status Display */}
                   {hasApplication && applicationStatus && (
-                    <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Application Status</h3>
-                        <div className="flex items-center space-x-3">
-                          {lastUpdate && (
-                            <span className="text-sm text-gray-500">
-                              Last updated: {lastUpdate.toLocaleTimeString()}
-                            </span>
-                          )}
-                          <button
-                            onClick={() => userInfo && fetchApplicationData(userInfo.user_id)}
-                            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
-                          >
-                            Refresh
-                          </button>
+                    <div className="w-full mb-8">
+                      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
+                                <div className="text-2xl text-white">
+                                  {statusInfo.icon}
+                                </div>
+                              </div>
+                              <div>
+                                <h1 className="text-2xl font-bold text-white">{t('portal.applicationStatus')}</h1>
+                                <p className="text-indigo-100">{t('portal.trackApplicationProgress')}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <button
+                                onClick={() => userInfo && fetchApplicationData(userInfo.user_id)}
+                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-lg hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
+                              >
+                                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                {t('common.refresh')}
+                              </button>
+                              <div className="flex items-center space-x-2">
+                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusInfo.color}`}>
+                                  {statusInfo.label}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-start space-x-4">
-                        <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-2xl ${getStatusInfo(applicationStatus).color.replace('text-', 'bg-').replace('bg-', '')}`}>
-                          {getStatusInfo(applicationStatus).icon}
+
+                        {/* Status Bar */}
+                        <div className="px-8 py-4 bg-slate-50 border-b border-slate-200">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-slate-600">
+                              {statusInfo.description}
+                            </p>
+                            {lastUpdate && (
+                              <p className="text-xs text-slate-500">
+                                {t('common.lastUpdated')}: {lastUpdate.toLocaleTimeString()}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <h4 className={`text-lg font-medium ${getStatusInfo(applicationStatus).color.split(' ')[1]}`}>
-                            {getStatusInfo(applicationStatus).label}
-                          </h4>
-                          <p className="text-gray-600 mt-1">
-                            {getStatusInfo(applicationStatus).description}
-                          </p>
-                          
-                          {/* Additional status-specific information */}
-                          {applicationData && (
-                            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                              {applicationData.submitted_at && (
-                                <div>
-                                  <span className="font-medium text-gray-700">Submitted:</span>
-                                  <span className="ml-2 text-gray-600">
-                                    {new Date(applicationData.submitted_at).toLocaleDateString()}
-                                  </span>
+
+                        {/* Status Details */}
+                        <div className="px-8 py-6">
+                          <div className="flex items-start space-x-4">
+                            <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center text-2xl ${statusInfo.color.replace('text-', 'bg-').replace('bg-', '')}`}>
+                              {statusInfo.icon}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className={`text-lg font-bold ${statusInfo.color.split(' ')[1]} mb-2`}>
+                                {statusInfo.label}
+                              </h4>
+                              <p className="text-slate-600 mb-4">
+                                {statusInfo.description}
+                              </p>
+                              
+                              {/* Additional status-specific information */}
+                              {applicationData && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {applicationData.submitted_at && (
+                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                                      <div className="flex items-center space-x-2">
+                                        <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <div>
+                                          <div className="text-xs font-medium text-blue-700">{t('portal.submittedDate')}</div>
+                                          <div className="text-sm font-bold text-blue-900">
+                                            {new Date(applicationData.submitted_at).toLocaleDateString()}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {applicationData.submitted_at && (
+                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-3 border border-green-100">
+                                      <div className="flex items-center space-x-2">
+                                        <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <div>
+                                          <div className="text-xs font-medium text-green-700">{t('portal.submittedTime')}</div>
+                                          <div className="text-sm font-bold text-green-900">
+                                            {new Date(applicationData.submitted_at).toLocaleTimeString()}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
-                          )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -233,8 +285,9 @@ function BusinessPortal() {
                   {/* Only show application-related components if user has submitted an application */}
                   {hasApplication && (
                     <div className="space-y-8">
-                      <YourApplication user={userInfo} />
-                      <BankOffersDisplay userInfo={userInfo} applicationStatus={applicationStatus} />
+                      <Suspense fallback={<div className="text-center py-8">Loading application details...</div>}>
+                        <LazyYourApplication user={userInfo} />
+                      </Suspense>
                     </div>
                   )}
 
@@ -244,7 +297,7 @@ function BusinessPortal() {
                   <div className="mx-auto max-w-7xl pt-2">
                     <header className="mb-3">
                       <h2 className="text-2xl font-semibold tracking-tight text-purple-900">
-                        Apply for a service
+                        {t('portal.applyForService')}
                       </h2>
                     </header>
 
@@ -303,7 +356,6 @@ function BusinessPortal() {
           </div>
         </div>
       </div>
-      </ProtectedRoute>
     )
 }
 

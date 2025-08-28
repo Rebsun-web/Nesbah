@@ -37,25 +37,21 @@ export async function GET(req, { params }) {
             // Get application details
             const applicationQuery = `
                 SELECT 
-                    sa.application_id,
-                    sa.status,
-                    sa.submitted_at,
-                    sa.auction_end_time,
-                    sa.offer_selection_end_time,
-                    sa.offers_count,
-                    sa.revenue_collected,
-                    sa.business_user_id,
-                    sa.assigned_user_id,
-                    sa.admin_notes,
-                    sa.priority_level,
-                    sa.last_admin_action,
-                    sa.last_admin_user_id,
+                    pa.application_id,
+                    COALESCE(pa.current_application_status, pa.status) as status,
+                    pa.submitted_at,
+                    pa.auction_end_time,
+                    pa.offer_selection_end_time,
+                    pa.offers_count,
+                    pa.revenue_collected,
+                    pa.business_user_id,
+                    pa.admin_notes,
                     pa.trade_name,
                     pa.cr_number,
                     pa.cr_national_number,
                     pa.legal_form,
                     pa.registration_status,
-                    pa.issue_date,
+                    pa.issue_date_gregorian as issue_date,
                     pa.city,
                     pa.activities,
                     pa.contact_info,
@@ -64,7 +60,7 @@ export async function GET(req, { params }) {
                     pa.cr_capital,
                     pa.cash_capital,
                     pa.management_structure,
-                    pa.management_names,
+                    pa.management_managers as management_names,
                     pa.contact_person,
                     pa.contact_person_number,
                     pa.number_of_pos_devices,
@@ -73,20 +69,15 @@ export async function GET(req, { params }) {
                     pa.notes,
                     pa.uploaded_filename,
                     pa.uploaded_mimetype,
-                    assigned_bu.trade_name as assigned_trade_name,
-                    assigned_u.email as assigned_email,
                     CASE 
-                        WHEN sa.status = 'live_auction' AND sa.auction_end_time <= NOW() + INTERVAL '1 hour' THEN 'auction_ending_soon'
-                        WHEN sa.status = 'completed' AND sa.offer_selection_end_time <= NOW() + INTERVAL '1 hour' THEN 'selection_ending_soon'
-                        WHEN sa.status = 'live_auction' AND sa.auction_end_time <= NOW() THEN 'auction_expired'
-                        WHEN sa.status = 'completed' AND sa.offer_selection_end_time <= NOW() THEN 'selection_expired'
+                        WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' AND pa.auction_end_time <= NOW() + INTERVAL '1 hour' THEN 'auction_ending_soon'
+                        WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' AND pa.offer_selection_end_time <= NOW() + INTERVAL '1 hour' THEN 'selection_ending_soon'
+                        WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' AND pa.auction_end_time <= NOW() THEN 'auction_expired'
+                        WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' AND pa.offer_selection_end_time <= NOW() THEN 'selection_expired'
                         ELSE 'normal'
                     END as urgency_level
-                FROM submitted_applications sa
-                JOIN pos_application pa ON sa.application_id = pa.application_id
-                LEFT JOIN business_users assigned_bu ON sa.assigned_user_id = assigned_bu.user_id
-                LEFT JOIN users assigned_u ON assigned_bu.user_id = assigned_u.user_id
-                WHERE sa.application_id = $1
+                FROM pos_application pa
+                WHERE pa.application_id = $1
             `;
             
             const applicationResult = await client.query(applicationQuery, [applicationId]);
@@ -192,119 +183,58 @@ export async function PUT(req, { params }) {
         const {
             status,
             admin_notes,
-            priority_level,
             trade_name,
             cr_number,
             city,
             contact_person,
             contact_person_number,
-            notes,
-            assigned_user_id
+            notes
         } = body;
-
-        // Validate assigned user if provided
-        if (assigned_user_id) {
-            const assignedUserCheck = await pool.query(
-                'SELECT user_id FROM business_users WHERE user_id = $1',
-                [assigned_user_id]
-            );
-            if (assignedUserCheck.rows.length === 0) {
-                return NextResponse.json({ success: false, error: 'Invalid assigned user ID' }, { status: 400 });
-            }
-        }
 
         const client = await pool.connectWithRetry();
         
         try {
             await client.query('BEGIN');
 
-            // Update submitted application
-            const submittedUpdateQuery = `
-                UPDATE submitted_applications 
+            // Update pos_application
+            const posUpdateQuery = `
+                UPDATE pos_application 
                 SET 
-                    status = COALESCE($1, status),
-                    admin_notes = COALESCE($2, admin_notes),
-                    priority_level = COALESCE($3, priority_level),
-                    last_admin_action = NOW(),
-                    last_admin_user_id = $4,
-                    assigned_user_id = COALESCE($5, assigned_user_id)
-                WHERE application_id = $6
+                    current_application_status = COALESCE($1, current_application_status),
+                    admin_notes = COALESCE($2, admin_notes)
+                WHERE application_id = $3
                 RETURNING *
             `;
             
-            const submittedResult = await client.query(submittedUpdateQuery, [
-                status, admin_notes, priority_level, adminUser.admin_id, assigned_user_id, applicationId
+            const posResult = await client.query(posUpdateQuery, [
+                status, admin_notes, applicationId
             ]);
 
-            if (submittedResult.rows.length === 0) {
+            if (posResult.rows.length === 0) {
                 await client.query('ROLLBACK');
                 return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
             }
 
-            // Also update application status in all tables if status is provided
+            // Also update application status if status is provided
             if (status) {
-                // Update submitted_applications table
+                // Update pos_application table status
                 await client.query(
-                    'UPDATE submitted_applications SET status = $1 WHERE application_id = $2',
+                    'UPDATE pos_application SET current_application_status = $1 WHERE application_id = $2',
                     [status, applicationId]
                 );
-                
-                // Update pos_application table
-                await client.query(
-                    'UPDATE pos_application SET status = $1 WHERE application_id = $2',
-                    [status, applicationId]
-                );
-                
-                // Check if tracking record exists
-                const trackingCheck = await client.query(
-                    'SELECT COUNT(*) as count FROM application_offer_tracking WHERE application_id = $1',
-                    [applicationId]
-                );
-                
-                if (parseInt(trackingCheck.rows[0].count) > 0) {
-                    // Update existing tracking record
-                    await client.query(
-                        'UPDATE application_offer_tracking SET current_application_status = $1 WHERE application_id = $2',
-                        [status, applicationId]
-                    );
-                } else {
-                    // Create new tracking record
-                    await client.query(`
-                        INSERT INTO application_offer_tracking (
-                            application_id, 
-                            business_user_id, 
-                            bank_user_id,
-                            application_submitted_at,
-                            application_window_start,
-                            application_window_end,
-                            current_application_status
-                        )
-                        SELECT 
-                            sa.application_id,
-                            sa.business_user_id,
-                            u.user_id,
-                            sa.submitted_at,
-                            sa.submitted_at,
-                            sa.submitted_at + INTERVAL '48 hours',
-                            $1
-                        FROM submitted_applications sa
-                        CROSS JOIN users u
-                        WHERE sa.application_id = $2 AND u.user_type = 'bank_user'
-                    `, [status, applicationId]);
-                }
                 
                 // Log the status transition
                 await client.query(`
                     INSERT INTO status_audit_log (application_id, from_status, to_status, admin_user_id, reason, timestamp)
                     VALUES ($1, $2, $3, $4, $5, NOW())
-                `, [applicationId, 'unknown', status, adminUser.admin_id, 'Admin direct update']);
+                `, [applicationId, 'unknown', status, adminUser.admin_id || 1, 'Admin direct update']);
                 
                 console.log(`✅ Application ${applicationId} status updated to ${status} by admin`);
             }
 
-            // Update POS application if fields provided
+            // Update POS application details if fields provided
             if (trade_name || cr_number || city || contact_person || contact_person_number || notes) {
-                const posUpdateQuery = `
+                const posDetailsUpdateQuery = `
                     UPDATE pos_application 
                     SET 
                         trade_name = COALESCE($1, trade_name),
@@ -316,17 +246,10 @@ export async function PUT(req, { params }) {
                     WHERE application_id = $7
                 `;
                 
-                await client.query(posUpdateQuery, [
+                await client.query(posDetailsUpdateQuery, [
                     trade_name, cr_number, city, contact_person, contact_person_number, notes, applicationId
                 ]);
             }
-
-            // Log the update
-            await client.query(
-                `INSERT INTO admin_audit_log (action, table_name, record_id, admin_user_id, details, timestamp)
-                 VALUES ($1, $2, $3, $4, $5, NOW())`,
-                ['UPDATE', 'submitted_applications', applicationId, adminUser.admin_id, JSON.stringify(body)]
-            );
 
             await client.query('COMMIT');
 
@@ -335,9 +258,8 @@ export async function PUT(req, { params }) {
                 message: 'Application updated successfully',
                 data: {
                     application_id: applicationId,
-                    status: submittedResult.rows[0].status,
-                    admin_notes: submittedResult.rows[0].admin_notes,
-                    priority_level: submittedResult.rows[0].priority_level,
+                    status: posResult.rows[0].current_application_status,
+                    admin_notes: posResult.rows[0].admin_notes,
                     timestamp: new Date().toISOString()
                 }
             });
@@ -393,7 +315,7 @@ export async function DELETE(req, { params }) {
             await client.query('BEGIN');
 
             // Check if application exists
-            const checkQuery = `SELECT application_id FROM submitted_applications WHERE application_id = $1`;
+            const checkQuery = `SELECT application_id FROM pos_application WHERE application_id = $1`;
             const checkResult = await client.query(checkQuery, [applicationId]);
             
             if (checkResult.rows.length === 0) {
@@ -404,15 +326,7 @@ export async function DELETE(req, { params }) {
             // Delete related records first (in reverse order of dependencies)
             await client.query(`DELETE FROM application_offers WHERE submitted_application_id = $1`, [applicationId]);
             await client.query(`DELETE FROM status_audit_log WHERE application_id = $1`, [applicationId]);
-            await client.query(`DELETE FROM submitted_applications WHERE application_id = $1`, [applicationId]);
             await client.query(`DELETE FROM pos_application WHERE application_id = $1`, [applicationId]);
-
-            // Log the deletion
-            await client.query(
-                `INSERT INTO admin_audit_log (action, table_name, record_id, admin_user_id, details, timestamp)
-                 VALUES ($1, $2, $3, $4, $5, NOW())`,
-                ['DELETE', 'pos_application', applicationId, adminUser.admin_id, JSON.stringify({ application_id: applicationId })]
-            );
 
             await client.query('COMMIT');
 

@@ -8,16 +8,18 @@ import { Heading } from '@/components/heading'
 import { Select } from '@/components/select'
 import StackedCard from '@/components/stackedCard'
 import BankLeadsTable from "@/components/BankLeadsTable"
-import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
 import BankLogoUploadModal from '@/components/BankLogoUploadModal'
-import { CameraIcon } from '@heroicons/react/24/outline'
+import { CameraIcon, ChartBarIcon, UserGroupIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+import { Button } from '@/components/button'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 function BankPortal() {
     const [userInfo, setUserInfo] = useState(null)
     const [leads, setLeads] = useState([])
     const [stats, setStats] = useState(null)
     const [isLogoUploadModalOpen, setIsLogoUploadModalOpen] = useState(false)
+    const { t } = useLanguage()
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user')
@@ -63,32 +65,27 @@ function BankPortal() {
                 <div className="pt-10">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between">
-                            <Heading>Welcome to Nesbah</Heading>
+                            <Heading>{t('hero.welcome')}</Heading>
                         </div>
                     </div>
                     
                     {/* Stats Section */}
                     <main>
                         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                            <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4">
+                            <div className="grid gap-8 sm:grid-cols-3">
                                 <Stat
-                                    title="New leads"
+                                    title={t('stats.newLeads')}
                                     value={stats?.incoming_leads ?? '-'}
                                     change="+0%"
                                 />
                                 <Stat
-                                    title="Purchased leads"
+                                    title={t('stats.submittedOffers')}
                                     value={stats?.purchased_leads ?? '-'}
                                     change="+0%"
                                 />
                                 <Stat
-                                    title="Ignored leads"
+                                    title={t('stats.ignoredOffers')}
                                     value={stats?.ignored_leads ?? '-'}
-                                    change="+0%"
-                                />
-                                <Stat
-                                    title="Total revenue"
-                                    value={stats?.total_revenue ? `SAR ${stats.total_revenue}` : 'SAR 0'}
                                     change="+0%"
                                 />
                             </div>
@@ -101,7 +98,7 @@ function BankPortal() {
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6">
                 <div className="mx-auto max-w-7xl">
                     <h1 className="text-2xl font-semibold tracking-tight text-gray-900 mb-6">
-                        Incoming application
+                        {t('leads.incoming')}
                     </h1>
                     <BankLeadsTable data={leads} />
                 </div>
@@ -121,14 +118,12 @@ function BankPortal() {
 
 export default function BusinessDashboardPage() {
     return (
-        <ProtectedRoute userType="bank_user" redirectTo="/login">
-            <div>
-                <main className="pb-32">
-                    <BankNavbar />
-                    <BankPortal />
-                </main>
-                <NewFooter />
-            </div>
-        </ProtectedRoute>
+        <div>
+            <main className="pb-32">
+                <BankNavbar />
+                <BankPortal />
+            </main>
+            <NewFooter />
+        </div>
     )
 }

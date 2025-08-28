@@ -40,14 +40,14 @@ export async function GET(req) {
         try {
             client = await pool.connectWithRetry();
             // Build WHERE clause for applications available for offers
-            let whereClause = "WHERE sa.status = 'purchased'";
+            let whereClause = "WHERE COALESCE(pa.current_application_status, pa.status) = 'live_auction'";
             const queryParams = [];
             let paramCount = 0;
 
             // Add status filter if specified
             if (statusFilter !== 'all') {
                 paramCount++;
-                whereClause += ` AND sa.status = $${paramCount}`;
+                whereClause += ` AND COALESCE(pa.current_application_status, pa.status) = $${paramCount}`;
                 queryParams.push(statusFilter);
             }
 
@@ -58,22 +58,20 @@ export async function GET(req) {
                 queryParams.push(`%${search}%`);
             }
 
-            // Build the main query
+            // Build the main query using pos_application
             const query = `
                 SELECT 
-                    sa.id,
-                    sa.application_id,
-                    sa.application_type,
-                    sa.business_user_id,
-                    sa.assigned_user_id,
-                    sa.status,
-                    sa.revenue_collected,
-                    sa.offers_count,
-                    sa.admin_notes,
-                    sa.priority_level,
-                    sa.submitted_at,
-                    sa.auction_end_time,
-                    sa.offer_selection_end_time,
+                    pa.application_id,
+                    pa.application_type,
+                    pa.business_user_id,
+                    pa.assigned_user_id,
+                    COALESCE(pa.current_application_status, pa.status) as status,
+                    pa.revenue_collected,
+                    pa.offers_count,
+                    pa.admin_notes,
+                    pa.submitted_at,
+                    pa.auction_end_time,
+                    pa.offer_selection_end_time,
                     pa.trade_name,
                     pa.cr_number,
                     pa.cr_national_number,
@@ -97,24 +95,25 @@ export async function GET(req) {
                     pa.notes,
                     pa.uploaded_filename,
                     pa.uploaded_mimetype,
+                    pa.opened_by,
+                    pa.purchased_by,
                     bu.trade_name as business_trade_name,
                     u.email as business_email,
                     assigned_bu.trade_name as assigned_trade_name,
                     assigned_u.email as assigned_email,
-                    array_length(sa.purchased_by, 1) as purchases_count,
-                    sa.purchased_by as purchased_by_banks,
+                    array_length(pa.purchased_by, 1) as purchases_count,
+                    array_length(pa.opened_by, 1) as views_count,
                     CASE 
-                        WHEN sa.status = 'live_auction' AND sa.auction_end_time <= NOW() + INTERVAL '1 hour' THEN 'auction_ending_soon'
-                        WHEN sa.status = 'completed' AND sa.offer_selection_end_time <= NOW() + INTERVAL '1 hour' THEN 'selection_ending_soon'
-                        WHEN sa.status = 'live_auction' AND sa.auction_end_time <= NOW() THEN 'auction_expired'
-                        WHEN sa.status = 'completed' AND sa.offer_selection_end_time <= NOW() THEN 'selection_expired'
+                        WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' AND pa.auction_end_time <= NOW() + INTERVAL '1 hour' THEN 'auction_ending_soon'
+                        WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' AND pa.offer_selection_end_time <= NOW() + INTERVAL '1 hour' THEN 'selection_ending_soon'
+                        WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' AND pa.auction_end_time <= NOW() THEN 'auction_expired'
+                        WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' AND pa.offer_selection_end_time <= NOW() THEN 'selection_expired'
                         ELSE 'normal'
                     END as urgency_level
-                FROM submitted_applications sa
-                JOIN pos_application pa ON sa.application_id = pa.application_id
-                JOIN business_users bu ON sa.business_user_id = bu.user_id
+                FROM pos_application pa
+                JOIN business_users bu ON pa.business_user_id = bu.user_id
                 JOIN users u ON bu.user_id = u.user_id
-                LEFT JOIN business_users assigned_bu ON sa.assigned_user_id = assigned_bu.user_id
+                LEFT JOIN business_users assigned_bu ON pa.assigned_user_id = assigned_bu.user_id
                 LEFT JOIN users assigned_u ON assigned_bu.user_id = assigned_u.user_id
                 ${whereClause}
                 ORDER BY ${sortBy} ${sortOrder.toUpperCase()}
@@ -128,11 +127,10 @@ export async function GET(req) {
             // Get total count for pagination
             let countQuery = `
                 SELECT COUNT(*) as total
-                FROM submitted_applications sa
-                JOIN pos_application pa ON sa.application_id = pa.application_id
-                JOIN business_users bu ON sa.business_user_id = bu.user_id
+                FROM pos_application pa
+                JOIN business_users bu ON pa.business_user_id = bu.user_id
                 JOIN users u ON bu.user_id = u.user_id
-                LEFT JOIN business_users assigned_bu ON sa.assigned_user_id = assigned_bu.user_id
+                LEFT JOIN business_users assigned_bu ON pa.assigned_user_id = assigned_bu.user_id
                 LEFT JOIN users assigned_u ON assigned_bu.user_id = assigned_u.user_id
                 ${whereClause}
             `;

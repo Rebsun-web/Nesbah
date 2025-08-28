@@ -12,9 +12,12 @@ import {
 import { Bars3Icon, BellIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import LanguageSwitcher from './LanguageSwitcher'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 const navigation = [
-    { name: 'Dashboard', href: '/portal' },
+    { name: 'nav.dashboard', href: '/portal' },
+    { name: 'nav.offers', href: '/portal/offers' },
 ]
 
 const userNavigation = [
@@ -29,6 +32,7 @@ export default function BusinessNavbar() {
     const router = useRouter()
     const pathname = usePathname()
     const [userInfo, setUserInfo] = useState(null)
+    const { t } = useLanguage()
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user')
@@ -81,7 +85,7 @@ export default function BusinessNavbar() {
                                             'rounded-md px-3 py-2 text-sm font-medium',
                                         )}
                                     >
-                                        {item.name}
+                                        {t(item.name)}
                                     </a>
                                 )
                             })}
@@ -89,17 +93,23 @@ export default function BusinessNavbar() {
                     </div>
                     <div className="flex items-center">
                         <div className="hidden md:ml-4 md:flex md:shrink-0 md:items-center">
+                            {/* Language Switcher */}
+                            <div className="mr-4">
+                                <LanguageSwitcher variant="minimal" />
+                            </div>
+                            
                             {/* Profile dropdown */}
                             <Menu as="div" className="relative ml-3">
-                                <div>
-                                    <MenuButton className="relative flex rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
-                                        <span className="absolute -inset-1.5" />
-                                        <span className="sr-only">Open user menu</span>
-                                        <img alt="" src="/logo/blank_profile.png" className="size-8 rounded-full" />
-                                    </MenuButton>
-                                </div>
+                                <MenuButton className="relative flex rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
+                                    <span className="absolute -inset-1.5" />
+                                    <span className="sr-only">Open user menu</span>
+                                    <img
+                                        alt=""
+                                        src="/logo/blank_profile.png"
+                                        className="size-8 rounded-full"
+                                    />
+                                </MenuButton>
                                 <MenuItems
-                                    transition
                                     className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition focus:outline-none data-[closed]:scale-95 data-[closed]:transform data-[closed]:opacity-0 data-[enter]:duration-200 data-[leave]:duration-75 data-[enter]:ease-out data-[leave]:ease-in"
                                 >
                                     {userNavigation.map((item) => (
@@ -108,7 +118,7 @@ export default function BusinessNavbar() {
                                                 onClick={() => handleNavigation(item)}
                                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 data-[focus]:bg-gray-100 data-[focus]:outline-none"
                                             >
-                                                {item.name}
+                                                {t('nav.logout')}
                                             </button>
                                         </MenuItem>
                                     ))}
@@ -136,7 +146,7 @@ export default function BusinessNavbar() {
                                     'block rounded-md px-3 py-2 text-base font-medium',
                                 )}
                             >
-                                {item.name}
+                                {t(item.name)}
                             </DisclosureButton>
                         )
                     })}
@@ -162,6 +172,10 @@ export default function BusinessNavbar() {
                         </button>
                     </div>
                     <div className="mt-3 space-y-1 px-2 sm:px-3">
+                        {/* Language Switcher in mobile menu */}
+                        <div className="px-3 py-2">
+                            <LanguageSwitcher variant="default" />
+                        </div>
                         {userNavigation.map((item) => (
                             <DisclosureButton
                                 key={item.name}
@@ -169,7 +183,7 @@ export default function BusinessNavbar() {
                                 onClick={() => handleNavigation(item)}
                                 className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
                             >
-                                {item.name}
+                                {t('nav.logout')}
                             </DisclosureButton>
                         ))}
                     </div>

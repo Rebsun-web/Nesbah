@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import AdminAuth from '@/lib/auth/admin-auth';
+import JWTUtils from '@/lib/auth/jwt-utils';
 
 export async function GET(req) {
     try {
@@ -11,18 +11,28 @@ export async function GET(req) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Validate admin session using session manager
-        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        // Verify JWT token directly
+        const jwtResult = JWTUtils.verifyToken(adminToken);
         
-        if (!sessionValidation.valid) {
+        if (!jwtResult.valid || !jwtResult.payload || jwtResult.payload.user_type !== 'admin_user') {
+            console.log('🔧 Offers analytics: JWT verification failed:', jwtResult);
             return NextResponse.json({ 
                 success: false, 
-                error: sessionValidation.error || 'Invalid admin session' 
+                error: 'Invalid admin token' 
             }, { status: 401 });
         }
 
-        // Get admin user from session (no database query needed)
-        const adminUser = sessionValidation.adminUser;
+        const decoded = jwtResult.payload;
+
+        // Get admin user from JWT payload
+        const adminUser = {
+            admin_id: decoded.admin_id,
+            email: decoded.email,
+            full_name: decoded.full_name,
+            role: decoded.role,
+            permissions: decoded.permissions,
+            is_active: true
+        };
 
         const client = await pool.connectWithRetry();
         
@@ -85,21 +95,20 @@ export async function GET(req) {
                         MAX(ao.deal_value) as max_deal_value,
                         MIN(ao.deal_value) as min_deal_value
                     FROM application_offers ao
-                    JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
-                    JOIN pos_application pa ON sa.application_id = pa.application_id
+                    JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
                     GROUP BY pa.trade_name, pa.city
                     ORDER BY total_offers DESC
                     LIMIT 10
                 ),
                 response_time_metrics AS (
                     SELECT 
-                        ROUND(AVG(EXTRACT(EPOCH FROM (ao.submitted_at - sa.submitted_at))/3600), 2) as avg_response_time_hours,
-                        ROUND(MIN(EXTRACT(EPOCH FROM (ao.submitted_at - sa.submitted_at))/3600), 2) as min_response_time_hours,
-                        ROUND(MAX(EXTRACT(EPOCH FROM (ao.submitted_at - sa.submitted_at))/3600), 2) as max_response_time_hours,
+                        ROUND(AVG(EXTRACT(EPOCH FROM (ao.submitted_at - pa.submitted_at))/3600), 2) as avg_response_time_hours,
+                        ROUND(MIN(EXTRACT(EPOCH FROM (ao.submitted_at - pa.submitted_at))/3600), 2) as min_response_time_hours,
+                        ROUND(MAX(EXTRACT(EPOCH FROM (ao.submitted_at - pa.submitted_at))/3600), 2) as max_response_time_hours,
                         COUNT(*) as total_offers_with_timing
                     FROM application_offers ao
-                    JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
-                    WHERE ao.submitted_at IS NOT NULL AND sa.submitted_at IS NOT NULL
+                    JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+                    WHERE ao.submitted_at IS NOT NULL AND pa.submitted_at IS NOT NULL
                 ),
                 deal_value_analysis AS (
                     SELECT 

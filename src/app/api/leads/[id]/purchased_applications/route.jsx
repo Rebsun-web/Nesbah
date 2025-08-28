@@ -18,8 +18,9 @@ export async function POST(req, { params }) {
             return NextResponse.json({ success: false, message: 'Invalid action' }, { status: 400 });
         }
 
+        // UPDATED: Check if already purchased using pos_application table
         const check = await pool.query(
-            `SELECT * FROM submitted_applications
+            `SELECT * FROM pos_application
              WHERE application_id = $1 AND $2 = ANY(purchased_by)`,
             [applicationId, bankUserId]
         );
@@ -42,9 +43,9 @@ export async function POST(req, { params }) {
                 [applicationId, bankUserId]
             );
 
-            // Update submitted_applications with purchase tracking
+            // UPDATED: Update pos_application with purchase tracking
             await pool.query(
-                `UPDATE submitted_applications
+                `UPDATE pos_application
                  SET
                      purchased_by = array_append(purchased_by, $1),
                      revenue_collected = revenue_collected + $2,
@@ -91,13 +92,14 @@ export async function POST(req, { params }) {
             uploadedFilename = file.name;
           }
 
+          // UPDATED: Check if purchased using pos_application table
           const result = await pool.query(
-            `SELECT id FROM submitted_applications WHERE application_id = $1 AND $2 = ANY(purchased_by)`,
+            `SELECT application_id FROM pos_application WHERE application_id = $1 AND $2 = ANY(purchased_by)`,
             [applicationId, bankUserId]
           );
 
           if (result.rowCount > 0) {
-            const submittedApplicationId = result.rows[0].id;
+            const submittedApplicationId = applicationId; // Use application_id directly
 
             const offerResult = await pool.query(
               `INSERT INTO application_offers (
@@ -152,9 +154,9 @@ export async function POST(req, { params }) {
                 WHERE application_id = $2 AND bank_user_id = $3
             `, [offerResult.rows[0].offer_id, applicationId, bankUserId]);
 
-            // Update offers count in submitted_applications
+            // UPDATED: Update offers count in pos_application
             await pool.query(
-              `UPDATE submitted_applications
+              `UPDATE pos_application
                SET offers_count = offers_count + 1
                WHERE application_id = $1`,
               [applicationId]
@@ -186,6 +188,7 @@ export async function GET(req, { params }) {
     const businessUserId = (await params).id;
 
     try {
+        // UPDATED: Query using pos_application table with new structure
         const result = await pool.query(
           `SELECT
             u.entity_name,
@@ -196,9 +199,8 @@ export async function GET(req, { params }) {
             ao.offer_comment,
             ao.submitted_at AS submitted_at
           FROM application_offers ao
-          JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
-          JOIN pos_application pa ON sa.application_id = pa.application_id
-          JOIN users u ON u.user_id = sa.purchased_by[1]
+          JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+          JOIN users u ON u.user_id = ao.submitted_by_user_id
           WHERE pa.user_id = $1`,
           [businessUserId]
         );

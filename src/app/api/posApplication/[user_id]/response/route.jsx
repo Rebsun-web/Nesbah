@@ -3,55 +3,54 @@ import pool from "@/lib/db";
 
 export async function GET(req, { params }) {
   const userId = (await params).user_id;
+  let client = null;
 
   try {
-    const client = await pool.connectWithRetry();
+    client = await pool.connectWithRetry();
 
-    // Get business user's submitted application ID
+    // Get business user's application ID directly from pos_application
     const { rows: applicationRows } = await client.query(
-      `SELECT id FROM submitted_applications WHERE business_user_id = $1`,
+      `SELECT application_id, status, offers_count, purchased_by FROM pos_application WHERE user_id = $1 ORDER BY submitted_at DESC LIMIT 1`,
       [userId]
     );
 
     if (applicationRows.length === 0) {
-      client.release();
       return NextResponse.json({ error: "No submitted applications found." }, { status: 404 });
     }
 
-    const submittedApplicationId = applicationRows[0].id;
+    const application = applicationRows[0];
+    const applicationId = application.application_id;
 
-    // Get all application offers
+    // Get all application offers using application_offers table
     const { rows: offers } = await client.query(
       `
-      SELECT ao.*, u.entity_name AS bank_name
+      SELECT 
+        ao.*,
+        u.entity_name AS bank_name,
+        bu.contact_person AS bank_contact_person,
+        bu.contact_person_number AS bank_contact_number
       FROM application_offers ao
-      JOIN users u ON ao.submitted_by_user_id = u.user_id
+      JOIN bank_users bu ON ao.bank_user_id = bu.user_id
+      JOIN users u ON bu.user_id = u.user_id
       WHERE ao.submitted_application_id = $1
       ORDER BY ao.submitted_at DESC
       `,
-      [submittedApplicationId]
+      [applicationId]
     );
-
-    // Get all rejection reactions
-    const { rows: rejections } = await client.query(
-      `
-      SELECT ar.*, u.entity_name AS bank_name
-      FROM application_rejections ar
-      JOIN users u ON ar.bank_user_id = u.user_id
-      WHERE ar.submitted_application_id = $1
-      `,
-      [submittedApplicationId]
-    );
-
-    client.release();
 
     return NextResponse.json({
-      submitted_application_id: submittedApplicationId,
+      application_id: applicationId,
       offers,
-      rejections,
+      application_status: application.status,
+      offers_count: application.offers_count || 0,
+      purchased_by: application.purchased_by || []
     });
   } catch (error) {
     console.error("Error fetching responses for business user:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 }

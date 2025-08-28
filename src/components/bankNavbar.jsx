@@ -15,6 +15,8 @@ import { useState, useEffect } from 'react'
 import BankLogo from '@/components/BankLogo'
 import BankLogoUploadModal from '@/components/BankLogoUploadModal'
 import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
+import LanguageSwitcher from './LanguageSwitcher'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function BankNavbar() {
     const router = useRouter()
@@ -22,6 +24,7 @@ export default function BankNavbar() {
     const [userInfo, setUserInfo] = useState(null)
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const [isLogoUploadModalOpen, setIsLogoUploadModalOpen] = useState(false)
+    const { t } = useLanguage()
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user')
@@ -51,13 +54,13 @@ export default function BankNavbar() {
     }, [dropdownOpen])
 
     const navigation = [
-        { name: 'Dashboard', href: '/bankPortal' },
-        { name: 'History', href: '/bankPortal/bankHistory' },
+        { name: t('nav.dashboard'), href: '/bankPortal' },
+        { name: t('nav.leads'), href: '/bankPortal/bankLeads' },
     ]
 
     const userNavigation = [
-        { name: 'Update Logo', action: 'updateLogo' },
-        { name: 'Sign out', action: 'logout' },
+        { name: t('nav.updateLogo'), action: 'updateLogo' },
+        { name: t('nav.logout'), action: 'logout' },
     ]
 
     function classNames(...classes) {
@@ -132,6 +135,11 @@ export default function BankNavbar() {
                     </div>
                     <div className="flex items-center">
                         <div className="hidden md:ml-4 md:flex md:shrink-0 md:items-center">
+                            {/* Language Switcher */}
+                            <div className="mr-4">
+                                <LanguageSwitcher variant="minimal" />
+                            </div>
+                            
                             {/* Bank information */}
                             <div className="mr-4 text-white text-sm">
                                 {userInfo ? `Bank: ${userInfo.entity_name || userInfo.email || 'Unknown Bank'}` : 'No user data'}
@@ -241,6 +249,10 @@ export default function BankNavbar() {
                         </button>
                     </div>
                     <div className="mt-3 space-y-1 px-2 sm:px-3">
+                        {/* Language Switcher in mobile menu */}
+                        <div className="px-3 py-2">
+                            <LanguageSwitcher variant="default" />
+                        </div>
                         {userNavigation.map((item) => (
                             <DisclosureButton
                                 key={item.name}

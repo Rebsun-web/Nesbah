@@ -121,14 +121,6 @@ export async function POST(req) {
                             
                             const userId = businessUserResult.rows[0].user_id;
 
-                            // Log the user creation
-                            await client.query(
-                                `INSERT INTO admin_audit_log 
-                                    (action, table_name, record_id, admin_user_id, details, timestamp)
-                                 VALUES ($1, $2, $3, $4, $5, NOW())`,
-                                ['CREATE', `${user_type}_users`, userId, 1, JSON.stringify(userData)]
-                            );
-
                             createdUsers.push({
                                 user_id: userId,
                                 trade_name: userData.trade_name,
@@ -167,14 +159,6 @@ export async function POST(req) {
                                     userData.first_name,
                                     userData.last_name
                                 ]
-                            );
-
-                            // Log the user creation
-                            await client.query(
-                                `INSERT INTO admin_audit_log 
-                                    (action, table_name, record_id, admin_user_id, details, timestamp)
-                                 VALUES ($1, $2, $3, $4, $5, NOW())`,
-                                ['CREATE', `${user_type}_users`, userId, 1, JSON.stringify(userData)]
                             );
 
                             createdUsers.push({
@@ -217,14 +201,6 @@ export async function POST(req) {
                                     userData.contact_person || null,
                                     userData.contact_person_number || null
                                 ]
-                            );
-
-                            // Log the user creation
-                            await client.query(
-                                `INSERT INTO admin_audit_log 
-                                    (action, table_name, record_id, admin_user_id, details, timestamp)
-                                 VALUES ($1, $2, $3, $4, $5, NOW())`,
-                                ['CREATE', `${user_type}_users`, userId, 1, JSON.stringify(userData)]
                             );
 
                             createdUsers.push({
@@ -316,24 +292,6 @@ export async function POST(req) {
                     { success: false, error: 'Invalid operation. Supported: create, update_status, delete' },
                     { status: 400 }
                 );
-            }
-
-            // Log the bulk operation (for non-create operations)
-            if (operation !== 'create' && result && result.rows) {
-                for (const row of result.rows) {
-                    await client.query(
-                        `INSERT INTO admin_audit_log 
-                            (action, table_name, record_id, admin_user_id, details, timestamp)
-                         VALUES ($1, $2, $3, $4, $5, NOW())`,
-                        [
-                            operation === 'delete' ? 'DELETE' : 'UPDATE',
-                            tableName,
-                            row.user_id,
-                            1,
-                            JSON.stringify({ operation, user_type, ...operationData })
-                        ]
-                    );
-                }
             }
 
             if (operation !== 'create') {

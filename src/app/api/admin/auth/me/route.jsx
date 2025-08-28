@@ -8,6 +8,7 @@ export async function GET(req) {
         
         console.log('🔧 Admin /me route: Checking for admin token');
         console.log('🔧 Admin /me route: Token found:', !!adminToken);
+        console.log('🔧 Admin /me route: Token value (first 50 chars):', adminToken ? adminToken.substring(0, 50) + '...' : 'null');
         
         if (!adminToken) {
             console.log('❌ Admin /me route: No admin token found');
@@ -19,9 +20,12 @@ export async function GET(req) {
 
         // Verify JWT token without database query
         console.log('🔧 Admin /me route: Verifying JWT token...');
-        const decodedToken = JWTUtils.verifyToken(adminToken);
+        console.log('🔧 Admin /me route: Token to verify:', adminToken ? adminToken.substring(0, 50) + '...' : 'null');
+        const jwtResult = JWTUtils.verifyToken(adminToken);
         
-        if (!decodedToken) {
+        console.log('🔧 Admin /me route: JWT verification result:', jwtResult);
+        
+        if (!jwtResult.valid) {
             console.log('❌ Admin /me route: Invalid JWT token');
             return NextResponse.json(
                 { success: false, error: 'Invalid admin token' },
@@ -29,9 +33,12 @@ export async function GET(req) {
             );
         }
 
+        const decodedToken = jwtResult.payload;
+        console.log('🔧 Admin /me route: Decoded token payload:', decodedToken);
+
         // Check if token is for admin user
         if (decodedToken.user_type !== 'admin_user') {
-            console.log('❌ Admin /me route: Token is not for admin user');
+            console.log('❌ Admin /me route: Token is not for admin user. user_type:', decodedToken.user_type);
             return NextResponse.json(
                 { success: false, error: 'Invalid token type' },
                 { status: 401 }

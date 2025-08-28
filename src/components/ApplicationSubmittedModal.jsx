@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
 import { CheckIcon } from '@heroicons/react/24/outline'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function ApplicationSubmittedModal() {
+    const { t } = useLanguage()
     const [open, setOpen] = useState(true)
 
     return (
@@ -26,11 +28,11 @@ export default function ApplicationSubmittedModal() {
                             </div>
                             <div className="mt-3 text-center sm:mt-5">
                                 <DialogTitle as="h3" className="text-base font-semibold text-gray-900">
-                                    Application submitted
+                                    {t('modal.applicationSubmitted')}
                                 </DialogTitle>
                                 <div className="mt-2">
                                     <p className="text-sm text-gray-500">
-                                        You will receive response within 48 hours
+                                        {t('modal.responseTime')}
                                     </p>
                                 </div>
                             </div>
@@ -44,7 +46,7 @@ export default function ApplicationSubmittedModal() {
                                 }}
                                 className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                             >
-                                OK
+                                {t('common.ok')}
                             </button>
                         </div>
                     </DialogPanel>

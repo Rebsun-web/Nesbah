@@ -17,6 +17,7 @@ import {
     CalendarIcon,
     ChevronLeftIcon,
 } from '@heroicons/react/16/solid'
+import { useViewTracking } from '@/hooks/useViewTracking';
 
 
 export default function LeadPage({ params }) {
@@ -69,6 +70,13 @@ export default function LeadPage({ params }) {
     useEffect(() => {
         fetchApplication()
     }, [bankUser, resolvedParams.id])
+
+    // Add view tracking for this application
+    useViewTracking(
+        resolvedParams.id, 
+        bankUser?.user_id, 
+        !!bankUser && !!resolvedParams.id
+    );
 
     if (!application) {
         return <p className="px-4 py-6">Loading application...</p>

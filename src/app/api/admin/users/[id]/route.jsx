@@ -172,7 +172,7 @@ export async function PUT(req, { params }) {
         // Get admin user from session (no database query needed)
         const adminUser = sessionValidation.adminUser;
 
-        const { id } = params;
+        const { id } = await params;
         const body = await req.json();
         const { user_type, ...updateData } = body;
 
@@ -309,16 +309,6 @@ export async function PUT(req, { params }) {
                 );
             }
 
-            // Log the update
-            await client.query(
-                `
-                INSERT INTO admin_audit_log 
-                    (action, table_name, record_id, admin_user_id, details, timestamp)
-                VALUES ($1, $2, $3, $4, $5, NOW())
-                `,
-                ['UPDATE', `${user_type}_users`, id, 1, JSON.stringify({ ...body, user_id: id })]
-            );
-
             await client.query('COMMIT');
 
             return NextResponse.json({
@@ -366,7 +356,7 @@ export async function DELETE(req, { params }) {
         // Get admin user from session (no database query needed)
         const adminUser = sessionValidation.adminUser;
 
-        const { id } = params;
+        const { id } = await params;
         const { searchParams } = new URL(req.url);
         const user_type = searchParams.get('user_type') || 'business';
 
@@ -444,20 +434,6 @@ export async function DELETE(req, { params }) {
                     { status: 404 }
                 );
             }
-
-            // Log the deletion
-            await client.query(
-                `
-                INSERT INTO admin_audit_log 
-                    (action, table_name, record_id, admin_user_id, details, timestamp)
-                VALUES ($1, $2, $3, $4, $5, NOW())
-                `,
-                ['DELETE', tableName, id, adminUser.admin_id, JSON.stringify({ 
-                    user_id: id, 
-                    user_type,
-                    user_details: userRecord 
-                })]
-            );
 
             await client.query('COMMIT');
 

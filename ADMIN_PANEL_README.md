@@ -74,22 +74,7 @@ CREATE TABLE offer_status_audit_log (
 );
 ```
 
-#### 4. `admin_audit_log`
-General audit log for all admin actions.
-
-```sql
-CREATE TABLE admin_audit_log (
-    log_id SERIAL PRIMARY KEY,
-    action VARCHAR(20) NOT NULL,
-    table_name VARCHAR(50) NOT NULL,
-    record_id INTEGER NOT NULL,
-    admin_user_id INTEGER NOT NULL,
-    details JSONB,
-    timestamp TIMESTAMP DEFAULT NOW()
-);
-```
-
-#### 5. `revenue_collections`
+#### 4. `revenue_collections`
 Detailed revenue tracking with transaction status.
 
 ```sql
@@ -106,7 +91,7 @@ CREATE TABLE revenue_collections (
 );
 ```
 
-#### 6. `admin_users`
+#### 5. `admin_users`
 Admin authentication and role management.
 
 ```sql
@@ -124,7 +109,7 @@ CREATE TABLE admin_users (
 );
 ```
 
-#### 7. `system_alerts`
+#### 6. `system_alerts`
 System monitoring and alert management.
 
 ```sql
@@ -143,7 +128,7 @@ CREATE TABLE system_alerts (
 );
 ```
 
-#### 8. `business_intelligence_metrics`
+#### 7. `business_intelligence_metrics`
 BI reporting and analytics data.
 
 ```sql

@@ -18,18 +18,18 @@ export async function GET(req, { params }) {
     try {
         await client.query('BEGIN');
 
-        // Check application visibility state
-        const subAppRes = await client.query(
-            `SELECT opened_by, purchased_by FROM submitted_applications WHERE application_id = $1`,
+        // UPDATED: Check application visibility state using pos_application table
+        const appRes = await client.query(
+            `SELECT opened_by, purchased_by FROM pos_application WHERE application_id = $1`,
             [applicationId]
         );
 
-        if (subAppRes.rowCount === 0) {
+        if (appRes.rowCount === 0) {
             await client.query('ROLLBACK');
-            return NextResponse.json({ success: false, error: 'Submitted application not found' }, { status: 404 });
+            return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
         }
 
-        const { opened_by = [], purchased_by = [] } = subAppRes.rows[0];
+        const { opened_by = [], purchased_by = [] } = appRes.rows[0];
         const isPurchased = purchased_by.includes(parseInt(bankUserId));
         const isOpened = opened_by.includes(parseInt(bankUserId));
 
@@ -63,8 +63,9 @@ export async function GET(req, { params }) {
         }
 
         if (!isOpened) {
+            // UPDATED: Update opened_by array in pos_application table
             await client.query(
-                `UPDATE submitted_applications
+                `UPDATE pos_application
                  SET opened_by = array_append(opened_by, $1)
                  WHERE application_id = $2`,
                 [bankUserId, applicationId]
@@ -82,7 +83,7 @@ export async function GET(req, { params }) {
         if (isPurchased) {
             await client.query(
                 `UPDATE pos_application
-                 SET status = 'purchased'
+                 SET status = 'completed'
                  WHERE application_id = $1`,
                 [applicationId]
             );
@@ -90,42 +91,18 @@ export async function GET(req, { params }) {
 
         const appDataRes = await client.query(appQuery, [applicationId]);
 
-        const submittedAppIdRes = await client.query(
-            `SELECT id FROM submitted_applications WHERE application_id = $1`,
-            [applicationId]
-        );
-
-        if (submittedAppIdRes.rowCount === 0) {
-            await client.query('ROLLBACK');
-            return NextResponse.json({ success: false, error: 'No submitted application found for this application ID' }, { status: 404 });
-        }
-
-        const submittedAppId = submittedAppIdRes.rows[0].id;
-
+        // UPDATED: Get offers using application_id directly from pos_application
         const offerRes = await client.query(
             `SELECT ao.*, u.entity_name
              FROM application_offers ao
-                      JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
-                      JOIN users u ON u.user_id = ANY(sa.purchased_by)
+                      JOIN users u ON u.user_id = ao.submitted_by_user_id
              WHERE ao.submitted_application_id = $1
-               AND u.user_id = $2
+               AND ao.submitted_by_user_id = $2
              ORDER BY ao.submitted_at DESC`,
-            [submittedAppId, bankUserId]
+            [applicationId, bankUserId]
         );
 
         console.log('✅ offer_data rows:', offerRes.rows);
-
-        // Fetch rejection data if any
-        const rejectionRes = await client.query(
-            `SELECT ar.*, u.entity_name
-             FROM application_rejections ar
-                      JOIN submitted_applications sa ON ar.submitted_application_id = sa.id
-                      JOIN users u ON u.user_id = ANY(sa.ignored_by)
-             WHERE ar.submitted_application_id = $1
-             ORDER BY ar.timestamp DESC
-             LIMIT 1`,
-            [submittedAppId]
-        );
 
         await client.query('COMMIT');
 
@@ -133,7 +110,6 @@ export async function GET(req, { params }) {
             success: true,
             data: appDataRes.rows[0],
             offer_data: offerRes.rows[0] || null,
-            rejection_data: rejectionRes.rows[0] || null,
         });
     } catch (err) {
         await client.query('ROLLBACK');

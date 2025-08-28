@@ -1,11 +1,28 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { withAdminSession, getAdminUserFromRequest } from '@/lib/auth/admin-session-middleware';
+import AdminAuth from '@/lib/auth/admin-auth';
 
-export const GET = withAdminSession(async (req) => {
+export async function GET(req) {
     try {
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
+        }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
         // Get admin user from session (no database query needed)
-        const adminUser = getAdminUserFromRequest(req);
+        const adminUser = sessionValidation.adminUser;
 
         const { searchParams } = new URL(req.url);
         const timeRange = searchParams.get('timeRange') || '7d';
@@ -41,72 +58,68 @@ export const GET = withAdminSession(async (req) => {
                 dateParams = [startDate.toISOString()];
             }
 
-            // OPTIMIZED: Single comprehensive query for all revenue analytics
+            // OPTIMIZED: Single comprehensive query for all revenue analytics using pos_application
             const comprehensiveRevenueQuery = `
                 WITH current_period_revenue AS (
                     SELECT 
-                        COALESCE(SUM(ao.deal_value * 0.03), 0) as total_revenue,
-                        COUNT(DISTINCT CASE WHEN ao.status = 'submitted' THEN sa.application_id END) as revenue_generating_applications,
+                        COALESCE(SUM(pa.revenue_collected), 0) as total_revenue,
+                        COUNT(DISTINCT CASE WHEN array_length(pa.purchased_by, 1) > 0 THEN pa.application_id END) as revenue_generating_applications,
                         CASE 
-                            WHEN COUNT(DISTINCT CASE WHEN ao.status = 'submitted' THEN sa.application_id END) > 0 
-                            THEN COALESCE(SUM(ao.deal_value * 0.03), 0) / COUNT(DISTINCT CASE WHEN ao.status = 'submitted' THEN sa.application_id END)
+                            WHEN COUNT(DISTINCT CASE WHEN array_length(pa.purchased_by, 1) > 0 THEN pa.application_id END) > 0 
+                            THEN COALESCE(SUM(pa.revenue_collected), 0) / COUNT(DISTINCT CASE WHEN array_length(pa.purchased_by, 1) > 0 THEN pa.application_id END)
                             ELSE 0 
                         END as avg_revenue_per_application,
-                        COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'completed' THEN sa.application_id END) as completed_applications,
-                        COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'ignored' THEN sa.application_id END) as ignored_applications,
-                        COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'live_auction' THEN sa.application_id END) as active_auctions,
-                        COUNT(DISTINCT sa.application_id) as total_applications
-                    FROM submitted_applications sa
-                    LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
-                    LEFT JOIN application_offers ao ON sa.id = ao.submitted_application_id
-                    WHERE sa.submitted_at >= $1
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' THEN pa.application_id END) as completed_applications,
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'ignored' THEN pa.application_id END) as ignored_applications,
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' THEN pa.application_id END) as active_auctions,
+                        COUNT(DISTINCT pa.application_id) as total_applications
+                    FROM pos_application pa
+                    WHERE pa.submitted_at >= $1
                 ),
                 previous_period_revenue AS (
                     SELECT 
-                        COALESCE(SUM(ao.deal_value * 0.03), 0) as total_revenue,
-                        COUNT(DISTINCT CASE WHEN ao.status = 'submitted' THEN sa.application_id END) as revenue_generating_applications,
+                        COALESCE(SUM(pa.revenue_collected), 0) as total_revenue,
+                        COUNT(DISTINCT CASE WHEN array_length(pa.purchased_by, 1) > 0 THEN pa.application_id END) as revenue_generating_applications,
                         CASE 
-                            WHEN COUNT(DISTINCT CASE WHEN ao.status = 'submitted' THEN sa.application_id END) > 0 
-                            THEN COALESCE(SUM(ao.deal_value * 0.03), 0) / COUNT(DISTINCT CASE WHEN ao.status = 'submitted' THEN sa.application_id END)
+                            WHEN COUNT(DISTINCT CASE WHEN array_length(pa.purchased_by, 1) > 0 THEN pa.application_id END) > 0 
+                            THEN COALESCE(SUM(pa.revenue_collected), 0) / COUNT(DISTINCT CASE WHEN array_length(pa.purchased_by, 1) > 0 THEN pa.application_id END)
                             ELSE 0 
                         END as avg_revenue_per_application,
-                        COUNT(DISTINCT CASE WHEN COALESCE(aot.current_application_status, sa.status) = 'completed' THEN sa.application_id END) as completed_applications,
-                        COUNT(DISTINCT sa.application_id) as total_applications
-                    FROM submitted_applications sa
-                    LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
-                    LEFT JOIN application_offers ao ON sa.id = ao.submitted_application_id
-                    WHERE sa.submitted_at >= $2 AND sa.submitted_at < $3
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' THEN pa.application_id END) as completed_applications,
+                        COUNT(DISTINCT pa.application_id) as total_applications
+                    FROM pos_application pa
+                    WHERE pa.submitted_at >= $2 AND pa.submitted_at < $3
                 ),
                 daily_trend AS (
                     SELECT 
-                        DATE_TRUNC('day', sa.submitted_at) as date,
-                        COUNT(DISTINCT sa.application_id) as applications,
-                        COALESCE(SUM(ao.deal_value * 0.03), 0) as revenue,
-                        COUNT(DISTINCT CASE WHEN ao.status = 'submitted' THEN sa.application_id END) as revenue_generating_applications
-                    FROM submitted_applications sa
-                    LEFT JOIN application_offers ao ON sa.id = ao.submitted_application_id
-                    WHERE sa.submitted_at >= $1
-                    GROUP BY DATE_TRUNC('day', sa.submitted_at)
+                        DATE_TRUNC('day', pa.submitted_at) as date,
+                        COUNT(DISTINCT pa.application_id) as applications,
+                        COALESCE(SUM(pa.revenue_collected), 0) as revenue,
+                        COUNT(DISTINCT CASE WHEN array_length(pa.purchased_by, 1) > 0 THEN pa.application_id END) as revenue_generating_applications
+                    FROM pos_application pa
+                    WHERE pa.submitted_at >= $1
+                    GROUP BY DATE_TRUNC('day', pa.submitted_at)
                     ORDER BY date
                 ),
                 bank_performance AS (
                     SELECT 
                         u.entity_name as bank_name,
-                        COUNT(DISTINCT sa.application_id) as total_applications,
-                        COUNT(DISTINCT CASE WHEN ao.status = 'submitted' THEN sa.application_id END) as applications_with_offers,
-                        COALESCE(SUM(ao.deal_value * 0.03), 0) as total_revenue,
+                        COUNT(DISTINCT pa.application_id) as total_applications,
+                        COUNT(DISTINCT CASE WHEN bu.user_id = ANY(pa.purchased_by) THEN pa.application_id END) as applications_with_offers,
+                        COALESCE(SUM(CASE WHEN bu.user_id = ANY(pa.purchased_by) THEN pa.revenue_collected ELSE 0 END), 0) as total_revenue,
                         ROUND(
                             CASE 
-                                WHEN COUNT(DISTINCT sa.application_id) > 0 
-                                THEN (COUNT(DISTINCT CASE WHEN ao.status = 'submitted' THEN sa.application_id END)::DECIMAL / COUNT(DISTINCT sa.application_id)) * 100 
+                                WHEN COUNT(DISTINCT pa.application_id) > 0 
+                                THEN (COUNT(DISTINCT CASE WHEN bu.user_id = ANY(pa.purchased_by) THEN pa.application_id END)::DECIMAL / COUNT(DISTINCT pa.application_id)) * 100 
                                 ELSE 0 
                             END, 2
                         ) as conversion_rate
-                    FROM submitted_applications sa
-                    LEFT JOIN application_offers ao ON sa.id = ao.submitted_application_id
-                    LEFT JOIN users u ON ao.bank_user_id = u.user_id
-                    WHERE sa.submitted_at >= $1 AND u.user_type = 'bank_user'
-                    GROUP BY u.entity_name, u.user_id
+                    FROM pos_application pa
+                    CROSS JOIN LATERAL unnest(pa.opened_by) AS opened_bank_id
+                    JOIN bank_users bu ON opened_bank_id = bu.user_id
+                    JOIN users u ON bu.user_id = u.user_id
+                    WHERE pa.submitted_at >= $1
+                    GROUP BY u.entity_name, bu.user_id
                     ORDER BY total_revenue DESC
                     LIMIT 10
                 )
@@ -203,13 +216,13 @@ export const GET = withAdminSession(async (req) => {
                 insights.positive.push(`${current.completed_applications} leads sold successfully`);
             }
             if (current.revenue_generating_applications > 0) {
-                insights.positive.push(`${current.revenue_generating_applications} leads generated revenue (25 SAR each)`);
+                insights.positive.push(`${current.revenue_generating_applications} leads generated revenue`);
             }
             if (current.active_auctions > 0) {
                 insights.positive.push(`${current.active_auctions} applications have active offer selections`);
             }
             if (current.total_revenue > 0) {
-                insights.positive.push(`Total lead sales: ${current.total_revenue / 25} leads sold`);
+                insights.positive.push(`Total revenue: ${current.total_revenue.toFixed(2)} SAR`);
             }
 
             if (abandonmentRate > 15) {
@@ -271,4 +284,4 @@ export const GET = withAdminSession(async (req) => {
             { status: 500 }
         );
     }
-});
+}

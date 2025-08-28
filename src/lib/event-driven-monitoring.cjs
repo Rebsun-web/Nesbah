@@ -1,114 +1,106 @@
-// Basic event-driven monitoring for admin API routes
+// Event-Driven Monitoring System
+// This is a placeholder implementation for the event-driven monitoring
+
 const EventEmitter = require('events');
 
 class EventDrivenMonitoring extends EventEmitter {
-    constructor() {
-        super();
-        this.metrics = {
-            requests: 0,
-            errors: 0,
-            responseTime: [],
-            activeConnections: 0
-        };
-        this.alerts = [];
-        this.webhooks = [];
+  constructor() {
+    super();
+    this.events = new Map();
+    this.metrics = {
+      totalEvents: 0,
+      activeAlerts: 0,
+      systemHealth: 'healthy'
+    };
+  }
+
+  // Record an event
+  recordEvent(eventType, data) {
+    const event = {
+      type: eventType,
+      data,
+      timestamp: new Date(),
+      id: this.generateEventId()
+    };
+
+    this.events.set(event.id, event);
+    this.metrics.totalEvents++;
+    
+    this.emit('eventRecorded', event);
+    
+    return event;
+  }
+
+  // Get all events
+  getEvents() {
+    return Array.from(this.events.values());
+  }
+
+  // Get events by type
+  getEventsByType(eventType) {
+    return Array.from(this.events.values()).filter(event => event.type === eventType);
+  }
+
+  // Get metrics
+  getMetrics() {
+    return {
+      ...this.metrics,
+      events: this.events.size
+    };
+  }
+
+  // Set system health
+  setSystemHealth(health) {
+    this.metrics.systemHealth = health;
+    this.emit('healthChanged', health);
+  }
+
+  // Create alert
+  createAlert(alertData) {
+    const alert = {
+      id: this.generateEventId(),
+      ...alertData,
+      createdAt: new Date(),
+      status: 'active'
+    };
+
+    this.metrics.activeAlerts++;
+    this.emit('alertCreated', alert);
+    
+    return alert;
+  }
+
+  // Resolve alert
+  resolveAlert(alertId) {
+    this.metrics.activeAlerts = Math.max(0, this.metrics.activeAlerts - 1);
+    this.emit('alertResolved', alertId);
+  }
+
+  // Generate unique event ID
+  generateEventId() {
+    return `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // Clear old events
+  clearOldEvents(olderThanHours = 24) {
+    const cutoffTime = new Date(Date.now() - (olderThanHours * 60 * 60 * 1000));
+    let clearedCount = 0;
+
+    for (const [id, event] of this.events.entries()) {
+      if (event.timestamp < cutoffTime) {
+        this.events.delete(id);
+        clearedCount++;
+      }
     }
 
-    recordRequest(responseTime = 0) {
-        this.metrics.requests++;
-        this.metrics.responseTime.push(responseTime);
-        
-        // Keep only last 100 response times
-        if (this.metrics.responseTime.length > 100) {
-            this.metrics.responseTime.shift();
-        }
-
-        this.emit('request', { responseTime });
-    }
-
-    recordError(error) {
-        this.metrics.errors++;
-        this.emit('error', error);
-        
-        // Check if we need to send alerts
-        if (this.metrics.errors > 10) {
-            this.createAlert('High error rate detected', 'error');
-        }
-    }
-
-    createAlert(message, type = 'info') {
-        const alert = {
-            id: Date.now(),
-            message,
-            type,
-            timestamp: new Date(),
-            acknowledged: false
-        };
-        
-        this.alerts.push(alert);
-        this.emit('alert', alert);
-        
-        // Send webhook if configured
-        this.sendWebhooks(alert);
-        
-        return alert;
-    }
-
-    addWebhook(url, events = ['alert']) {
-        this.webhooks.push({ url, events });
-    }
-
-    async sendWebhooks(data) {
-        for (const webhook of this.webhooks) {
-            try {
-                await fetch(webhook.url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-            } catch (error) {
-                console.error('Failed to send webhook:', error);
-            }
-        }
-    }
-
-    getMetrics() {
-        const avgResponseTime = this.metrics.responseTime.length > 0 
-            ? this.metrics.responseTime.reduce((a, b) => a + b, 0) / this.metrics.responseTime.length 
-            : 0;
-
-        return {
-            ...this.metrics,
-            avgResponseTime,
-            errorRate: this.metrics.requests > 0 ? (this.metrics.errors / this.metrics.requests) * 100 : 0
-        };
-    }
-
-    getAlerts() {
-        return this.alerts.filter(alert => !alert.acknowledged);
-    }
-
-    acknowledgeAlert(alertId) {
-        const alert = this.alerts.find(a => a.id === alertId);
-        if (alert) {
-            alert.acknowledged = true;
-        }
-    }
-
-    clearOldAlerts() {
-        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        this.alerts = this.alerts.filter(alert => alert.timestamp > oneDayAgo);
-    }
+    this.metrics.totalEvents = Math.max(0, this.metrics.totalEvents - clearedCount);
+    this.emit('eventsCleared', clearedCount);
+    
+    return clearedCount;
+  }
 }
 
-// Export singleton instance
-const monitoring = new EventDrivenMonitoring();
+// Create singleton instance
+const eventDrivenMonitoring = new EventDrivenMonitoring();
 
-// Set up periodic cleanup
-setInterval(() => {
-    monitoring.clearOldAlerts();
-}, 60 * 60 * 1000); // Every hour
-
-module.exports = monitoring;
+module.exports = eventDrivenMonitoring;

@@ -265,15 +265,16 @@ CREATE TABLE bank_users (
 - Partial success handling for bulk operations
 - Detailed error messages for troubleshooting
 
-### 5. Audit Logging
-- All admin actions are logged in `admin_audit_log`
-- Detailed information about creation parameters
-- Tracking of Wathiq API usage
-
-### 6. Security
+### 5. Security
 - Password hashing using bcrypt (for bank and individual users)
 - Input validation and sanitization
 - Transaction-based operations for data integrity
+
+### 6. Best Practices
+- Validate input data before sending to the API
+- Handle API errors gracefully in your frontend
+- Use bulk operations when creating multiple users
+- Test with both Wathiq and manual data to ensure flexibility
 
 ## Usage Examples
 
@@ -347,7 +348,7 @@ const response = await fetch('/api/admin/users/bulk', {
 2. **Bank/Individual Users**: Always include strong passwords and valid emails
 3. **Validate input data** before sending to the API
 4. **Handle API errors gracefully** in your frontend
-5. **Log all admin actions** for audit purposes
+5. **Use transaction-based operations** for data integrity
 6. **Use bulk operations** when creating multiple users
 7. **Test with both Wathiq and manual data** to ensure flexibility
 

@@ -73,20 +73,6 @@ export async function POST(req) {
                 ]
             );
 
-            // Log the admin action
-            await client.query(
-                `INSERT INTO admin_audit_log 
-                    (action, table_name, record_id, admin_user_id, details, timestamp)
-                 VALUES ($1, $2, $3, $4, $5, NOW())`,
-                ['CREATE', 'bank_users', user_id, adminUser.admin_id, JSON.stringify({
-                    email,
-                    entity_name,
-                    credit_limit,
-                    contact_person,
-                    contact_person_number
-                })]
-            );
-
             await client.query('COMMIT');
 
             return NextResponse.json({

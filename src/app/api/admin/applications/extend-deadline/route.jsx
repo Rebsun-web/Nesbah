@@ -63,9 +63,14 @@ export async function POST(req) {
         try {
             await client.query('BEGIN');
 
-            // Verify application exists and is in correct status
+            // Verify application exists and is in correct status using pos_application
             const applicationQuery = await client.query(
-                'SELECT status, auction_end_time, offer_selection_end_time FROM submitted_applications WHERE application_id = $1',
+                `SELECT 
+                    COALESCE(current_application_status, status) as status, 
+                    auction_end_time, 
+                    offer_selection_end_time 
+                FROM pos_application 
+                WHERE application_id = $1`,
                 [application_id]
             );
 
@@ -100,20 +105,20 @@ export async function POST(req) {
             const currentDeadline = phase === 'auction' ? application.auction_end_time : application.offer_selection_end_time;
             const newDeadline = new Date(currentDeadline.getTime() + (extension_hours * 60 * 60 * 1000));
 
-            // Update the deadline
+            // Update the deadline in pos_application table
             let updateQuery;
             let updateParams;
 
             if (phase === 'auction') {
                 updateQuery = `
-                    UPDATE submitted_applications 
+                    UPDATE pos_application 
                     SET auction_end_time = $1
                     WHERE application_id = $2
                 `;
                 updateParams = [newDeadline, application_id];
             } else {
                 updateQuery = `
-                    UPDATE submitted_applications 
+                    UPDATE pos_application 
                     SET offer_selection_end_time = $1
                     WHERE application_id = $2
                 `;
@@ -121,19 +126,6 @@ export async function POST(req) {
             }
 
             await client.query(updateQuery, updateParams);
-
-            // Also update pos_application table
-            if (phase === 'auction') {
-                await client.query(
-                    'UPDATE pos_application SET auction_end_time = $1 WHERE application_id = $2',
-                    [newDeadline, application_id]
-                );
-            } else {
-                await client.query(
-                    'UPDATE pos_application SET offer_selection_end_time = $1 WHERE application_id = $2',
-                    [newDeadline, application_id]
-                );
-            }
 
             // Log the deadline extension
             await client.query(

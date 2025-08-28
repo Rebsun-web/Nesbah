@@ -8,13 +8,13 @@ export default function ApprovedLeadReaction({ user }) {
     console.log('Received user object:', user); // 🐞 DEBUG
     const fetchApprovedOffers = async () => {
       try {
-        const res = await fetch(`/api/leads/${user.user_id}/purchased_applications`);
+        // Use the correct API endpoint for business users
+        const res = await fetch(`/api/posApplication/${user.user_id}/response`);
         const data = await res.json();
         console.log('API response:', data); // 🐞 DEBUG
-        console.log('Approved offers:', data.approved); // 🐞 DEBUG
-        console.log('Offer submitted_at:', data.approved?.map(o => o.submitted_at));
-        if (data.success) {
-          setApprovedOffers(data.approved);
+        console.log('Approved offers:', data.offers); // 🐞 DEBUG
+        if (data.offers && Array.isArray(data.offers)) {
+          setApprovedOffers(data.offers);
         }
       } catch (err) {
         console.error('Error fetching approved offer data:', err);
@@ -26,7 +26,7 @@ export default function ApprovedLeadReaction({ user }) {
     }
   }, [user]);
 
-  if (!Array.isArray(approvedOffers)) return null;
+  if (!Array.isArray(approvedOffers) || approvedOffers.length === 0) return null;
 
   return (
       <div className="mx-auto max-w-7xl">
@@ -38,7 +38,7 @@ export default function ApprovedLeadReaction({ user }) {
               >
                 <div className="px-4 py-5 sm:px-6 flex items-center justify-between flex-wrap gap-2">
                   <h2 className="text-lg font-semibold text-white">
-                    Approved by {offer.entity_name}
+                    Approved by {offer.bank_name}
                   </h2>
                   <span className="text-sm text-white">
                 {offer.submitted_at ? new Date(offer.submitted_at).toLocaleString() : 'N/A'}

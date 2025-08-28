@@ -1,7 +1,5 @@
 import '@/styles/tailwind.css'
-import '@/lib/server-init.js'
-import connectionManager from '@/lib/connection-manager'
-import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
+import { LanguageProvider } from '@/contexts/LanguageContext'
 
 export const metadata = {
   title: {
@@ -11,13 +9,8 @@ export const metadata = {
 }
 
 export default function RootLayout({ children }) {
-  // Initialize connection manager on client side
-  if (typeof window !== 'undefined') {
-    connectionManager.init();
-  }
-
   return (
-    <html lang="en">
+    <html lang="ar" dir="rtl">
       <head>
         <link
           rel="stylesheet"
@@ -29,11 +22,25 @@ export default function RootLayout({ children }) {
           title="The Radiant Blog"
           href="/blog/feed.xml"
         />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              /* Prevent flash by hiding content until React hydrates */
+              body {
+                opacity: 0;
+                transition: opacity 0.1s ease-in;
+              }
+              body.hydrated {
+                opacity: 1;
+              }
+            `,
+          }}
+        />
       </head>
       <body className="text-gray-950 antialiased">
-        <AdminAuthProvider>
+        <LanguageProvider>
           {children}
-        </AdminAuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   )

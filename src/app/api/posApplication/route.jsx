@@ -45,7 +45,7 @@ export async function POST(req) {
 
             const business = businessResult.rows[0];
 
-            // OPTIMIZED: Insert into pos_application with all data in one query
+            // UPDATED: Insert into pos_application with all data in one query (no ignored_by needed)
             const posAppResult = await client.query(
                 `
                 INSERT INTO pos_application 
@@ -54,10 +54,10 @@ export async function POST(req) {
                      legal_form, registration_status, issue_date_gregorian, city, activities, contact_info, 
                      has_ecommerce, store_url, cr_capital, cash_capital, management_structure, 
                      management_managers, contact_person, contact_person_number, number_of_pos_devices, 
-                     city_of_operation, auction_end_time)
+                     city_of_operation, auction_end_time, opened_by, purchased_by)
                 VALUES 
                     ($1, 'live_auction', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-                     $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+                     $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
                 RETURNING application_id
                 `,
                 [
@@ -70,22 +70,15 @@ export async function POST(req) {
                     business.store_url, business.cr_capital, business.cash_capital,
                     business.management_structure, business.management_managers,
                     contact_person || null, contact_person_number || null,
-                    number_of_pos_devices || null, city_of_operation || null, auction_end_time
+                    number_of_pos_devices || null, city_of_operation || null, auction_end_time,
+                    [], [] // Initialize empty arrays for tracking (no ignored_by needed)
                 ]
             );
 
             const application_id = posAppResult.rows[0].application_id;
 
-            // OPTIMIZED: Insert into submitted_applications
-            await client.query(
-                `
-                INSERT INTO submitted_applications
-                    (application_id, application_type, status, opened_by, auction_end_time, business_user_id)
-                VALUES
-                    ($1, 'pos', 'live_auction', $2, $3, $4)
-                `,
-                [application_id, [], auction_end_time, user_id]
-            );
+            // UPDATED: No need to insert into submitted_applications table anymore
+            // All tracking is now handled directly in pos_application table
 
             // OPTIMIZED: Get bank users for email notification (only if needed)
             const bankUsers = await client.query(

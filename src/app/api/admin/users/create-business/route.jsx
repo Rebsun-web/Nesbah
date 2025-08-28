@@ -192,19 +192,6 @@ export async function POST(req) {
             
             const user_id = businessUserResult.rows[0].user_id;
 
-            // Log the admin action
-            await client.query(
-                `INSERT INTO admin_audit_log 
-                    (action, table_name, record_id, admin_user_id, details, timestamp)
-                 VALUES ($1, $2, $3, $4, $5, NOW())`,
-                ['CREATE', 'business_users', user_id, 1, JSON.stringify({
-                    cr_national_number: finalData.cr_national_number,
-                    trade_name: finalData.trade_name,
-                    fetch_from_wathiq,
-                    wathiq_data_received: !!wathiqData
-                })]
-            );
-
             await client.query('COMMIT');
 
             return NextResponse.json({

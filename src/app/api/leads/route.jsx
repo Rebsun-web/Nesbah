@@ -19,30 +19,31 @@ export async function GET(req) {
         // Use the improved connection management
         client = await pool.connectWithRetry();
         
-        // OPTIMIZED: Single query with proper indexing hints and efficient joins
+        // UPDATED: Show all live auction applications that the bank hasn't purchased yet
         const result = await client.query(
             `SELECT 
-                sa.id,
-                sa.application_id,
-                sa.status,
-                sa.auction_end_time,
-                sa.offers_count,
-                sa.revenue_collected,
-                sa.submitted_at,
+                pa.application_id,
+                COALESCE(pa.current_application_status, pa.status) as status,
+                pa.auction_end_time,
+                pa.offers_count,
+                pa.revenue_collected,
+                pa.submitted_at,
                 pa.trade_name,
-                pa.city,
+                pa.city_of_operation as city,
                 pa.contact_person,
                 pa.contact_person_number,
                 pa.cr_number,
                 bu.sector,
-                'POS' as application_type
-             FROM submitted_applications sa
-             INNER JOIN pos_application pa ON sa.application_id = pa.application_id
+                'POS' as application_type,
+                -- Check if bank has already viewed this application
+                CASE WHEN $1 = ANY(pa.opened_by) THEN true ELSE false END as has_viewed,
+                -- Check if bank has already purchased this application
+                CASE WHEN $1 = ANY(pa.purchased_by) THEN true ELSE false END as has_purchased
+             FROM pos_application pa
              INNER JOIN business_users bu ON pa.user_id = bu.user_id
-             WHERE sa.status = 'live_auction'
-               AND NOT $1 = ANY(sa.ignored_by)
-               AND NOT $1 = ANY(sa.purchased_by)
-               AND (sa.auction_end_time IS NULL OR sa.auction_end_time > NOW())
+             WHERE COALESCE(pa.current_application_status, pa.status) = 'live_auction'
+               AND NOT $1 = ANY(pa.purchased_by)  -- Only show applications bank hasn't purchased
+               AND (pa.auction_end_time IS NULL OR pa.auction_end_time > NOW())
              ORDER BY pa.submitted_at DESC`,
             [bankUserId]
         );

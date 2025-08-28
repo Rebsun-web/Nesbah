@@ -37,6 +37,18 @@ export default function EnhancedAnalytics() {
             setLoading(true)
             setError(null)
             
+            // First, check if we have a valid token
+            console.log('🔍 EnhancedAnalytics: Checking token before API calls...')
+            const tokenCheck = await fetch('/api/admin/debug/token', { credentials: 'include' })
+            const tokenData = await tokenCheck.json()
+            console.log('🔍 EnhancedAnalytics: Token check result:', tokenData)
+            
+            if (!tokenData.success) {
+                console.error('❌ EnhancedAnalytics: No valid token found')
+                setError('Authentication token not found. Please log in again.')
+                return
+            }
+            
             const [applicationsResponse, offersResponse, timeMetricsResponse] = await Promise.all([
                 fetch('/api/admin/applications/analytics', { credentials: 'include' }),
                 fetch('/api/admin/offers/analytics', { credentials: 'include' }),
@@ -89,12 +101,12 @@ export default function EnhancedAnalytics() {
 
     const getAverageResponseTime = () => {
         if (!timeMetricsData) return 0
-        return (timeMetricsData.avg_response_time_minutes || 0).toFixed(1)
+        return (timeMetricsData.avg_response_time_hours || 0).toFixed(1)
     }
 
     const getAverageOfferTime = () => {
         if (!timeMetricsData) return 0
-        return (timeMetricsData.avg_offer_time_minutes || 0).toFixed(1)
+        return (timeMetricsData.avg_offer_time_hours || 0).toFixed(1)
     }
 
     const getTopPerformingBank = () => {
@@ -109,12 +121,12 @@ export default function EnhancedAnalytics() {
                     <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                         {[...Array(4)].map((_, i) => (
-                            <div key={i} className="h-24 bg-gray-200 rounded"></div>
+                            <div key={`loading-card-${i}`} className="h-24 bg-gray-200 rounded"></div>
                         ))}
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {[...Array(4)].map((_, i) => (
-                            <div key={i} className="h-64 bg-gray-200 rounded"></div>
+                            <div key={`loading-chart-${i}`} className="h-64 bg-gray-200 rounded"></div>
                         ))}
                     </div>
                 </div>
@@ -196,7 +208,7 @@ export default function EnhancedAnalytics() {
                         <div className="ml-4">
                             <p className="text-sm font-medium text-gray-600">Avg Response Time</p>
                             <p className="text-2xl font-bold text-gray-900">
-                                {getAverageResponseTime()} min
+                                {getAverageResponseTime()} hrs
                             </p>
                         </div>
                     </div>
@@ -214,7 +226,7 @@ export default function EnhancedAnalytics() {
                         <div className="ml-4">
                             <p className="text-sm font-medium text-gray-600">Avg Offer Time</p>
                             <p className="text-2xl font-bold text-gray-900">
-                                {getAverageOfferTime()} min
+                                {getAverageOfferTime()} hrs
                             </p>
                         </div>
                     </div>
@@ -278,8 +290,8 @@ export default function EnhancedAnalytics() {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {applicationsData?.bank_performance && applicationsData.bank_performance.length > 0 ? (
-                                applicationsData.bank_performance.map((bank) => (
-                                    <tr key={bank.bank_user_id} className="hover:bg-gray-50">
+                                applicationsData.bank_performance.map((bank, index) => (
+                                    <tr key={`${bank.bank_name}-${bank.bank_email}-${index}`} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <BanknotesIcon className="h-5 w-5 text-gray-400 mr-2" />
@@ -309,10 +321,10 @@ export default function EnhancedAnalytics() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {parseFloat(bank.avg_response_time_minutes || 0).toFixed(1)} min
+                                            {parseFloat(bank.avg_response_time_hours || 0).toFixed(1)} hrs
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {parseFloat(bank.avg_offer_submission_time_minutes || 0).toFixed(1)} min
+                                            {parseFloat(bank.avg_offer_submission_time_hours || 0).toFixed(1)} hrs
                                         </td>
                                     </tr>
                                 ))
@@ -359,7 +371,7 @@ export default function EnhancedAnalytics() {
                 <div className="bg-white rounded-lg shadow p-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Application Status Distribution</h3>
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between">
+                        <div key="status-live-auction" className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
                                 <span className="text-sm text-gray-600">Live Auctions</span>
@@ -368,7 +380,7 @@ export default function EnhancedAnalytics() {
                                 {applicationsData?.by_status?.find(s => s.status === 'live_auction')?.count || 0}
                             </span>
                         </div>
-                        <div className="flex items-center justify-between">
+                        <div key="status-completed" className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
                                 <span className="text-sm text-gray-600">Completed</span>
@@ -377,7 +389,7 @@ export default function EnhancedAnalytics() {
                                 {applicationsData?.by_status?.find(s => s.status === 'completed')?.count || 0}
                             </span>
                         </div>
-                        <div className="flex items-center justify-between">
+                        <div key="status-ignored" className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <div className="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
                                 <span className="text-sm text-gray-900">Ignored</span>
@@ -393,20 +405,20 @@ export default function EnhancedAnalytics() {
                 <div className="bg-white rounded-lg shadow p-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Performance Insights</h3>
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between">
+                        <div key="insight-total-offers" className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Total Offers Submitted</span>
                             <span className="text-sm font-medium text-gray-900">
                                 {offersData?.summary?.total_offers || 0}
                             </span>
                         </div>
-                        <div className="flex items-center justify-between">
+                        <div key="insight-avg-offers" className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Average Offers per Application</span>
                             <span className="text-sm font-medium text-gray-900">
                                 {applicationsData?.summary?.total_applications > 0 ? 
                                     (offersData?.summary?.total_offers / applicationsData?.summary?.total_applications).toFixed(1) : 0}
                             </span>
                         </div>
-                        <div className="flex items-center justify-between">
+                        <div key="insight-active-banks" className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Active Banks</span>
                             <span className="text-sm font-medium text-gray-900">
                                 {applicationsData?.bank_performance?.length || 0}

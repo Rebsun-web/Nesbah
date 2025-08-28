@@ -1,79 +1,101 @@
-// Basic background job manager for admin API routes
-export class BackgroundJobManager {
-    constructor() {
-        this.jobs = new Map();
-        this.stats = {
-            totalJobs: 0,
-            runningJobs: 0,
-            completedJobs: 0,
-            failedJobs: 0
-        };
-    }
+// Background Job Manager
+// This is a placeholder implementation for the background job manager
 
-    async addJob(jobId, jobFunction) {
-        this.jobs.set(jobId, {
-            id: jobId,
-            status: 'pending',
-            startTime: null,
-            endTime: null,
-            result: null,
-            error: null,
-            function: jobFunction
-        });
-        this.stats.totalJobs++;
-        return jobId;
-    }
+class BackgroundJobManager {
+  constructor() {
+    this.jobs = new Map();
+    this.stats = {
+      totalJobs: 0,
+      runningJobs: 0,
+      completedJobs: 0,
+      failedJobs: 0
+    };
+  }
 
-    async startJob(jobId) {
-        const job = this.jobs.get(jobId);
-        if (!job) {
-            throw new Error(`Job ${jobId} not found`);
-        }
+  // Get job statistics
+  getStats() {
+    return {
+      ...this.stats,
+      jobs: Array.from(this.jobs.values())
+    };
+  }
 
-        job.status = 'running';
-        job.startTime = new Date();
+  // Get job status
+  getJobStatus(jobId) {
+    const job = this.jobs.get(jobId);
+    return job ? job.status : 'not_found';
+  }
+
+  // Get all jobs
+  getAllJobs() {
+    return Array.from(this.jobs.values());
+  }
+
+  // Add a job
+  addJob(jobId, jobData) {
+    const job = {
+      id: jobId,
+      ...jobData,
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.jobs.set(jobId, job);
+    this.stats.totalJobs++;
+    
+    return job;
+  }
+
+  // Update job status
+  updateJobStatus(jobId, status) {
+    const job = this.jobs.get(jobId);
+    if (job) {
+      job.status = status;
+      job.updatedAt = new Date();
+      
+      // Update stats
+      if (status === 'running') {
         this.stats.runningJobs++;
-
-        try {
-            job.result = await job.function();
-            job.status = 'completed';
-            job.endTime = new Date();
-            this.stats.completedJobs++;
-        } catch (error) {
-            job.status = 'failed';
-            job.error = error.message;
-            job.endTime = new Date();
-            this.stats.failedJobs++;
-        } finally {
-            this.stats.runningJobs--;
-        }
-
-        return job;
+      } else if (status === 'completed') {
+        this.stats.completedJobs++;
+      } else if (status === 'failed') {
+        this.stats.failedJobs++;
+      }
     }
+  }
 
-    getJobStatus(jobId) {
-        return this.jobs.get(jobId) || null;
+  // Remove a job
+  removeJob(jobId) {
+    const job = this.jobs.get(jobId);
+    if (job) {
+      this.jobs.delete(jobId);
+      this.stats.totalJobs--;
+      
+      // Update stats based on job status
+      if (job.status === 'running') {
+        this.stats.runningJobs--;
+      } else if (job.status === 'completed') {
+        this.stats.completedJobs--;
+      } else if (job.status === 'failed') {
+        this.stats.failedJobs--;
+      }
     }
+  }
 
-    getAllJobs() {
-        return Array.from(this.jobs.values());
-    }
-
-    getStats() {
-        return { ...this.stats };
-    }
-
-    clearCompletedJobs() {
-        for (const [jobId, job] of this.jobs.entries()) {
-            if (job.status === 'completed' || job.status === 'failed') {
-                this.jobs.delete(jobId);
-            }
-        }
-    }
+  // Clear all jobs
+  clearJobs() {
+    this.jobs.clear();
+    this.stats = {
+      totalJobs: 0,
+      runningJobs: 0,
+      completedJobs: 0,
+      failedJobs: 0
+    };
+  }
 }
 
-// Export a singleton instance
-export const backgroundJobManager = new BackgroundJobManager();
+// Create singleton instance
+const backgroundJobManager = new BackgroundJobManager();
 
-// Also export as default for compatibility
 export default backgroundJobManager;

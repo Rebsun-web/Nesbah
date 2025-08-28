@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import AdminAuth from '@/lib/auth/admin-auth';
+import JWTUtils from '@/lib/auth/jwt-utils';
 
 export async function GET(req) {
     try {
@@ -11,117 +11,132 @@ export async function GET(req) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Validate admin session using session manager
-        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        // Verify JWT token directly
+        const jwtResult = JWTUtils.verifyToken(adminToken);
         
-        if (!sessionValidation.valid) {
+        if (!jwtResult.valid || !jwtResult.payload || jwtResult.payload.user_type !== 'admin_user') {
+            console.log('🔧 Applications analytics: JWT verification failed:', jwtResult);
             return NextResponse.json({ 
                 success: false, 
-                error: sessionValidation.error || 'Invalid admin session' 
+                error: 'Invalid admin token' 
             }, { status: 401 });
         }
 
-        // Get admin user from session (no database query needed)
-        const adminUser = sessionValidation.adminUser;
+        const decoded = jwtResult.payload;
+
+        // Get admin user from JWT payload
+        const adminUser = {
+            admin_id: decoded.admin_id,
+            email: decoded.email,
+            full_name: decoded.full_name,
+            role: decoded.role,
+            permissions: decoded.permissions,
+            is_active: true
+        };
 
         const client = await pool.connectWithRetry();
         
         try {
-            // OPTIMIZED: Single comprehensive query for all application analytics
+            // OPTIMIZED: Single comprehensive query for all application analytics using pos_application
             const comprehensiveQuery = `
                 WITH application_stats AS (
                     SELECT 
-                        current_application_status as status,
-                        COUNT(DISTINCT application_id) as count
-                    FROM application_offer_tracking
-                    WHERE current_application_status IN ('live_auction', 'completed', 'ignored')
-                    GROUP BY current_application_status
+                        COALESCE(pa.current_application_status, pa.status) as status,
+                        COUNT(DISTINCT pa.application_id) as count
+                    FROM pos_application pa
+                    WHERE COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'completed', 'ignored')
+                    GROUP BY COALESCE(pa.current_application_status, pa.status)
                 ),
                 city_stats AS (
                     SELECT 
                         pa.city,
-                        COUNT(DISTINCT aot.application_id) as total_applications,
-                        COUNT(DISTINCT CASE WHEN aot.current_application_status = 'completed' THEN aot.application_id END) as completed_applications,
-                        COUNT(DISTINCT CASE WHEN aot.current_application_status = 'ignored' THEN aot.application_id END) as ignored_applications,
-                        COUNT(DISTINCT CASE WHEN aot.current_application_status = 'live_auction' THEN aot.application_id END) as live_auction_applications
-                    FROM application_offer_tracking aot
-                    JOIN pos_application pa ON aot.application_id = pa.application_id
-                    WHERE aot.current_application_status IN ('live_auction', 'ignored', 'completed')
+                        COUNT(DISTINCT pa.application_id) as total_applications,
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' THEN pa.application_id END) as completed_applications,
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'ignored' THEN pa.application_id END) as ignored_applications,
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' THEN pa.application_id END) as live_auction_applications
+                    FROM pos_application pa
+                    WHERE COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'ignored', 'completed')
                     GROUP BY pa.city
                 ),
                 sector_stats AS (
                     SELECT 
                         COALESCE(bu.sector, 'Unknown') as sector,
-                        COUNT(DISTINCT aot.application_id) as total_applications,
-                        COUNT(DISTINCT CASE WHEN aot.current_application_status = 'completed' THEN aot.application_id END) as completed_applications,
-                        COUNT(DISTINCT CASE WHEN aot.current_application_status = 'ignored' THEN aot.application_id END) as ignored_applications,
-                        COUNT(DISTINCT CASE WHEN aot.current_application_status = 'live_auction' THEN aot.application_id END) as live_auction_applications
-                    FROM application_offer_tracking aot
-                    JOIN pos_application pa ON aot.application_id = pa.application_id
-                    JOIN business_users bu ON aot.business_user_id = bu.user_id
-                    WHERE aot.current_application_status IN ('live_auction', 'ignored', 'completed')
+                        COUNT(DISTINCT pa.application_id) as total_applications,
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' THEN pa.application_id END) as completed_applications,
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'ignored' THEN pa.application_id END) as ignored_applications,
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' THEN pa.application_id END) as live_auction_applications
+                    FROM pos_application pa
+                    JOIN business_users bu ON pa.business_user_id = bu.user_id
+                    WHERE COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'ignored', 'completed')
                     GROUP BY bu.sector
                 ),
                 trends AS (
                     SELECT 
-                        DATE_TRUNC('month', application_submitted_at) as month,
-                        COUNT(DISTINCT application_id) as total_applications,
-                        COUNT(DISTINCT CASE WHEN current_application_status = 'completed' THEN application_id END) as completed_applications,
-                        COUNT(DISTINCT CASE WHEN current_application_status = 'ignored' THEN application_id END) as ignored_applications,
-                        COUNT(DISTINCT CASE WHEN current_application_status = 'live_auction' THEN application_id END) as live_auction_applications
-                    FROM application_offer_tracking
-                    WHERE application_submitted_at >= NOW() - INTERVAL '12 months'
-                    AND current_application_status IN ('live_auction', 'ignored', 'completed')
-                    GROUP BY DATE_TRUNC('month', application_submitted_at)
+                        DATE_TRUNC('month', pa.submitted_at) as month,
+                        COUNT(DISTINCT pa.application_id) as total_applications,
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' THEN pa.application_id END) as completed_applications,
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'ignored' THEN pa.application_id END) as ignored_applications,
+                        COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' THEN pa.application_id END) as live_auction_applications
+                    FROM pos_application pa
+                    WHERE pa.submitted_at >= NOW() - INTERVAL '12 months'
+                    AND COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'ignored', 'completed')
+                    GROUP BY DATE_TRUNC('month', pa.submitted_at)
                 ),
                 processing_time AS (
                     SELECT 
-                        ROUND(AVG(EXTRACT(EPOCH FROM (offer_accepted_at - application_submitted_at)) / 86400), 2) as avg_processing_days,
-                        ROUND(MIN(EXTRACT(EPOCH FROM (offer_accepted_at - application_submitted_at)) / 86400), 2) as min_processing_days,
-                        ROUND(MAX(EXTRACT(EPOCH FROM (offer_accepted_at - application_submitted_at)) / 86400), 2) as max_processing_days,
+                        ROUND(AVG(EXTRACT(EPOCH FROM (pa.offer_selection_end_time - pa.submitted_at)) / 86400), 2) as avg_processing_days,
+                        ROUND(MIN(EXTRACT(EPOCH FROM (pa.offer_selection_end_time - pa.submitted_at)) / 86400), 2) as min_processing_days,
+                        ROUND(MAX(EXTRACT(EPOCH FROM (pa.offer_selection_end_time - pa.submitted_at)) / 86400), 2) as max_processing_days,
                         COUNT(*) as total_completed_applications
-                    FROM application_offer_tracking
-                    WHERE current_application_status = 'completed'
-                    AND application_submitted_at IS NOT NULL
-                    AND offer_accepted_at IS NOT NULL
+                    FROM pos_application pa
+                    WHERE COALESCE(pa.current_application_status, pa.status) = 'completed'
+                    AND pa.submitted_at IS NOT NULL
+                    AND pa.offer_selection_end_time IS NOT NULL
                 ),
                 recent_activity AS (
                     SELECT DISTINCT
-                        aot.application_id,
-                        aot.current_application_status as status,
-                        aot.application_submitted_at as submitted_at,
+                        pa.application_id,
+                        COALESCE(pa.current_application_status, pa.status) as status,
+                        pa.submitted_at,
                         pa.trade_name as business_name,
                         pa.city,
                         bu.sector,
-                        sa.offers_count,
-                        sa.revenue_collected
-                    FROM application_offer_tracking aot
-                    JOIN pos_application pa ON aot.application_id = pa.application_id
-                    JOIN business_users bu ON aot.business_user_id = bu.user_id
-                    JOIN submitted_applications sa ON aot.application_id = sa.application_id
-                    WHERE aot.application_submitted_at >= NOW() - INTERVAL '7 days'
-                    AND aot.current_application_status IN ('live_auction', 'ignored', 'completed')
-                    ORDER BY aot.application_submitted_at DESC
+                        pa.offers_count,
+                        pa.revenue_collected
+                    FROM pos_application pa
+                    JOIN business_users bu ON pa.business_user_id = bu.user_id
+                    WHERE pa.submitted_at >= NOW() - INTERVAL '7 days'
+                    AND COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'ignored', 'completed')
+                    ORDER BY pa.submitted_at DESC
                     LIMIT 20
                 ),
                 bank_performance AS (
                     SELECT 
                         u.entity_name as bank_name,
                         u.email as bank_email,
-                        COUNT(DISTINCT ao.submitted_application_id) as total_applications,
-                        COUNT(DISTINCT CASE WHEN ao.status = 'submitted' THEN ao.submitted_application_id END) as applications_with_offers,
+                        COUNT(DISTINCT pa.application_id) as total_applications,
+                        COUNT(DISTINCT CASE WHEN bu.user_id = ANY(pa.purchased_by) THEN pa.application_id END) as applications_with_offers,
                         ROUND(
                             CASE 
-                                WHEN COUNT(DISTINCT ao.submitted_application_id) > 0 
-                                THEN (COUNT(DISTINCT CASE WHEN ao.status = 'submitted' THEN ao.submitted_application_id END)::DECIMAL / COUNT(DISTINCT ao.submitted_application_id)) * 100 
+                                WHEN COUNT(DISTINCT pa.application_id) > 0 
+                                THEN (COUNT(DISTINCT CASE WHEN bu.user_id = ANY(pa.purchased_by) THEN pa.application_id END)::DECIMAL / COUNT(DISTINCT pa.application_id)) * 100 
                                 ELSE 0 
                             END, 2
-                        ) as conversion_rate
-                    FROM application_offers ao
-                    JOIN users u ON ao.bank_user_id = u.user_id
-                    JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
+                        ) as conversion_rate,
+                        ROUND(
+                            AVG(EXTRACT(EPOCH FROM (bav.viewed_at - pa.submitted_at))/3600), 2
+                        ) as avg_response_time_hours,
+                        ROUND(
+                            AVG(EXTRACT(EPOCH FROM (ao.submitted_at - bav.viewed_at))/3600), 2
+                        ) as avg_offer_submission_time_hours
+                    FROM pos_application pa
+                    CROSS JOIN LATERAL unnest(pa.opened_by) AS opened_bank_id
+                    JOIN bank_users bu ON opened_bank_id = bu.user_id
+                    JOIN users u ON bu.user_id = u.user_id
+                    LEFT JOIN bank_application_views bav ON pa.application_id = bav.application_id AND bu.user_id = bav.bank_user_id
+                    LEFT JOIN application_offers ao ON pa.application_id = ao.submitted_application_id AND bu.user_id = ao.bank_user_id
                     WHERE u.user_type = 'bank_user'
-                    GROUP BY u.entity_name, u.email, u.user_id
+                    GROUP BY u.entity_name, u.email, bu.user_id
                 )
                 SELECT 
                     'application_stats' as data_type,

@@ -36,15 +36,17 @@ export async function authenticateAPIRequest(req, requiredUserType = null) {
                 const JWTUtils = (await import('./jwt-utils.js')).default
                 
                 // Verify JWT token
-                const decoded = JWTUtils.verifyToken(token)
+                const verificationResult = JWTUtils.verifyToken(token)
                 
-                if (!decoded) {
+                if (!verificationResult.valid) {
                     return { 
                         success: false, 
                         error: 'Invalid JWT token',
                         status: 401 
                     }
                 }
+                
+                const decoded = verificationResult.payload
                 
                 // Check if it's an admin user
                 if (decoded.user_type === 'admin_user') {
@@ -101,9 +103,19 @@ export async function authenticateAPIRequest(req, requiredUserType = null) {
                 const JWTUtils = (await import('./jwt-utils.js')).default
                 
                 // Verify JWT token (no database query needed)
-                const decoded = JWTUtils.verifyToken(adminToken)
+                const verificationResult = JWTUtils.verifyToken(adminToken)
                 
-                if (!decoded || decoded.user_type !== 'admin_user') {
+                if (!verificationResult.valid) {
+                    return { 
+                        success: false, 
+                        error: 'Invalid admin token',
+                        status: 401 
+                    }
+                }
+                
+                const decoded = verificationResult.payload
+                
+                if (decoded.user_type !== 'admin_user') {
                     return { 
                         success: false, 
                         error: 'Invalid admin token',

@@ -202,3 +202,4 @@ checkAuctionEndTimes().then(() => {
     console.error('\n💥 Auction end time check failed:', error);
     process.exit(1);
 });
+

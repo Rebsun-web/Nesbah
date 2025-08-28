@@ -214,6 +214,32 @@ export default function AnalyticsDashboard() {
                     </div>
                 </div>
 
+                {/* Total Applications Overview Card */}
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-8">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <DocumentTextIcon className="h-12 w-12 text-white" />
+                            </div>
+                            <div className="ml-6">
+                                <h3 className="text-2xl font-bold text-white">Total Applications</h3>
+                                <p className="text-blue-100 mt-1">All applications across all statuses</p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-4xl font-bold text-white">
+                                {analyticsData.totalApplications || 0}
+                            </div>
+                            <div className="text-blue-100 text-sm mt-1">
+                                {analyticsData.statusDistribution ? 
+                                    analyticsData.statusDistribution.reduce((sum, status) => sum + status.count, 0) : 
+                                    analyticsData.totalApplications || 0
+                                } total
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Revenue Trend */}

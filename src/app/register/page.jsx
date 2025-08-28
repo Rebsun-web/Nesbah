@@ -12,8 +12,11 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import {Navbar} from "@/components/navbar";
 import {Container} from "@/components/container";
 import { BuildingOfficeIcon, BanknotesIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Register() {
+    const { t } = useLanguage();
     const [userType, setUserType] = useState(null); // 'business' or 'bank'
     const [showPassword, setShowPassword] = useState(false);
     const [cr_national_number, setCrNationalNumber] = useState('');
@@ -304,6 +307,11 @@ export default function Register() {
                 </Container>
                 <div className="isolate flex min-h-dvh items-center justify-center p-6 lg:p-8">
                     <div className="w-full max-w-4xl">
+                        {/* Language Switcher */}
+                        <div className="flex justify-end mb-4">
+                            <LanguageSwitcher variant="minimal" />
+                        </div>
+                        
                         <div className="text-center mb-8">
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">
                                 Welcome to Nesbah

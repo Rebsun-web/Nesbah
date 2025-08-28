@@ -15,14 +15,15 @@ export async function GET(req) {
     const bankUserId = authResult.user.user_id;
 
     try {
+        // UPDATED: Query using pos_application table with new structure
         const result = await pool.query(
             `SELECT 
-                sa.application_id,
-                sa.status,
-                sa.submitted_at,
-                sa.auction_end_time,
-                sa.offers_count,
-                sa.revenue_collected,
+                pa.application_id,
+                COALESCE(pa.current_application_status, pa.status) as status,
+                pa.submitted_at,
+                pa.auction_end_time,
+                pa.offers_count,
+                pa.revenue_collected,
                 
                 -- Business Information (Wathiq API data)
                 bu.trade_name,
@@ -50,27 +51,25 @@ export async function GET(req) {
                 pa.uploaded_filename,
                 
                 -- Business Owner Personal Details (NOT from Wathiq API)
-                pa.contact_person as business_contact_person,
-                pa.contact_person_number as business_contact_telephone,
+                pa.contact_person,
+                pa.contact_person_number,
                 u.email as business_contact_email,
                 
-                -- Approved Lead Information
-                al.purchased_at,
-                al.offer_submitted_at,
-                al.offer_device_setup_fee,
-                al.offer_transaction_fee_mada,
-                al.offer_transaction_fee_visa_mc,
-                al.offer_settlement_time_mada,
-                al.offer_comment,
-                al.status as lead_status
+                -- Offer Information (from application_offers)
+                ao.submitted_at as offer_submitted_at,
+                ao.offer_device_setup_fee,
+                ao.offer_transaction_fee_mada,
+                ao.offer_transaction_fee_visa_mc,
+                ao.offer_settlement_time_mada,
+                ao.offer_comment,
+                ao.status as offer_status
                 
-             FROM submitted_applications sa
-             JOIN pos_application pa ON sa.application_id = pa.application_id
+             FROM pos_application pa
              JOIN business_users bu ON pa.user_id = bu.user_id
              JOIN users u ON bu.user_id = u.user_id
-             JOIN approved_leads al ON al.application_id = sa.application_id AND al.bank_user_id = $1
-             WHERE $1 = ANY(sa.purchased_by)
-             ORDER BY al.purchased_at DESC`,
+             LEFT JOIN application_offers ao ON ao.submitted_application_id = pa.application_id AND ao.submitted_by_user_id = $1
+             WHERE $1 = ANY(pa.purchased_by)
+             ORDER BY pa.submitted_at DESC`,
             [bankUserId]
         );
 

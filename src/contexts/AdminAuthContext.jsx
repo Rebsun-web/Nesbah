@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import JWTUtils from '@/lib/auth/jwt-utils'
 
 const AdminAuthContext = createContext()
 
@@ -63,22 +62,33 @@ export function AdminAuthProvider({ children }) {
                 const user = JSON.parse(storedUser)
                 console.log('🔧 AdminAuthContext: Found stored user:', user.email)
                 
-                // Verify JWT token without database query
-                const jwtResult = await verifyJWTToken()
-                if (jwtResult.valid) {
-                    setAdminUser(jwtResult.adminUser)
+                // Check if we have a recent token (less than 30 minutes old) to avoid unnecessary API calls
+                const tokenAge = Date.now() - (user.iat * 1000 || 0)
+                const isTokenRecent = tokenAge < 1800000 // 30 minutes
+                
+                if (isTokenRecent) {
+                    console.log('🔧 AdminAuthContext: Token is recent, setting user without API call')
+                    setAdminUser(user)
                     setIsAuthenticated(true)
-                    console.log('✅ AdminAuthContext: JWT verification successful')
                 } else {
-                    console.log('❌ AdminAuthContext: JWT verification failed, clearing session')
-                    clearSession()
+                    console.log('🔧 AdminAuthContext: Token may be stale, verifying with API...')
+                    // Verify JWT token without database query
+                    const jwtResult = await verifyJWTToken()
+                    if (jwtResult.valid) {
+                        setAdminUser(jwtResult.adminUser)
+                        setIsAuthenticated(true)
+                        console.log('✅ AdminAuthContext: JWT verification successful')
+                    } else {
+                        console.log('❌ AdminAuthContext: JWT verification failed, clearing session')
+                        clearSession()
+                    }
                 }
             } catch (error) {
                 console.error('❌ AdminAuthContext: Error during JWT verification:', error)
                 clearSession()
             }
         } else {
-            console.log('🔧 AdminAuthContext: No stored user found')
+            console.log('🔧 AdminAuthContext: No stored user found, skipping initialization')
             setIsAuthenticated(false)
         }
         
@@ -87,8 +97,11 @@ export function AdminAuthProvider({ children }) {
 
     // Initialize on mount (JWT-only)
     useEffect(() => {
-        initializeAuth()
-    }, [initializeAuth])
+        if (!isInitialized) {
+            console.log('🔧 AdminAuthContext: Starting initialization...')
+            initializeAuth()
+        }
+    }, [initializeAuth, isInitialized])
 
     // Login function
     const login = async (credentials) => {
@@ -96,7 +109,8 @@ export function AdminAuthProvider({ children }) {
             setLoading(true)
             console.log('🔧 AdminAuthContext: Starting login with credentials:', { email: credentials.email })
             
-            const response = await fetch('/api/admin/auth/login', {
+            // Use the unified login endpoint
+            const response = await fetch('/api/users/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -108,9 +122,9 @@ export function AdminAuthProvider({ children }) {
             const data = await response.json()
             console.log('🔧 AdminAuthContext: Login response:', data)
 
-            if (data.success && data.adminUser) {
-                console.log('🔧 AdminAuthContext: Login successful, saving session...')
-                saveSession(data.adminUser)
+            if (data.success && data.user && data.user.user_type === 'admin_user') {
+                console.log('🔧 AdminAuthContext: Admin login successful, saving session...')
+                saveSession(data.user)
                 
                 // Redirect to admin dashboard
                 console.log('🔧 AdminAuthContext: Redirecting to /admin')

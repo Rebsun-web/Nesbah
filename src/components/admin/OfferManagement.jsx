@@ -23,8 +23,8 @@ export default function OfferManagement() {
     const [selectedOffer, setSelectedOffer] = useState(null)
     const [showModal, setShowModal] = useState(false)
     const [showNewOfferModal, setShowNewOfferModal] = useState(false)
+    const [showEditModal, setShowEditModal] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
-    const [statusFilter, setStatusFilter] = useState('all')
     const [bankFilter, setBankFilter] = useState('all')
 
     useEffect(() => {
@@ -57,8 +57,8 @@ export default function OfferManagement() {
     }
 
     const handleEditOffer = (offer) => {
-        // TODO: Implement edit functionality
-        console.log('Edit offer:', offer)
+        setSelectedOffer(offer)
+        setShowEditModal(true)
     }
 
     const handleDeleteOffer = async (offerId) => {
@@ -88,30 +88,25 @@ export default function OfferManagement() {
         setShowNewOfferModal(false)
     }
 
-    const getStatusInfo = (status) => {
-        switch (status) {
-            case 'submitted':
-                return { color: 'text-blue-600', bgColor: 'bg-blue-100', icon: <ClockIcon className="h-4 w-4" /> }
-            case 'accepted':
-                return { color: 'text-green-600', bgColor: 'bg-green-100', icon: <CheckCircleIcon className="h-4 w-4" /> }
-            case 'rejected':
-                return { color: 'text-red-600', bgColor: 'bg-red-100', icon: <XCircleIcon className="h-4 w-4" /> }
-            case 'expired':
-                return { color: 'text-gray-600', bgColor: 'bg-gray-100', icon: <XCircleIcon className="h-4 w-4" /> }
-            default:
-                return { color: 'text-gray-600', bgColor: 'bg-gray-100', icon: <ClockIcon className="h-4 w-4" /> }
-        }
+    const handleEditOfferSuccess = (updatedOffer) => {
+        // Update the offer in the list
+        setOffers(prev => prev.map(offer => 
+            offer.offer_id === updatedOffer.offer_id ? updatedOffer : offer
+        ))
+        // Close the modal
+        setShowEditModal(false)
     }
+
+
 
     const filteredOffers = offers.filter(offer => {
         const matchesSearch = offer.business_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             offer.bank_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             offer.application_id?.toString().includes(searchTerm)
         
-        const matchesStatus = statusFilter === 'all' || offer.status === statusFilter
         const matchesBank = bankFilter === 'all' || offer.bank_name === bankFilter
 
-        return matchesSearch && matchesStatus && matchesBank
+        return matchesSearch && matchesBank
     })
 
     const uniqueBanks = [...new Set(offers.map(offer => offer.bank_name))]
@@ -164,7 +159,7 @@ export default function OfferManagement() {
                 </div>
 
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="relative">
                         <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <input
@@ -175,18 +170,6 @@ export default function OfferManagement() {
                             className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>
-                    
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="submitted">Submitted</option>
-                        <option value="accepted">Accepted</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="expired">Expired</option>
-                    </select>
 
                     <select
                         value={bankFilter}
@@ -226,9 +209,7 @@ export default function OfferManagement() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Offer Details
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
-                                </th>
+
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Submitted
                                 </th>
@@ -240,16 +221,14 @@ export default function OfferManagement() {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredOffers.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                                         <BanknotesIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                                         <p className="text-lg font-medium">No offers found</p>
                                         <p className="text-sm">Try adjusting your search or filters</p>
                                     </td>
                                 </tr>
                             ) : (
-                                filteredOffers.map((offer) => {
-                                    const statusInfo = getStatusInfo(offer.status)
-                                    return (
+                                filteredOffers.map((offer) => (
                                         <tr key={offer.offer_id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-gray-900">
@@ -293,12 +272,7 @@ export default function OfferManagement() {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.color}`}>
-                                                    {statusInfo.icon}
-                                                    <span className="ml-1 capitalize">{offer.status}</span>
-                                                </span>
-                                            </td>
+
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {offer.submitted_at ? new Date(offer.submitted_at).toLocaleDateString() : 'N/A'}
                                             </td>
@@ -328,8 +302,7 @@ export default function OfferManagement() {
                                                 </div>
                                             </td>
                                         </tr>
-                                    )
-                                })
+                                    ))
                             )}
                         </tbody>
                     </table>
@@ -367,10 +340,7 @@ export default function OfferManagement() {
                                         <label className="block text-sm font-medium text-gray-700">Business</label>
                                         <p className="mt-1 text-sm text-gray-900">{selectedOffer.business_name}</p>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Status</label>
-                                        <p className="mt-1 text-sm text-gray-900 capitalize">{selectedOffer.status}</p>
-                                    </div>
+
                                 </div>
 
                                 <div>
@@ -438,6 +408,143 @@ export default function OfferManagement() {
                 onClose={() => setShowNewOfferModal(false)}
                 onSuccess={handleNewOfferSuccess}
             />
+
+            {/* Edit Offer Modal */}
+            {showEditModal && selectedOffer && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                    <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+                        <div className="mt-3">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-medium text-gray-900">
+                                    Edit Offer
+                                </h3>
+                                <button
+                                    onClick={() => setShowEditModal(false)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <XCircleIcon className="h-6 w-6" />
+                                </button>
+                            </div>
+                            
+                            <form onSubmit={async (e) => {
+                                e.preventDefault()
+                                const formData = new FormData(e.target)
+                                const updateData = {
+                                    offer_device_setup_fee: parseFloat(formData.get('setup_fee')) || 0,
+                                    offer_transaction_fee_mada: parseFloat(formData.get('mada_fee')) || 0,
+                                    offer_transaction_fee_visa_mc: parseFloat(formData.get('visa_mc_fee')) || 0,
+                                    offer_settlement_time_mada: parseInt(formData.get('settlement_time')) || 0,
+                                    offer_comment: formData.get('comment') || '',
+                                    offer_terms: formData.get('terms') || ''
+                                }
+
+                                try {
+                                    const response = await fetch(`/api/admin/offers/${selectedOffer.offer_id}`, {
+                                        method: 'PUT',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        credentials: 'include',
+                                        body: JSON.stringify(updateData)
+                                    })
+
+                                    const data = await response.json()
+                                    
+                                    if (data.success) {
+                                        // Update the offer in the list
+                                        const updatedOffer = { ...selectedOffer, ...updateData }
+                                        handleEditOfferSuccess(updatedOffer)
+                                    } else {
+                                        alert('Failed to update offer: ' + data.error)
+                                    }
+                                } catch (error) {
+                                    alert('Error updating offer: ' + error.message)
+                                }
+                            }}>
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Setup Fee (SAR)</label>
+                                            <input
+                                                type="number"
+                                                name="setup_fee"
+                                                defaultValue={selectedOffer.offer_device_setup_fee || 0}
+                                                step="0.01"
+                                                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Mada Fee (%)</label>
+                                            <input
+                                                type="number"
+                                                name="mada_fee"
+                                                defaultValue={selectedOffer.offer_transaction_fee_mada || 0}
+                                                step="0.01"
+                                                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Visa/MC Fee (%)</label>
+                                            <input
+                                                type="number"
+                                                name="visa_mc_fee"
+                                                defaultValue={selectedOffer.offer_transaction_fee_visa_mc || 0}
+                                                step="0.01"
+                                                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Settlement Time (days)</label>
+                                            <input
+                                                type="number"
+                                                name="settlement_time"
+                                                defaultValue={selectedOffer.offer_settlement_time_mada || 0}
+                                                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Terms</label>
+                                        <textarea
+                                            name="terms"
+                                            defaultValue={selectedOffer.offer_terms || ''}
+                                            rows={3}
+                                            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Additional Notes</label>
+                                        <textarea
+                                            name="comment"
+                                            defaultValue={selectedOffer.offer_comment || ''}
+                                            rows={3}
+                                            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                    </div>
+
+                                    <div className="flex justify-end space-x-3 pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowEditModal(false)}
+                                            className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                                        >
+                                            Update Offer
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

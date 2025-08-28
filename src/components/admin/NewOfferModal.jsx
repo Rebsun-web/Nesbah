@@ -41,9 +41,14 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
         pricing_tier: 'standard',
         volume_discount_threshold: '',
         volume_discount_percentage: '',
-        compliance_certifications: '',
-        regulatory_approvals: '',
-        admin_notes: ''
+        settlement_time: '',
+        bank_name: '',
+        bank_contact_person: '',
+        bank_contact_email: '',
+        bank_contact_phone: '',
+        admin_notes: '',
+        is_featured: false,
+        featured_reason: ''
     })
 
     useEffect(() => {
@@ -108,7 +113,15 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
     }
 
     const handleBankSelect = (bankId) => {
-        setFormData(prev => ({ ...prev, bank_user_id: bankId }))
+        const selectedBank = banks.find(bank => bank.user_id === bankId)
+        setFormData(prev => ({ 
+            ...prev, 
+            bank_user_id: bankId,
+            bank_name: selectedBank?.entity_name || '',
+            bank_contact_person: selectedBank?.contact_person || '',
+            bank_contact_email: selectedBank?.email || '',
+            bank_contact_phone: selectedBank?.contact_person_number || ''
+        }))
         setBankDropdownOpen(false)
     }
 
@@ -154,9 +167,15 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
                     pricing_tier: 'standard',
                     volume_discount_threshold: '',
                     volume_discount_percentage: '',
-                    compliance_certifications: '',
-                    regulatory_approvals: '',
-                    admin_notes: ''
+
+                    settlement_time: '',
+                    bank_name: '',
+                    bank_contact_person: '',
+                    bank_contact_email: '',
+                    bank_contact_phone: '',
+                    admin_notes: '',
+                    is_featured: false,
+                    featured_reason: ''
                 })
             } else {
                 setError(data.error || 'Failed to create offer')
@@ -183,7 +202,7 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
 
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center">
                         <BanknotesIcon className="h-6 w-6 text-blue-600 mr-2" />
@@ -283,6 +302,54 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
                         </div>
                     </div>
 
+                    {/* Bank Contact Information */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                        <h4 className="text-md font-medium text-gray-900 mb-4">Bank Contact Information</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Contact Person
+                                </label>
+                                <input
+                                    type="text"
+                                    name="bank_contact_person"
+                                    value={formData.bank_contact_person}
+                                    onChange={handleInputChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Contact person name"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Contact Email
+                                </label>
+                                <input
+                                    type="email"
+                                    name="bank_contact_email"
+                                    value={formData.bank_contact_email}
+                                    onChange={handleInputChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="contact@bank.com"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Contact Phone
+                                </label>
+                                <input
+                                    type="tel"
+                                    name="bank_contact_phone"
+                                    value={formData.bank_contact_phone}
+                                    onChange={handleInputChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="+966 50 123 4567"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Financial Details */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                         <h4 className="text-md font-medium text-gray-900 mb-4">Financial Details</h4>
@@ -372,7 +439,7 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
                     </div>
 
                     {/* Settlement & Terms */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Mada Settlement Time (hours)
@@ -402,11 +469,25 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
                                 placeholder="24"
                             />
                         </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                General Settlement Time
+                            </label>
+                            <input
+                                type="text"
+                                name="settlement_time"
+                                value={formData.settlement_time}
+                                onChange={handleInputChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="24-48 hours"
+                            />
+                        </div>
                     </div>
 
-                    {/* Additional Services */}
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="text-md font-medium text-gray-900 mb-4">Additional Services</h4>
+                    {/* Offer Features */}
+                    <div className="bg-green-50 p-4 rounded-lg">
+                        <h4 className="text-md font-medium text-gray-900 mb-4">Offer Features</h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <label className="flex items-center">
                                 <input
@@ -474,6 +555,97 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
                         </div>
                     </div>
 
+                    {/* Pricing & Volume Discounts */}
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                        <h4 className="text-md font-medium text-gray-900 mb-4">Pricing & Volume Discounts</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Pricing Tier
+                                </label>
+                                <select
+                                    name="pricing_tier"
+                                    value={formData.pricing_tier}
+                                    onChange={handleInputChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="basic">Basic</option>
+                                    <option value="standard">Standard</option>
+                                    <option value="premium">Premium</option>
+                                    <option value="enterprise">Enterprise</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Volume Discount Threshold (SAR)
+                                </label>
+                                <input
+                                    type="number"
+                                    name="volume_discount_threshold"
+                                    value={formData.volume_discount_threshold}
+                                    onChange={handleInputChange}
+                                    step="0.01"
+                                    min="0"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="10000.00"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Volume Discount (%)
+                                </label>
+                                <input
+                                    type="number"
+                                    name="volume_discount_percentage"
+                                    value={formData.volume_discount_percentage}
+                                    onChange={handleInputChange}
+                                    step="0.01"
+                                    min="0"
+                                    max="100"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="5.00"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    {/* Offer Terms & Validity */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Offer Terms
+                            </label>
+                            <textarea
+                                name="offer_terms"
+                                value={formData.offer_terms}
+                                onChange={handleInputChange}
+                                rows="4"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Detailed terms and conditions of this offer..."
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Offer Validity (days)
+                            </label>
+                            <input
+                                type="number"
+                                name="offer_validity_days"
+                                value={formData.offer_validity_days}
+                                onChange={handleInputChange}
+                                min="1"
+                                max="365"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="30"
+                            />
+                        </div>
+                    </div>
+
                     {/* Comments & Notes */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -502,6 +674,37 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Internal notes..."
                             />
+                        </div>
+                    </div>
+
+                    {/* Featured Offer Settings */}
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                        <h4 className="text-md font-medium text-gray-900 mb-4">Featured Offer Settings</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    name="is_featured"
+                                    checked={formData.is_featured}
+                                    onChange={handleInputChange}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
+                                />
+                                <span className="text-sm text-gray-700">Mark as Featured Offer</span>
+                            </label>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Featured Reason
+                                </label>
+                                <input
+                                    type="text"
+                                    name="featured_reason"
+                                    value={formData.featured_reason}
+                                    onChange={handleInputChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Why this offer should be featured..."
+                                />
+                            </div>
                         </div>
                     </div>
 

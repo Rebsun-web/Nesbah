@@ -29,7 +29,6 @@ export async function GET(req) {
         const page = parseInt(searchParams.get('page')) || 1;
         const limit = parseInt(searchParams.get('limit')) || 10;
         const search = searchParams.get('search') || '';
-        const status = searchParams.get('status') || 'all';
         const bankFilter = searchParams.get('bank') || 'all';
         const sortBy = searchParams.get('sortBy') || 'submitted_at';
         const sortOrder = searchParams.get('sortOrder') || 'desc';
@@ -50,11 +49,6 @@ export async function GET(req) {
                 queryParams.push(`%${search}%`);
             }
 
-            if (status !== 'all') {
-                paramCount++;
-                whereConditions.push(`ao.status = $${paramCount}`);
-                queryParams.push(status);
-            }
 
             if (bankFilter !== 'all') {
                 paramCount++;
@@ -68,8 +62,7 @@ export async function GET(req) {
             const countQuery = `
                 SELECT COUNT(*) as total
                 FROM application_offers ao
-                JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
-                JOIN pos_application pa ON sa.application_id = pa.application_id
+                JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
                 JOIN users u ON ao.bank_user_id = u.user_id
                 ${whereClause}
             `;
@@ -107,8 +100,6 @@ export async function GET(req) {
                     ao.pricing_tier,
                     ao.volume_discount_threshold,
                     ao.volume_discount_percentage,
-                    ao.compliance_certifications,
-                    ao.regulatory_approvals,
                     ao.settlement_time,
                     ao.deal_value,
                     ao.commission_rate,
@@ -121,16 +112,15 @@ export async function GET(req) {
                     pa.city as business_city,
                     pa.contact_person as business_contact,
                     pa.contact_person_number as business_phone,
-                    sa.application_id,
+                    pa.application_id,
                     u.entity_name as bank_name,
                     u.email as bank_email,
                     bu.logo_url as bank_logo,
-                    sa.status as application_status,
-                    sa.revenue_collected,
-                    sa.offers_count
+                    COALESCE(pa.current_application_status, pa.status) as application_status,
+                    pa.revenue_collected,
+                    pa.offers_count
                 FROM application_offers ao
-                JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
-                JOIN pos_application pa ON sa.application_id = pa.application_id
+                JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
                 JOIN users u ON ao.bank_user_id = u.user_id
                 LEFT JOIN bank_users bu ON ao.bank_user_id = bu.user_id
                 ${whereClause}
@@ -203,20 +193,18 @@ export async function POST(req) {
         const client = await pool.connectWithRetry();
         
         try {
-            // First, get the submitted_application_id from the application_id
-            const submittedAppQuery = await client.query(`
-                SELECT id FROM submitted_applications 
+            // Verify application exists
+            const appQuery = await client.query(`
+                SELECT application_id FROM pos_application 
                 WHERE application_id = $1
             `, [body.application_id]);
             
-            if (submittedAppQuery.rows.length === 0) {
+            if (appQuery.rows.length === 0) {
                 return NextResponse.json(
                     { success: false, error: 'Application not found' },
                     { status: 404 }
                 );
             }
-            
-            const submittedApplicationId = submittedAppQuery.rows[0].id;
             
             // Calculate deal value
             const setupFee = parseFloat(body.offer_device_setup_fee) || 0;
@@ -253,8 +241,6 @@ export async function POST(req) {
                     pricing_tier,
                     volume_discount_threshold,
                     volume_discount_percentage,
-                    compliance_certifications,
-                    regulatory_approvals,
                     settlement_time,
                     deal_value,
                     commission_rate,
@@ -265,10 +251,10 @@ export async function POST(req) {
                     featured_reason,
                     submitted_at,
                     expires_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33)
                 RETURNING offer_id
             `, [
-                submittedApplicationId,
+                body.application_id, // Use application_id directly as submitted_application_id
                 body.bank_user_id,
                 body.offer_device_setup_fee || 0,
                 body.offer_transaction_fee_mada || 0,
@@ -291,8 +277,6 @@ export async function POST(req) {
                 body.pricing_tier || '',
                 body.volume_discount_threshold || 0,
                 body.volume_discount_percentage || 0,
-                body.compliance_certifications || [],
-                body.regulatory_approvals || [],
                 body.settlement_time || '',
                 dealValue,
                 body.commission_rate || 0,
@@ -305,12 +289,18 @@ export async function POST(req) {
                 new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // expires_at (30 days from now)
             ]);
 
-            // Update offers count in submitted_applications
+            // Update offers count and add bank to purchased_by array in pos_application
             await client.query(`
-                UPDATE submitted_applications 
-                SET offers_count = offers_count + 1
-                WHERE id = $1
-            `, [submittedApplicationId]);
+                UPDATE pos_application 
+                SET 
+                    offers_count = offers_count + 1,
+                    purchased_by = CASE 
+                        WHEN $2 = ANY(purchased_by) THEN purchased_by 
+                        ELSE array_append(purchased_by, $2)
+                    END,
+                    revenue_collected = revenue_collected + 25.00
+                WHERE application_id = $1
+            `, [body.application_id, body.bank_user_id]);
 
             // Get the full offer details to return
             const offerId = result.rows[0].offer_id;
@@ -336,11 +326,10 @@ export async function POST(req) {
                     ao.warranty_months,
                     ao.admin_notes,
                     pa.trade_name as business_name,
-                    sa.application_id,
+                    pa.application_id,
                     u.entity_name as bank_name
                 FROM application_offers ao
-                JOIN submitted_applications sa ON ao.submitted_application_id = sa.id
-                JOIN pos_application pa ON sa.application_id = pa.application_id
+                JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
                 JOIN users u ON ao.bank_user_id = u.user_id
                 WHERE ao.offer_id = $1
             `, [offerId]);

@@ -5,10 +5,11 @@ export async function GET(req, { params }) {
     const { id } = params
 
     try {
+        // UPDATED: Query using pos_application table (already correct)
         const { rows } = await pool.query(
             `SELECT uploaded_document, uploaded_mimetype, uploaded_filename
-       FROM pos_application
-       WHERE application_id = $1`,
+            FROM pos_application
+            WHERE application_id = $1`,
             [id]
         )
 

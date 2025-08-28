@@ -1,9 +1,13 @@
 'use client'
 
+import { Container } from '@/components/container'
 import BankNavbar from '@/components/bankNavbar'
 import { NewFooter } from '@/components/NewFooter'
+import LeadsHistoryTable from '@/components/LeadsHistoryTable'
 import BoughtLeadsDisplay from '@/components/BoughtLeadsDisplay'
 import { useEffect, useState } from 'react'
+import ContactCard from '@/components/contactCard'
+import {Heading} from "@/components/text"
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
 
@@ -15,8 +19,6 @@ function BankHistoryPage (){
 
     const [leads, setLeads] = useState([]);
     const [userInfo, setUserInfo] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchLeadsHistory = async () => {
@@ -26,9 +28,6 @@ function BankHistoryPage (){
                 const bankUser = JSON.parse(storedUser);
                 setUserInfo(bankUser);
                 try {
-                    setLoading(true);
-                    setError(null);
-                    
                     // Use authenticated request instead of direct fetch
                     const res = await makeAuthenticatedRequest(`/api/leads/history?user_id=${bankUser.user_id}`);
                     if (res) {
@@ -37,16 +36,10 @@ function BankHistoryPage (){
                             setLeads(result.data);
                         } else {
                             console.error('Failed to fetch leads history:', result.error);
-                            setError(result.error || 'Failed to fetch leads history');
                         }
-                    } else {
-                        setError('Authentication failed');
                     }
                 } catch (err) {
                     console.error('Error fetching leads history:', err);
-                    setError('Failed to fetch leads history');
-                } finally {
-                    setLoading(false);
                 }
             }
         };
@@ -65,6 +58,10 @@ function BankHistoryPage (){
                         Purchased leads
                     </h1>
                 </div>
+                <div className="py-5">
+                    <LeadsHistoryTable data={leads}/>
+                </div>
+                
                 {/* Purchased Leads Display */}
                 <div className="mt-8">
                     <BoughtLeadsDisplay userInfo={userInfo} />
