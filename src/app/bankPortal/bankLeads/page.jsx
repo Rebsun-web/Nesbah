@@ -88,7 +88,7 @@ function BankLeadsPage() {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading purchased leads...</p>
+                    <p className="mt-4 text-gray-600">Loading approved leads...</p>
                 </div>
             </div>
         )
@@ -113,17 +113,12 @@ function BankLeadsPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Purchased leads</h1>
-                </div>
-
                 {/* Summary Card */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-xl font-semibold text-gray-900">Purchased Leads</h2>
-                            <p className="text-gray-600">{purchasedLeads.length} lead{purchasedLeads.length !== 1 ? 's' : ''} purchased</p>
+                            <h2 className="text-xl font-semibold text-gray-900">Approved Leads</h2>
+                            <p className="text-gray-600">{purchasedLeads.length} lead{purchasedLeads.length !== 1 ? 's' : ''} approved</p>
                         </div>
                         <button
                             onClick={handleExport}

@@ -116,7 +116,7 @@ function BankPortal() {
     )
 }
 
-export default function BusinessDashboardPage() {
+export default function BankDashboardPage() {
     return (
         <div>
             <main className="pb-32">

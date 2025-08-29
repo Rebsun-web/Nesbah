@@ -3,27 +3,41 @@ import pool from '@/lib/db'
 
 export async function authenticateAPIRequest(req, requiredUserType = null) {
     try {
+        console.log('🔧 Auth: Starting authentication for user type:', requiredUserType);
+        
         // Get authorization header
         const authHeader = req.headers.get('authorization')
         const userToken = req.headers.get('x-user-token')
         
+        console.log('🔧 Auth: Headers received:', {
+            authorization: authHeader ? 'present' : 'missing',
+            userToken: userToken ? 'present' : 'missing'
+        });
+        
         // Check for user token in header (for client-side requests)
         if (userToken) {
             try {
+                console.log('🔧 Auth: Parsing user token...');
                 const userData = JSON.parse(userToken)
+                console.log('🔧 Auth: Parsed user data:', userData);
+                
                 if (userData.user_id && userData.user_type) {
                     // Validate user type if required
                     if (requiredUserType && userData.user_type !== requiredUserType) {
+                        console.log('🔧 Auth: User type mismatch:', userData.user_type, '!=', requiredUserType);
                         return { 
                             success: false, 
                             error: `Access denied. Required user type: ${requiredUserType}`,
                             status: 403 
                         }
                     }
+                    console.log('🔧 Auth: Authentication successful with user token');
                     return { success: true, user: userData }
+                } else {
+                    console.log('🔧 Auth: Invalid user data structure');
                 }
             } catch (error) {
-                console.error('Error parsing user token:', error)
+                console.error('🔧 Auth: Error parsing user token:', error)
             }
         }
         
@@ -90,6 +104,67 @@ export async function authenticateAPIRequest(req, requiredUserType = null) {
                 return { 
                     success: false, 
                     error: 'Invalid JWT token',
+                    status: 401 
+                }
+            }
+        }
+        
+        // Check for user token in cookies (for regular user authentication)
+        const userTokenCookie = req.cookies?.get('user_token')?.value
+        if (userTokenCookie) {
+            try {
+                // Import JWT utility for verification
+                const JWTUtils = (await import('./jwt-utils.js')).default
+                
+                // Verify JWT token
+                const verificationResult = JWTUtils.verifyToken(userTokenCookie)
+                
+                if (!verificationResult.valid) {
+                    return { 
+                        success: false, 
+                        error: 'Invalid user token',
+                        status: 401 
+                    }
+                }
+                
+                const decoded = verificationResult.payload
+                
+                // Regular user - verify in users table
+                const client = await pool.connectWithRetry()
+                try {
+                    const result = await client.query(
+                        'SELECT user_id, email, user_type, account_status FROM users WHERE user_id = $1 AND account_status = $2',
+                        [decoded.user_id, 'active']
+                    )
+                    
+                    if (result.rows.length === 0) {
+                        return { 
+                            success: false, 
+                            error: 'User not found or inactive',
+                            status: 401 
+                        }
+                    }
+                    
+                    const user = result.rows[0]
+                    
+                    // Validate user type if required
+                    if (requiredUserType && user.user_type !== requiredUserType) {
+                        return { 
+                            success: false, 
+                            error: `Access denied. Required user type: ${requiredUserType}`,
+                            status: 403 
+                        }
+                    }
+                    
+                    return { success: true, user }
+                } finally {
+                    client.release()
+                }
+            } catch (error) {
+                console.error('User token verification error:', error)
+                return { 
+                    success: false, 
+                    error: 'Invalid user token',
                     status: 401 
                 }
             }

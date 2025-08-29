@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
@@ -19,12 +19,11 @@ import {
 } from '@heroicons/react/16/solid'
 import OfferSentModal from '@/components/OfferSentModal';
 import { useViewTracking } from '@/hooks/useViewTracking';
-import ViewTrackingTest from '@/components/bank/ViewTrackingTest';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 
-export default function LeadPage({ params }) {
+function LeadPageContent({ params }) {
   const router = useRouter()
-  const resolvedParams = use(params)
   const [application, setApplication] = useState(null)
   const [bankUser, setBankUser] = useState(null)
   const [showOfferSentModal, setShowOfferSentModal] = useState(false);
@@ -35,16 +34,20 @@ export default function LeadPage({ params }) {
   useEffect(() => {
     const stored = localStorage.getItem('user');
     if (stored) {
-      const parsed = JSON.parse(stored);
-      console.log('✅ Logged in bank user:', parsed); // ← LOG HERE
-      setBankUser(parsed);
+      try {
+        const parsed = JSON.parse(stored);
+        console.log('✅ Logged in bank user:', parsed);
+        setBankUser(parsed);
+      } catch (error) {
+        console.error('❌ Error parsing user data:', error);
+      }
     }
   }, []);
 
   const fetchApplication = async () => {
     if (!bankUser || !bankUser.user_id) return
 
-    const res = await fetch(`/api/leads/${resolvedParams.id}`, {
+    const res = await fetch(`/api/leads/${params.id}`, {
       headers: {
         'x-user-id': bankUser.user_id,
       },
@@ -81,13 +84,13 @@ export default function LeadPage({ params }) {
 
   useEffect(() => {
     fetchApplication()
-  }, [bankUser, resolvedParams.id])
+  }, [bankUser, params.id])
 
   // Add view tracking for this application
   useViewTracking(
-    resolvedParams.id, 
+    params.id, 
     bankUser?.user_id, 
-    !!bankUser && !!resolvedParams.id
+    !!bankUser && !!params.id
   );
 
   // Handle back button click: navigate back to bank portal
@@ -115,16 +118,6 @@ export default function LeadPage({ params }) {
     offer_settlement_time_visa_mc: '',
     offer_comment: '',
     offer_terms: '',
-    offer_validity_days: '30',
-    includes_hardware: false,
-    includes_software: false,
-    includes_support: false,
-    support_hours: '',
-    warranty_months: '',
-    pricing_tier: 'standard',
-    volume_discount_threshold: '',
-    volume_discount_percentage: '',
-    
     settlement_time: '',
     file: null,
   });
@@ -170,7 +163,7 @@ export default function LeadPage({ params }) {
     formData.append('action', 'approve');
 
     try {
-      const res = await fetch(`/api/leads/${resolvedParams.id}/purchased_applications`, {
+      const res = await fetch(`/api/leads/${params.id}/purchased_applications`, {
         method: 'POST',
         headers: {
           'x-user-id': bankUser.user_id,
@@ -218,7 +211,16 @@ export default function LeadPage({ params }) {
   const contactInfo = application.contact_info || {}
   const sector = Array.isArray(application.sector)
       ? application.sector.map((a) => a.name).join(', ')
-      : application.sector || 'N/A'
+      : application.sector || 'Not Provided'
+  
+  // Format sector data to display each activity on a new line
+  const formattedSector = sector !== 'Not Provided' 
+    ? sector.split(', ').map((activity, index) => (
+        <div key={index} className="mb-1">
+          {activity.trim()}
+        </div>
+      ))
+    : 'Not Provided'
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
@@ -244,8 +246,7 @@ export default function LeadPage({ params }) {
         </button>
       </div>
 
-      {/* View Tracking Test Panel - Remove this in production */}
-      <ViewTrackingTest applicationId={application.application_id} />
+
 
       <div className="mt-4 lg:mt-8">
         <div className="flex items-center gap-4">
@@ -259,12 +260,12 @@ export default function LeadPage({ params }) {
           <div className="flex flex-wrap gap-x-10 gap-y-4 py-1.5">
             <span className="flex items-center gap-3 text-sm text-zinc-800">
               <BanknotesIcon className="size-4 shrink-0 fill-zinc-400" />
-              Cash capital: {application.cash_capital ?? 'N/A'}
+              Cash capital: {application.cash_capital ?? 'Not Provided'}
             </span>
 
             <span className="flex items-center gap-3 text-sm text-zinc-800">
               <BanknotesIcon className="size-4 shrink-0 fill-zinc-400" />
-              In kind capital: {application.in_kind_capital ?? 'N/A'}
+              In kind capital: {application.in_kind_capital ?? 'Not Provided'}
             </span>
 
             <span className="flex items-center gap-3 text-sm text-zinc-800">
@@ -285,47 +286,22 @@ export default function LeadPage({ params }) {
       </div>
 
       <div className="mt-12">
-        <Subheading>Business Details</Subheading>
+        <Subheading>Application Details</Subheading>
         <Divider className="mt-4" />
         <DescriptionList>
-          <DescriptionTerm>Business Name</DescriptionTerm>
-          <DescriptionDetails>{application.trade_name}</DescriptionDetails>
-
-          <DescriptionTerm>CR number</DescriptionTerm>
-          <DescriptionDetails>
-            {application.cr_national_number}
-          </DescriptionDetails>
-
-          <DescriptionTerm>Sector</DescriptionTerm>
-          <DescriptionDetails>{sector}</DescriptionDetails>
-
-          <DescriptionTerm>City</DescriptionTerm>
-          <DescriptionDetails>{application.address}</DescriptionDetails>
-
-          <DescriptionTerm>Store URL</DescriptionTerm>
-          <DescriptionDetails>
-            {application.store_url || 'N/A'}
-          </DescriptionDetails>
-
           <DescriptionTerm>Own POS System</DescriptionTerm>
           <DescriptionDetails>
             {application.own_pos_system ? 'Yes' : 'No'}
           </DescriptionDetails>
 
-          <DescriptionTerm>Number of POS device</DescriptionTerm>
+          <DescriptionTerm>Number of POS Devices</DescriptionTerm>
           <DescriptionDetails>{application.number_of_pos_devices}</DescriptionDetails>
 
-          <DescriptionTerm>City of operations</DescriptionTerm>
+          <DescriptionTerm>City of Operations</DescriptionTerm>
           <DescriptionDetails>{application.city_of_operation}</DescriptionDetails>
 
           <DescriptionTerm>Notes</DescriptionTerm>
           <DescriptionDetails>{application.notes}</DescriptionDetails>
-
-          <DescriptionTerm>Has eCommerce?</DescriptionTerm>
-          <DescriptionDetails>
-            {application.has_ecommerce ? 'Yes' : 'No'}{' '}
-            {application.store_url ? `(${application.store_url})` : ''}
-          </DescriptionDetails>
 
           <DescriptionTerm>Uploaded Document</DescriptionTerm>
           <DescriptionDetails>
@@ -343,25 +319,91 @@ export default function LeadPage({ params }) {
         </DescriptionList>
       </div>
 
-      <div className="mt-6">
-        <Subheading>Contact Information</Subheading>
+      <div className="mt-12">
+        <Subheading>User Wathiq Data</Subheading>
         <Divider className="mt-4" />
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-blue-800">
-                <strong>Personal information is hidden</strong><br />
-                Contact details and personal information are only available in your purchased leads history after submitting an offer.
-              </p>
-            </div>
-          </div>
-        </div>
+        <DescriptionList>
+          <DescriptionTerm>Business Name</DescriptionTerm>
+          <DescriptionDetails>{application.trade_name}</DescriptionDetails>
+
+          <DescriptionTerm>CR National Number</DescriptionTerm>
+          <DescriptionDetails>{application.cr_national_number}</DescriptionDetails>
+
+          <DescriptionTerm>CR Number</DescriptionTerm>
+          <DescriptionDetails>{application.cr_number || 'Not Provided'}</DescriptionDetails>
+
+          <DescriptionTerm>Registration Status</DescriptionTerm>
+          <DescriptionDetails>{application.registration_status || 'Not Provided'}</DescriptionDetails>
+
+          <DescriptionTerm>Legal Form</DescriptionTerm>
+          <DescriptionDetails>{application.legal_form || 'Not Provided'}</DescriptionDetails>
+
+          <DescriptionTerm>Issue Date (Gregorian)</DescriptionTerm>
+          <DescriptionDetails>{application.issue_date_gregorian || 'Not Provided'}</DescriptionDetails>
+
+          <DescriptionTerm>Confirmation Date (Gregorian)</DescriptionTerm>
+          <DescriptionDetails>{application.confirmation_date_gregorian || 'Not Provided'}</DescriptionDetails>
+
+          <DescriptionTerm>Address</DescriptionTerm>
+          <DescriptionDetails>{application.address}</DescriptionDetails>
+
+          <DescriptionTerm>City</DescriptionTerm>
+          <DescriptionDetails>{application.city || 'Not Provided'}</DescriptionDetails>
+
+          <DescriptionTerm>Sector</DescriptionTerm>
+          <DescriptionDetails>{formattedSector}</DescriptionDetails>
+
+          <DescriptionTerm>CR Capital</DescriptionTerm>
+          <DescriptionDetails>{application.cr_capital ? `${application.cr_capital.toLocaleString()} SAR` : 'Not Provided'}</DescriptionDetails>
+
+          <DescriptionTerm>Cash Capital</DescriptionTerm>
+          <DescriptionDetails>{application.cash_capital ? `${application.cash_capital.toLocaleString()} SAR` : 'Not Provided'}</DescriptionDetails>
+
+          <DescriptionTerm>In-Kind Capital</DescriptionTerm>
+          <DescriptionDetails>{application.in_kind_capital || 'N/A'}</DescriptionDetails>
+
+          <DescriptionTerm>Average Capital</DescriptionTerm>
+          <DescriptionDetails>{application.avg_capital ? `${application.avg_capital.toLocaleString()} SAR` : 'Not Provided'}</DescriptionDetails>
+
+          <DescriptionTerm>Has eCommerce</DescriptionTerm>
+          <DescriptionDetails>
+            {application.has_ecommerce ? 'Yes' : 'No'}{' '}
+            {application.store_url ? `(${application.store_url})` : ''}
+          </DescriptionDetails>
+
+          <DescriptionTerm>Store URL</DescriptionTerm>
+          <DescriptionDetails>{application.store_url || 'Not Provided'}</DescriptionDetails>
+
+          <DescriptionTerm>Management Structure</DescriptionTerm>
+          <DescriptionDetails>{application.management_structure || 'Not Provided'}</DescriptionDetails>
+
+          <DescriptionTerm>Activities</DescriptionTerm>
+          <DescriptionDetails>
+            {application.activities && Array.isArray(application.activities) 
+              ? application.activities.map((activity, index) => (
+                  <div key={index} className="mb-1">
+                    {activity}
+                  </div>
+                ))
+              : 'Not Provided'}
+          </DescriptionDetails>
+
+          <DescriptionTerm>Is Verified</DescriptionTerm>
+          <DescriptionDetails>{application.is_verified ? 'Yes' : 'No'}</DescriptionDetails>
+
+          <DescriptionTerm>Verification Date</DescriptionTerm>
+          <DescriptionDetails>
+            {application.verification_date 
+              ? new Date(application.verification_date).toLocaleDateString() 
+              : 'Not Provided'}
+          </DescriptionDetails>
+
+          <DescriptionTerm>Admin Notes</DescriptionTerm>
+          <DescriptionDetails>{application.admin_notes || 'Not Provided'}</DescriptionDetails>
+        </DescriptionList>
       </div>
+
+
 
       {/* Offer and rejection info sections */}
       {submittedOffer && (
@@ -370,15 +412,15 @@ export default function LeadPage({ params }) {
           <Divider className="mt-4" />
           <DescriptionList>
             <DescriptionTerm>Device Setup Fee</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_device_setup_fee || 'N/A'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_device_setup_fee || 'Not Provided'}</DescriptionDetails>
             <DescriptionTerm>Transaction Fee MADA</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_transaction_fee_mada || 'N/A'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_transaction_fee_mada || 'Not Provided'}</DescriptionDetails>
             <DescriptionTerm>Transaction Fee Visa/MC</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_transaction_fee_visa_mc || 'N/A'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_transaction_fee_visa_mc || 'Not Provided'}</DescriptionDetails>
             <DescriptionTerm>Settlement Time MADA</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_settlement_time_mada || 'N/A'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_settlement_time_mada || 'Not Provided'}</DescriptionDetails>
             <DescriptionTerm>Comment</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_comment || 'N/A'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_comment || 'Not Provided'}</DescriptionDetails>
             <DescriptionTerm>Uploaded File</DescriptionTerm>
             <DescriptionDetails>
               {submittedOffer.uploaded_filename ? (
@@ -389,7 +431,7 @@ export default function LeadPage({ params }) {
                   {submittedOffer.uploaded_filename}
                 </a>
               ) : (
-                'N/A'
+                'Not Provided'
               )}
             </DescriptionDetails>
           </DescriptionList>
@@ -543,185 +585,13 @@ export default function LeadPage({ params }) {
                       </div>
                     </div>
                   </div>
-                  <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
-                    <label
-                      htmlFor="offer_validity_days"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
-                    >
-                      Offer Validity (days)
-                    </label>
-                    <div className="mt-2 sm:col-span-2 sm:mt-0">
-                      <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600 sm:max-w-md">
-                        <input
-                          id="offer_validity_days"
-                          name="offer_validity_days"
-                          type="number"
-                          min="1"
-                          max="365"
-                          placeholder="30"
-                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
-                          value={offerForm.offer_validity_days}
-                          onChange={handleOfferChange}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
-                    <label
-                      htmlFor="pricing_tier"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
-                    >
-                      Pricing Tier
-                    </label>
-                    <div className="mt-2 sm:col-span-2 sm:mt-0">
-                      <select
-                        id="pricing_tier"
-                        name="pricing_tier"
-                        className="block w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-base text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:max-w-md"
-                        value={offerForm.pricing_tier}
-                        onChange={handleOfferChange}
-                      >
-                        <option value="basic">Basic</option>
-                        <option value="standard">Standard</option>
-                        <option value="premium">Premium</option>
-                        <option value="enterprise">Enterprise</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
-                    <label className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5">
-                      Included Services
-                    </label>
-                    <div className="mt-2 sm:col-span-2 sm:mt-0">
-                      <div className="space-y-3">
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            name="includes_hardware"
-                            checked={offerForm.includes_hardware}
-                            onChange={(e) => setOfferForm(prev => ({ ...prev, includes_hardware: e.target.checked }))}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
-                          />
-                          <span className="text-sm text-gray-700">Hardware Included</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            name="includes_software"
-                            checked={offerForm.includes_software}
-                            onChange={(e) => setOfferForm(prev => ({ ...prev, includes_software: e.target.checked }))}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
-                          />
-                          <span className="text-sm text-gray-700">Software Included</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            name="includes_support"
-                            checked={offerForm.includes_support}
-                            onChange={(e) => setOfferForm(prev => ({ ...prev, includes_support: e.target.checked }))}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
-                          />
-                          <span className="text-sm text-gray-700">Support Included</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
-                    <label
-                      htmlFor="support_hours"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
-                    >
-                      Support Hours
-                    </label>
-                    <div className="mt-2 sm:col-span-2 sm:mt-0">
-                      <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600 sm:max-w-md">
-                        <input
-                          id="support_hours"
-                          name="support_hours"
-                          type="text"
-                          placeholder="24/7"
-                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
-                          value={offerForm.support_hours}
-                          onChange={handleOfferChange}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
-                    <label
-                      htmlFor="warranty_months"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
-                    >
-                      Warranty (months)
-                    </label>
-                    <div className="mt-2 sm:col-span-2 sm:mt-0">
-                      <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600 sm:max-w-md">
-                        <input
-                          id="warranty_months"
-                          name="warranty_months"
-                          type="number"
-                          min="0"
-                          placeholder="12"
-                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
-                          value={offerForm.warranty_months}
-                          onChange={handleOfferChange}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
-                    <label
-                      htmlFor="volume_discount_threshold"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
-                    >
-                      Volume Discount Threshold (SAR)
-                    </label>
-                    <div className="mt-2 sm:col-span-2 sm:mt-0">
-                      <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600 sm:max-w-md">
-                        <input
-                          id="volume_discount_threshold"
-                          name="volume_discount_threshold"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="10000.00"
-                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
-                          value={offerForm.volume_discount_threshold}
-                          onChange={handleOfferChange}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
-                    <label
-                      htmlFor="volume_discount_percentage"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
-                    >
-                      Volume Discount (%)
-                    </label>
-                    <div className="mt-2 sm:col-span-2 sm:mt-0">
-                      <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600 sm:max-w-md">
-                        <input
-                          id="volume_discount_percentage"
-                          name="volume_discount_percentage"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="100"
-                          placeholder="5.00"
-                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
-                          value={offerForm.volume_discount_percentage}
-                          onChange={handleOfferChange}
-                        />
-                      </div>
-                    </div>
-                  </div>
+
+
+
+
+
+
+
 
                   <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
                     <label
@@ -871,5 +741,13 @@ export default function LeadPage({ params }) {
           </div>
         )}
     </div>
+  )
+}
+
+export default function LeadPage({ params }) {
+  return (
+    <AuthGuard requiredUserType="bank_user">
+      <LeadPageContent params={params} />
+    </AuthGuard>
   )
 }

@@ -515,7 +515,7 @@ export default function RevenueMetrics({ data, detailed = false }) {
                                                 Bank performance data will appear here once banks start placing offers and purchasing leads.
                                             </p>
                                             <div className="bg-blue-50 rounded-lg p-4 text-left max-w-md mx-auto">
-                                                <h4 className="text-sm font-medium text-blue-900 mb-2">What you'll see here:</h4>
+                                                <h4 className="text-sm font-medium text-blue-900 mb-2">What you&apos;ll see here:</h4>
                                                 <ul className="text-xs text-blue-800 space-y-1">
                                                     <li>• Bank names and email addresses</li>
                                                     <li>• Revenue generated per bank</li>

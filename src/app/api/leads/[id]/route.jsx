@@ -39,11 +39,23 @@ export async function GET(req, { params }) {
                 pa.contact_person, pa.contact_person_number, pa.number_of_pos_devices, pa.city_of_operation,
                 pa.own_pos_system, pa.submitted_at,
                 bu.trade_name, bu.registration_status, bu.cr_number, bu.cr_national_number,
-                bu.legal_form, bu.issue_date_gregorian,
-                bu.address, bu.sector,
-                bu.has_ecommerce, bu.store_url, bu.cr_capital,
-                bu.cash_capital, bu.in_kind_capital,
-                bu.management_structure, bu.management_managers,
+                COALESCE(bu.legal_form, '') as legal_form, 
+                bu.issue_date_gregorian, 
+                COALESCE(bu.confirmation_date_gregorian, '') as confirmation_date_gregorian,
+                bu.address, bu.sector, 
+                COALESCE(bu.city, '') as city,
+                bu.has_ecommerce, 
+                COALESCE(bu.store_url, '') as store_url, 
+                bu.cr_capital,
+                COALESCE(bu.cash_capital, 0) as cash_capital, 
+                COALESCE(bu.in_kind_capital, '') as in_kind_capital, 
+                COALESCE(bu.avg_capital, 0) as avg_capital,
+                COALESCE(bu.management_structure, '') as management_structure, 
+                bu.management_managers, 
+                COALESCE(bu.activities, ARRAY[]::text[]) as activities,
+                bu.is_verified, 
+                COALESCE(bu.verification_date, NULL) as verification_date, 
+                COALESCE(bu.admin_notes, '') as admin_notes,
                 bu.contact_info,
                 -- Additional personal details not provided by Wathiq API
                 pa.contact_person as business_contact_person,
@@ -56,10 +68,16 @@ export async function GET(req, { params }) {
         `;
 
         if (isOpened && !isPurchased) {
-            appQuery = appQuery.replace('bu.contact_info', `'{}'::jsonb AS contact_info`);
+            // Hide sensitive information for opened but not purchased applications
+            appQuery = appQuery.replace('bu.contact_info,', `'{}'::jsonb AS contact_info,`);
             appQuery = appQuery.replace('pa.contact_person as business_contact_person,', `'' as business_contact_person,`);
             appQuery = appQuery.replace('pa.contact_person_number as business_contact_telephone,', `'' as business_contact_telephone,`);
             appQuery = appQuery.replace('u.email as business_contact_email', `'' as business_contact_email`);
+            
+            // Hide some Wathiq data for opened but not purchased applications
+            appQuery = appQuery.replace('bu.management_managers,', `'{}'::jsonb AS management_managers,`);
+            appQuery = appQuery.replace('COALESCE(bu.activities, ARRAY[]::text[]) as activities,', `ARRAY[]::text[] AS activities,`);
+            appQuery = appQuery.replace('COALESCE(bu.admin_notes, \'\') as admin_notes,', `'' as admin_notes,`);
         }
 
         if (!isOpened) {

@@ -42,7 +42,7 @@ class DatabasePool {
         return await pool.query(text, params);
     }
 
-    // Add withConnection method for compatibility with admin routes
+    // withConnection method for transaction-like operations
     async withConnection(callback) {
         if (!pool) {
             throw new Error('Database connection not available on client side');
@@ -50,7 +50,8 @@ class DatabasePool {
         
         const client = await pool.connect();
         try {
-            return await callback(client);
+            const result = await callback(client);
+            return result;
         } finally {
             client.release();
         }

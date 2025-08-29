@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
+import WathiqAPIService from '@/lib/wathiq-api-service';
 
 export async function POST(req) {
     try {
@@ -72,76 +73,71 @@ export async function POST(req) {
         // Fetch data from Wathiq API if requested
         if (fetch_from_wathiq && cr_national_number) {
             try {
-                const response = await fetch(`https://api.wathq.sa/commercial-registration/fullinfo/${cr_national_number}?language=en`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'apiKey': 'vFRBMGAv78vRdCAnbXhVJMcN6AaxLn34', // Should use env variable
-                    },
-                });
-
-                if (!response.ok) {
-                    const errText = await response.text();
-                    console.error('Wathiq API error:', errText);
-                    return NextResponse.json(
-                        { success: false, error: 'Failed to fetch data from Wathiq API' },
-                        { status: 502 }
-                    );
-                }
-
-                wathiqData = await response.json();
+                console.log(`🔍 Fetching comprehensive Wathiq data for CR: ${cr_national_number}`);
+                wathiqData = await WathiqAPIService.fetchBusinessData(cr_national_number, 'en');
+                console.log('✅ Wathiq data fetched successfully');
             } catch (error) {
-                console.error('Wathiq API request failed:', error);
+                console.error('❌ Wathiq API request failed:', error);
                 return NextResponse.json(
-                    { success: false, error: 'Failed to connect to Wathiq API' },
+                    { success: false, error: `Failed to fetch data from Wathiq API: ${error.message}` },
                     { status: 502 }
                 );
             }
         }
 
-        // Extract data from Wathiq API or use provided values
-        const extractedData = wathiqData ? {
-            crNationalNumber: wathiqData.crNationalNumber,
-            crNumber: wathiqData.crNumber,
-            crCapital: wathiqData.crCapital,
-            trade_name: wathiqData.name,
-            registration_status: wathiqData.status?.name?.toLowerCase(),
-            address: wathiqData.headquarterCityName || null,
-            sector: wathiqData.activities?.map((a) => a.name).join(', ') || null,
-            storeUrl: wathiqData?.eCommerce?.eStore?.[0]?.storeUrl || null,
-            cashCapital: wathiqData?.capital?.stockCapital?.cashCapital ?? null,
-            inKindCapital: wathiqData?.capital?.stockCapital?.inKindCapital ?? null,
-            contactInfo: wathiqData?.contactInfo || null,
-            formName: wathiqData?.entityType?.formName || null,
-            issueDateGregorian: wathiqData?.issueDateGregorian || null,
-            confirmationDateGregorian: wathiqData?.status?.confirmationDate?.gregorian || null,
-            hasEcommerce: wathiqData?.hasEcommerce || false,
-            managementStructure: wathiqData?.management?.structureName || null,
-            managementManagers: wathiqData?.management?.managers?.map(manager => manager.name) || [],
-        } : {};
-
-        // Use provided values as fallbacks or overrides
-        const finalData = {
-            cr_national_number: cr_national_number || extractedData.crNationalNumber,
-            cr_number: cr_number || extractedData.crNumber,
-            trade_name: trade_name || extractedData.trade_name,
-            registration_status: registration_status || extractedData.registration_status || 'active',
-            address: address || extractedData.address,
-            sector: sector || extractedData.sector,
-            store_url: store_url || extractedData.storeUrl,
-            cash_capital: cash_capital || extractedData.cashCapital,
-            in_kind_capital: in_kind_capital || extractedData.inKindCapital,
-            contact_info: contact_info || extractedData.contactInfo,
-            legal_form: legal_form || extractedData.formName,
-            issue_date_gregorian: issue_date_gregorian || extractedData.issueDateGregorian,
-            confirmation_date_gregorian: confirmation_date_gregorian || extractedData.confirmationDateGregorian,
-            has_ecommerce: has_ecommerce !== undefined ? has_ecommerce : extractedData.hasEcommerce,
-            management_structure: management_structure || extractedData.managementStructure,
-            management_managers: management_managers || extractedData.managementManagers,
-            cr_capital: cr_capital || extractedData.crCapital,
-            city: city || null,
+        // Use Wathiq data or provided values as fallbacks
+        const finalData = wathiqData ? {
+            // Use Wathiq data as primary source, with provided values as overrides
+            cr_national_number: cr_national_number || wathiqData.cr_national_number,
+            cr_number: cr_number || wathiqData.cr_number,
+            trade_name: trade_name || wathiqData.trade_name,
+            registration_status: registration_status || wathiqData.registration_status || 'active',
+            address: address || wathiqData.address,
+            sector: sector || wathiqData.sector,
+            city: city || wathiqData.city,
+            cr_capital: cr_capital || wathiqData.cr_capital,
+            cash_capital: cash_capital || wathiqData.cash_capital,
+            in_kind_capital: in_kind_capital || wathiqData.in_kind_capital,
+            avg_capital: wathiqData.avg_capital,
+            legal_form: legal_form || wathiqData.legal_form,
+            issue_date_gregorian: issue_date_gregorian || wathiqData.issue_date_gregorian,
+            confirmation_date_gregorian: confirmation_date_gregorian || wathiqData.confirmation_date_gregorian,
+            has_ecommerce: has_ecommerce !== undefined ? has_ecommerce : wathiqData.has_ecommerce,
+            store_url: store_url || wathiqData.store_url,
+            management_structure: management_structure || wathiqData.management_structure,
+            management_managers: management_managers || wathiqData.management_managers,
+            activities: wathiqData.activities,
+            contact_info: contact_info || wathiqData.contact_info,
+            is_verified: wathiqData.is_verified,
+            verification_date: wathiqData.verification_date,
+            admin_notes: wathiqData.admin_notes,
             contact_person: contact_person || null,
             contact_person_number: contact_person_number || null,
+        } : {
+            // Manual data only
+            cr_national_number: cr_national_number,
+            cr_number: cr_number,
+            trade_name: trade_name,
+            registration_status: registration_status || 'active',
+            address: address,
+            sector: sector,
+            city: city,
+            cr_capital: cr_capital,
+            cash_capital: cash_capital,
+            in_kind_capital: in_kind_capital,
+            legal_form: legal_form,
+            issue_date_gregorian: issue_date_gregorian,
+            confirmation_date_gregorian: confirmation_date_gregorian,
+            has_ecommerce: has_ecommerce !== undefined ? has_ecommerce : false,
+            store_url: store_url,
+            management_structure: management_structure,
+            management_managers: management_managers,
+            contact_info: contact_info,
+            contact_person: contact_person,
+            contact_person_number: contact_person_number,
+            is_verified: false,
+            verification_date: null,
+            admin_notes: null,
         };
 
         // Validate registration status if it came from Wathiq
@@ -156,15 +152,16 @@ export async function POST(req) {
         try {
             await client.query('BEGIN');
 
-            // Create business user record directly (no user record needed)
+            // Create business user record with comprehensive data
             const businessUserResult = await client.query(
                 `INSERT INTO business_users (
                     cr_national_number, cr_number, trade_name, address, sector, 
                     registration_status, cash_capital, in_kind_capital, contact_info, 
                     store_url, legal_form, issue_date_gregorian, confirmation_date_gregorian, 
                     has_ecommerce, management_structure, management_managers, cr_capital,
-                    city, contact_person, contact_person_number
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+                    city, contact_person, contact_person_number, avg_capital, activities,
+                    is_verified, verification_date, admin_notes
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
                 RETURNING user_id`,
                 [
                     finalData.cr_national_number,
@@ -186,7 +183,12 @@ export async function POST(req) {
                     finalData.cr_capital,
                     finalData.city,
                     finalData.contact_person,
-                    finalData.contact_person_number
+                    finalData.contact_person_number,
+                    finalData.avg_capital,
+                    finalData.activities ? finalData.activities : null,
+                    finalData.is_verified,
+                    finalData.verification_date,
+                    finalData.admin_notes
                 ]
             );
             

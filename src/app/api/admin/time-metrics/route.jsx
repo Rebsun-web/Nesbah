@@ -55,13 +55,13 @@ export async function GET(req) {
             // Calculate average offer time (time from first view to offer submission)
             const avgOfferTimeQuery = `
                 SELECT 
-                    AVG(EXTRACT(EPOCH FROM (ao.submitted_at - bav.viewed_at))/3600) as avg_offer_time_hours
+                    AVG(EXTRACT(EPOCH FROM (bos.submitted_at - bav.viewed_at))/3600) as avg_offer_time_hours
                 FROM pos_application pa
                 JOIN bank_application_views bav ON pa.application_id = bav.application_id
-                JOIN application_offers ao ON pa.application_id = ao.submitted_application_id 
-                    AND ao.bank_user_id = bav.bank_user_id
-                WHERE bav.viewed_at IS NOT NULL AND ao.submitted_at IS NOT NULL
-                AND ao.submitted_at > bav.viewed_at
+                JOIN bank_offer_submissions bos ON pa.application_id = bos.application_id 
+                    AND bos.bank_user_id = bav.bank_user_id
+                WHERE bav.viewed_at IS NOT NULL AND bos.submitted_at IS NOT NULL
+                AND bos.submitted_at > bav.viewed_at
             `;
 
             const avgOfferTime = await client.query(avgOfferTimeQuery);
@@ -77,7 +77,7 @@ export async function GET(req) {
             // Get total offers
             const totalOffersQuery = `
                 SELECT COUNT(*) as total_offers
-                FROM application_offers ao
+                FROM bank_offer_submissions
             `;
 
             const totalOffers = await client.query(totalOffersQuery);

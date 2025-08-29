@@ -248,7 +248,7 @@ export default function ApplicationDetail() {
                         <div className="text-center">
                             <div className="text-gray-500 text-6xl mb-4">📄</div>
                             <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Not Found</h2>
-                            <p className="text-gray-600 mb-4">The application you're looking for doesn't exist.</p>
+                            <p className="text-gray-600 mb-4">The application you&apos;re looking for doesn&apos;t exist.</p>
                             <button
                                 onClick={() => router.push('/admin?tab=applications')}
                                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"

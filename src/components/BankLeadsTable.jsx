@@ -8,7 +8,10 @@ export default function BankLeadsTable({ data }) {
 
     const handleRowClick = async (applicationId) => {
         const storedUser = localStorage.getItem('user');
-        if (!storedUser) return;
+        if (!storedUser) {
+            console.error('No user found in localStorage');
+            return;
+        }
 
         const bankUser = JSON.parse(storedUser);
 
@@ -26,9 +29,11 @@ export default function BankLeadsTable({ data }) {
                 router.push(`/leads/${applicationId}`);
             } else {
                 console.error('Failed to mark as opened:', result.error);
+                alert('Failed to load lead details. Please try again.');
             }
         } catch (err) {
             console.error('Error contacting API:', err);
+            alert('Error loading lead details. Please try again.');
         }
     };
 

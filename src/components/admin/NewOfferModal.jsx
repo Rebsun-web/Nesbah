@@ -30,17 +30,8 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
         offer_settlement_time_visa_mc: '',
         offer_comment: '',
         offer_terms: '',
-        offer_validity_days: '30',
         deal_value: '',
         commission_rate: '3.0',
-        includes_hardware: false,
-        includes_software: false,
-        includes_support: false,
-        support_hours: '',
-        warranty_months: '',
-        pricing_tier: 'standard',
-        volume_discount_threshold: '',
-        volume_discount_percentage: '',
         settlement_time: '',
         bank_name: '',
         bank_contact_person: '',
@@ -156,18 +147,8 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
                     offer_settlement_time_visa_mc: '',
                     offer_comment: '',
                     offer_terms: '',
-                    offer_validity_days: '30',
                     deal_value: '',
                     commission_rate: '3.0',
-                    includes_hardware: false,
-                    includes_software: false,
-                    includes_support: false,
-                    support_hours: '',
-                    warranty_months: '',
-                    pricing_tier: 'standard',
-                    volume_discount_threshold: '',
-                    volume_discount_percentage: '',
-
                     settlement_time: '',
                     bank_name: '',
                     bank_contact_person: '',
@@ -485,136 +466,14 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
                         </div>
                     </div>
 
-                    {/* Offer Features */}
-                    <div className="bg-green-50 p-4 rounded-lg">
-                        <h4 className="text-md font-medium text-gray-900 mb-4">Offer Features</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <label className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    name="includes_hardware"
-                                    checked={formData.includes_hardware}
-                                    onChange={handleInputChange}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
-                                />
-                                <span className="text-sm text-gray-700">Hardware Included</span>
-                            </label>
-
-                            <label className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    name="includes_software"
-                                    checked={formData.includes_software}
-                                    onChange={handleInputChange}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
-                                />
-                                <span className="text-sm text-gray-700">Software Included</span>
-                            </label>
-
-                            <label className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    name="includes_support"
-                                    checked={formData.includes_support}
-                                    onChange={handleInputChange}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
-                                />
-                                <span className="text-sm text-gray-700">Support Included</span>
-                            </label>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Support Hours
-                                </label>
-                                <input
-                                    type="text"
-                                    name="support_hours"
-                                    value={formData.support_hours}
-                                    onChange={handleInputChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="24/7"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Warranty (months)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="warranty_months"
-                                    value={formData.warranty_months}
-                                    onChange={handleInputChange}
-                                    min="0"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="12"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Pricing & Volume Discounts */}
-                    <div className="bg-yellow-50 p-4 rounded-lg">
-                        <h4 className="text-md font-medium text-gray-900 mb-4">Pricing & Volume Discounts</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Pricing Tier
-                                </label>
-                                <select
-                                    name="pricing_tier"
-                                    value={formData.pricing_tier}
-                                    onChange={handleInputChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                    <option value="basic">Basic</option>
-                                    <option value="standard">Standard</option>
-                                    <option value="premium">Premium</option>
-                                    <option value="enterprise">Enterprise</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Volume Discount Threshold (SAR)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="volume_discount_threshold"
-                                    value={formData.volume_discount_threshold}
-                                    onChange={handleInputChange}
-                                    step="0.01"
-                                    min="0"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="10000.00"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Volume Discount (%)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="volume_discount_percentage"
-                                    value={formData.volume_discount_percentage}
-                                    onChange={handleInputChange}
-                                    step="0.01"
-                                    min="0"
-                                    max="100"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="5.00"
-                                />
-                            </div>
-                        </div>
-                    </div>
 
 
 
-                    {/* Offer Terms & Validity */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+
+
+                    {/* Offer Terms */}
+                    <div className="grid grid-cols-1 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Offer Terms
@@ -626,22 +485,6 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
                                 rows="4"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Detailed terms and conditions of this offer..."
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Offer Validity (days)
-                            </label>
-                            <input
-                                type="number"
-                                name="offer_validity_days"
-                                value={formData.offer_validity_days}
-                                onChange={handleInputChange}
-                                min="1"
-                                max="365"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="30"
                             />
                         </div>
                     </div>

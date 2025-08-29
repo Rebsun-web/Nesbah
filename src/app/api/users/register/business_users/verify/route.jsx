@@ -1,48 +1,52 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import WathiqAPIService from '@/lib/wathiq-api-service';
 
 export async function POST(req) {
     try {
         const body = await req.json();
-        const { cr_national_number, email } = body;
+        const { cr_national_number } = body;
 
         // Validate required fields
-        if (!cr_national_number || !email) {
+        if (!cr_national_number) {
             return NextResponse.json(
-                { success: false, error: 'CR National Number and email are required' },
+                { success: false, error: 'CR National Number is required' },
                 { status: 400 }
             );
         }
 
-        // Check if user already exists
-        const existingUser = await pool.query(
-            `SELECT user_id FROM users WHERE email = $1 OR user_id IN (
-                SELECT user_id FROM business_users WHERE cr_national_number = $2
-            )`,
-            [email, cr_national_number]
+        // Check if business user already exists
+        const existingBusiness = await pool.query(
+            `SELECT bu.user_id, u.email, u.user_type 
+             FROM business_users bu 
+             JOIN users u ON bu.user_id = u.user_id 
+             WHERE bu.cr_national_number = $1`,
+            [cr_national_number]
         );
 
-        if (existingUser.rowCount > 0) {
+        if (existingBusiness.rowCount > 0) {
+            const existing = existingBusiness.rows[0];
             return NextResponse.json(
-                { success: false, error: 'User with this email or CR number already exists' },
+                { 
+                    success: false, 
+                    error: `Business with CR number ${cr_national_number} is already registered. If this is your business, please log in with the associated email account.`,
+                    existingEmail: existing.email,
+                    userType: existing.user_type
+                },
                 { status: 409 }
             );
         }
 
-        // Call Wathiq API for verification
-        const response = await fetch(`https://api.wathq.sa/commercial-registration/fullinfo/${cr_national_number}?language=en`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'apiKey': 'vFRBMGAv78vRdCAnbXhVJMcN6AaxLn34', // Should use env variable
-            },
-        });
-
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error('Wathiq API error:', errText);
+        // Call Wathiq API for verification using the comprehensive service
+        let wathiqData;
+        try {
+            console.log(`🔍 Verifying business with CR: ${cr_national_number}`);
+            wathiqData = await WathiqAPIService.fetchBusinessData(cr_national_number, 'en');
+            console.log('✅ Wathiq verification successful');
+        } catch (error) {
+            console.error('❌ Wathiq API verification failed:', error);
             
-            if (response.status === 404) {
+            if (error.message.includes('404')) {
                 return NextResponse.json(
                     { success: false, error: 'Please check your CR Number format' },
                     { status: 400 }
@@ -55,36 +59,39 @@ export async function POST(req) {
             );
         }
 
-        const data = await response.json();
-
         // Check if company status is active
-        const registration_status = data.status?.name?.toLowerCase();
-        if (registration_status !== 'active') {
+        if (wathiqData.registration_status !== 'active') {
             return NextResponse.json(
                 { success: false, error: 'Company status is inactive in Wathiq' },
                 { status: 403 }
             );
         }
 
-        // Extract and return verified data
+        // Return comprehensive verified data
         const verifiedData = {
-            cr_national_number: data.crNationalNumber,
-            cr_number: data.crNumber,
-            trade_name: data.name,
-            registration_status: registration_status,
-            address: data.headquarterCityName || null,
-            sector: data.activities?.map((a) => a.name).join(', ') || null,
-            cr_capital: data.crCapital,
-            cash_capital: data?.capital?.stockCapital?.cashCapital ?? null,
-            in_kind_capital: data?.capital?.stockCapital?.inKindCapital ?? null,
-            legal_form: data?.entityType?.formName || null,
-            issue_date_gregorian: data?.issueDateGregorian || null,
-            confirmation_date_gregorian: data?.status?.confirmationDate?.gregorian || null,
-            has_ecommerce: data?.hasEcommerce || false,
-            management_structure: data?.management?.structureName || null,
-            management_managers: data?.management?.managers?.map(manager => manager.name) || [],
-            contact_info: data?.contactInfo || null,
-            store_url: data?.eCommerce?.eStore?.[0]?.storeUrl || null
+            cr_national_number: wathiqData.cr_national_number,
+            cr_number: wathiqData.cr_number,
+            trade_name: wathiqData.trade_name,
+            registration_status: wathiqData.registration_status,
+            address: wathiqData.address,
+            city: wathiqData.city,
+            sector: wathiqData.sector,
+            activities: wathiqData.activities,
+            cr_capital: wathiqData.cr_capital,
+            cash_capital: wathiqData.cash_capital,
+            in_kind_capital: wathiqData.in_kind_capital,
+            avg_capital: wathiqData.avg_capital,
+            legal_form: wathiqData.legal_form,
+            issue_date_gregorian: wathiqData.issue_date_gregorian,
+            confirmation_date_gregorian: wathiqData.confirmation_date_gregorian,
+            has_ecommerce: wathiqData.has_ecommerce,
+            management_structure: wathiqData.management_structure,
+            management_managers: wathiqData.management_managers,
+            contact_info: wathiqData.contact_info,
+            store_url: wathiqData.store_url,
+            is_verified: wathiqData.is_verified,
+            verification_date: wathiqData.verification_date,
+            admin_notes: wathiqData.admin_notes,
         };
 
         return NextResponse.json({

@@ -85,7 +85,16 @@ export default function LeadPage({ params }) {
     const contactInfo = application.contact_info || {}
     const sector = Array.isArray(application.sector)
         ? application.sector.map((a) => a.name).join(', ')
-        : application.sector || 'N/A'
+        : application.sector || 'Not Provided'
+    
+    // Format sector data to display each activity on a new line
+    const formattedSector = sector !== 'Not Provided' 
+        ? sector.split(', ').map((activity, index) => (
+            <div key={index} className="mb-1">
+                {activity.trim()}
+            </div>
+        ))
+        : 'Not Provided'
 
     return (
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
@@ -111,12 +120,12 @@ export default function LeadPage({ params }) {
                     <div className="flex flex-wrap gap-x-10 gap-y-4 py-1.5">
             <span className="flex items-center gap-3 text-sm text-zinc-800">
               <BanknotesIcon className="size-4 shrink-0 fill-zinc-400" />
-              Cash capital: {application.cash_capital ?? 'N/A'}
+              Cash capital: {application.cash_capital ?? 'Not Provided'}
             </span>
 
                         <span className="flex items-center gap-3 text-sm text-zinc-800">
               <BanknotesIcon className="size-4 shrink-0 fill-zinc-400" />
-              In kind capital: {application.in_kind_capital ?? 'N/A'}
+              In kind capital: {application.in_kind_capital ?? 'Not Provided'}
             </span>
 
                         <span className="flex items-center gap-3 text-sm text-zinc-800">
@@ -140,14 +149,14 @@ export default function LeadPage({ params }) {
                     </DescriptionDetails>
 
                     <DescriptionTerm>Sector</DescriptionTerm>
-                    <DescriptionDetails>{sector}</DescriptionDetails>
+                    <DescriptionDetails>{formattedSector}</DescriptionDetails>
 
                     <DescriptionTerm>City</DescriptionTerm>
                     <DescriptionDetails>{application.address}</DescriptionDetails>
 
                     <DescriptionTerm>Store URL</DescriptionTerm>
                     <DescriptionDetails>
-                        {application.store_url || 'N/A'}
+                        {application.store_url || 'Not Provided'}
                     </DescriptionDetails>
 
                     <DescriptionTerm>Own POS System</DescriptionTerm>
@@ -180,7 +189,7 @@ export default function LeadPage({ params }) {
                                 {application.uploaded_filename || 'Download file'}
                             </a>
                         ) : (
-                            'N/A'
+                            'Not Provided'
                         )}
                     </DescriptionDetails>
                 </DescriptionList>
@@ -192,27 +201,27 @@ export default function LeadPage({ params }) {
                 <DescriptionList>
                     <DescriptionTerm>Contact person</DescriptionTerm>
                     <DescriptionDetails>
-                        {isPurchased ? application.contact_person || 'N/A' : 'Hidden'}
+                        {isPurchased ? application.contact_person || 'Not Provided' : 'Hidden'}
                     </DescriptionDetails>
 
                     <DescriptionTerm>Mobile number 1</DescriptionTerm>
                     <DescriptionDetails>
-                        {isPurchased ? application.contact_person_number || 'N/A' : 'Hidden'}
+                        {isPurchased ? application.contact_person_number || 'Not Provided' : 'Hidden'}
                     </DescriptionDetails>
 
                     <DescriptionTerm>Mobile number 2</DescriptionTerm>
                     <DescriptionDetails>
-                        {isPurchased ? contactInfo.mobileNo || 'N/A' : 'Hidden'}
+                        {isPurchased ? contactInfo.mobileNo || 'Not Provided' : 'Hidden'}
                     </DescriptionDetails>
 
                     <DescriptionTerm>Email</DescriptionTerm>
                     <DescriptionDetails>
-                        {isPurchased ? contactInfo.email || 'N/A' : 'Hidden'}
+                        {isPurchased ? contactInfo.email || 'Not Provided' : 'Hidden'}
                     </DescriptionDetails>
 
                     <DescriptionTerm>Phone</DescriptionTerm>
                     <DescriptionDetails>
-                        {isPurchased ? contactInfo.phoneNo || 'N/A' : 'Hidden'}
+                        {isPurchased ? contactInfo.phoneNo || 'Not Provided' : 'Hidden'}
                     </DescriptionDetails>
                 </DescriptionList>
             </div>
@@ -224,15 +233,15 @@ export default function LeadPage({ params }) {
                     <Divider className="mt-4" />
                     <DescriptionList>
                         <DescriptionTerm>Device Setup Fee</DescriptionTerm>
-                        <DescriptionDetails>{submittedOffer.offer_device_setup_fee || 'N/A'}</DescriptionDetails>
+                        <DescriptionDetails>{submittedOffer.offer_device_setup_fee || 'Not Provided'}</DescriptionDetails>
                         <DescriptionTerm>Transaction Fee MADA</DescriptionTerm>
-                        <DescriptionDetails>{submittedOffer.offer_transaction_fee_mada || 'N/A'}</DescriptionDetails>
+                        <DescriptionDetails>{submittedOffer.offer_transaction_fee_mada || 'Not Provided'}</DescriptionDetails>
                         <DescriptionTerm>Transaction Fee Visa/MC</DescriptionTerm>
-                        <DescriptionDetails>{submittedOffer.offer_transaction_fee_visa_mc || 'N/A'}</DescriptionDetails>
+                        <DescriptionDetails>{submittedOffer.offer_transaction_fee_visa_mc || 'Not Provided'}</DescriptionDetails>
                         <DescriptionTerm>Settlement Time MADA</DescriptionTerm>
-                        <DescriptionDetails>{submittedOffer.offer_settlement_time_mada || 'N/A'}</DescriptionDetails>
+                        <DescriptionDetails>{submittedOffer.offer_settlement_time_mada || 'Not Provided'}</DescriptionDetails>
                         <DescriptionTerm>Comment</DescriptionTerm>
-                        <DescriptionDetails>{submittedOffer.offer_comment || 'N/A'}</DescriptionDetails>
+                        <DescriptionDetails>{submittedOffer.offer_comment || 'Not Provided'}</DescriptionDetails>
                         <DescriptionTerm>Uploaded File</DescriptionTerm>
                         <DescriptionDetails>
                             {submittedOffer.uploaded_filename ? (
@@ -243,7 +252,7 @@ export default function LeadPage({ params }) {
                                     {submittedOffer.uploaded_filename}
                                 </a>
                             ) : (
-                                'N/A'
+                                'Not Provided'
                             )}
                         </DescriptionDetails>
                     </DescriptionList>
@@ -256,7 +265,7 @@ export default function LeadPage({ params }) {
                     <Divider className="mt-4" />
                     <DescriptionList>
                         <DescriptionTerm>Rejection Reason</DescriptionTerm>
-                        <DescriptionDetails>{rejectionInfo.reason || 'N/A'}</DescriptionDetails>
+                        <DescriptionDetails>{rejectionInfo.reason || 'Not Provided'}</DescriptionDetails>
                         <DescriptionTerm>Rejected At</DescriptionTerm>
                         <DescriptionDetails>{new Date(rejectionInfo.created_at).toLocaleString()}</DescriptionDetails>
                     </DescriptionList>

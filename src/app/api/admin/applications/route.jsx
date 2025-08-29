@@ -89,13 +89,21 @@ export async function GET(req) {
                     pa.notes,
                     pa.opened_by,
                     pa.purchased_by,
+                    pa.assigned_user_id,
                     bu.trade_name as business_trade_name,
                     u.email as business_email,
                     array_length(pa.opened_by, 1) as opened_count,
-                    array_length(pa.purchased_by, 1) as purchased_count
+                    array_length(pa.purchased_by, 1) as purchased_count,
+                    -- Assigned user information (if assigned to a bank)
+                    assigned_u.entity_name as assigned_trade_name,
+                    assigned_u.email as assigned_email,
+                    assigned_bu.logo_url as assigned_logo_url,
+                    assigned_u.user_type as assigned_user_type
                 FROM pos_application pa
                 JOIN business_users bu ON pa.business_user_id = bu.user_id
                 JOIN users u ON bu.user_id = u.user_id
+                LEFT JOIN bank_users assigned_bu ON pa.assigned_user_id = assigned_bu.user_id
+                LEFT JOIN users assigned_u ON assigned_bu.user_id = assigned_u.user_id
                 WHERE 1=1 ${whereClause}
                 ORDER BY ${sortBy} ${sortOrder.toUpperCase()}
                 LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}

@@ -23,8 +23,8 @@ export const LANGUAGE_DIRECTIONS = {
 // Lazy load translations
 const loadTranslations = async (language) => {
   try {
-    const module = await import(`@/translations/${language}.js`)
-    return module.default
+    const translationModule = await import(`@/translations/${language}.js`)
+    return translationModule.default || translationModule
   } catch (error) {
     console.warn(`Failed to load translations for ${language}:`, error)
     // Fallback to basic translations

@@ -252,7 +252,7 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
                             {formData.assigned_user_id && (
                                 <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
                                     <p className="text-sm text-blue-700">
-                                        <strong>Note:</strong> Business information fields below will be auto-populated from the selected user's data and cannot be edited.
+                                        <strong>Note:</strong> Business information fields below will be auto-populated from the selected user&apos;s data and cannot be edited.
                                     </p>
                                 </div>
                             )}

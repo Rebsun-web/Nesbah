@@ -17,7 +17,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 
 // Lazy load heavy components
 const LazyYourApplication = lazy(() => import('@/components/YourApplication'))
-const LazyPosApplication = lazy(() => import('@/components/posApplication'))
+const LazyPosApplication = lazy(() => import('@/components/posApplication').then(module => ({ default: module.PosApplication })))
 
 const tabs = [
     { name: 'POS finance', value: 'pos' },
@@ -71,10 +71,30 @@ function BusinessPortal() {
     }, [applicationStatus, t]);
 
     // Function to fetch application data - memoized with useCallback
-    const fetchApplicationData = useCallback(async (userId) => {
+    const fetchApplicationData = useCallback(async (userId, userInfo) => {
         try {
             // Fetch POS applications
-            const appResponse = await fetch(`/api/posApplication/${userId}`);
+            const appResponse = await fetch(`/api/posApplication/${userId}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            // Check if response is ok and has JSON content type
+            if (!appResponse.ok) {
+                console.error('Error fetching application data: Response not ok:', appResponse.status, appResponse.statusText);
+                setHasApplication(false);
+                return;
+            }
+            
+            const contentType = appResponse.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.error('Error fetching application data: Response is not JSON:', contentType);
+                const text = await appResponse.text();
+                console.error('Error fetching application data: Response text:', text);
+                setHasApplication(false);
+                return;
+            }
+            
             const appData = await appResponse.json();
             
             if (appData.success && appData.data.length > 0) {
@@ -109,6 +129,11 @@ function BusinessPortal() {
             setLastUpdate(new Date());
         } catch (err) {
             console.error('Error fetching application data:', err);
+            console.error('Error details:', {
+                name: err.name,
+                message: err.message,
+                stack: err.stack
+            });
             setHasApplication(false);
         }
     }, [applicationStatus]);
@@ -132,31 +157,73 @@ function BusinessPortal() {
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            setUserInfo(parsedUser);
+            try {
+                const parsedUser = JSON.parse(storedUser);
+                if (!parsedUser || !parsedUser.user_id) {
+                    console.error('Invalid user data in localStorage');
+                    return;
+                }
+                setUserInfo(parsedUser);
 
-            // Fetch business info
-            makeAuthenticatedRequest(`/api/portal/client/${parsedUser.user_id}`)
-                .then(res => res ? res.json() : null)
-                .then(data => {
+                // Fetch business info - using direct fetch to test
+                console.log('🔍 Portal: Starting business info fetch for user_id:', parsedUser.user_id);
+                console.log('🔍 Portal: User data:', parsedUser);
+            
+            // Test with direct fetch first
+            (async () => {
+                try {
+                    const response = await fetch(`/api/portal/client/${parsedUser.user_id}`, {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    
+                    console.log('🔍 Portal: Direct fetch response status:', response.status);
+                    
+                    // Check if response is ok and has JSON content type
+                    if (!response.ok) {
+                        console.error('🔍 Portal: Response not ok:', response.status, response.statusText);
+                        return;
+                    }
+                    
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        console.error('🔍 Portal: Response is not JSON:', contentType);
+                        const text = await response.text();
+                        console.error('🔍 Portal: Response text:', text);
+                        return;
+                    }
+                    
+                    const data = await response.json();
+                    console.log('🔍 Portal: Direct fetch data:', data);
+                    
                     if (data && data.success) {
                         setBusinessInfo(data.data);
                     }
-                })
-                .catch(err => console.error('Error fetching business info:', err));
+                } catch (error) {
+                    console.error('🔍 Portal: Direct fetch error:', error);
+                    console.error('🔍 Portal: Error details:', {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack
+                    });
+                }
+            })();
 
             // Initial fetch
-            fetchApplicationData(parsedUser.user_id);
+            fetchApplicationData(parsedUser.user_id, parsedUser);
 
             // Optimized polling: only poll if user has active application
             const interval = setInterval(() => {
                 if (hasApplication && applicationStatus && 
                     ['live_auction'].includes(applicationStatus)) {
-                    fetchApplicationData(parsedUser.user_id);
+                    fetchApplicationData(parsedUser.user_id, parsedUser);
                 }
             }, 60000); // Increased to 60 seconds to reduce server load
 
             return () => clearInterval(interval);
+            } catch (error) {
+                console.error('Error parsing user data or setting up portal:', error);
+            }
         }
     }, [hasApplication, applicationStatus, fetchApplicationData]);
 
@@ -194,7 +261,7 @@ function BusinessPortal() {
                             </div>
                             <div className="flex items-center space-x-4">
                               <button
-                                onClick={() => userInfo && fetchApplicationData(userInfo.user_id)}
+                                onClick={() => userInfo && fetchApplicationData(userInfo.user_id, userInfo)}
                                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-lg hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
                               >
                                 <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -45,7 +45,8 @@ export async function GET(req) {
                         MAX(pa.submitted_at) as last_application_date,
                         false as has_sent_offer,
                         0::bigint as total_offers_sent,
-                        NULL::timestamp as last_offer_date
+                        NULL::timestamp as last_offer_date,
+                        NULL as logo_url
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
                     LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
@@ -66,7 +67,8 @@ export async function GET(req) {
                         NULL::timestamp as last_application_date,
                         false as has_sent_offer,
                         0::bigint as total_offers_sent,
-                        NULL::timestamp as last_offer_date
+                        NULL::timestamp as last_offer_date,
+                        NULL as logo_url
                     FROM users u
                     WHERE u.user_type = 'individual_user'
                 `;
@@ -116,7 +118,8 @@ export async function GET(req) {
                         MAX(pa.submitted_at) as last_application_date,
                         false as has_sent_offer,
                         0::bigint as total_offers_sent,
-                        NULL::timestamp as last_offer_date
+                        NULL::timestamp as last_offer_date,
+                        NULL as logo_url
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
                     LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
@@ -136,7 +139,8 @@ export async function GET(req) {
                         NULL::timestamp as last_application_date,
                         false as has_sent_offer,
                         0::bigint as total_offers_sent,
-                        NULL::timestamp as last_offer_date
+                        NULL::timestamp as last_offer_date,
+                        NULL as logo_url
                     FROM users u
                     WHERE u.user_type = 'individual_user'
                     
@@ -154,11 +158,13 @@ export async function GET(req) {
                         NULL::timestamp as last_application_date,
                         CASE WHEN COUNT(ao.offer_id) > 0 THEN true ELSE false END as has_sent_offer,
                         COUNT(ao.offer_id)::bigint as total_offers_sent,
-                        MAX(ao.submitted_at) as last_offer_date
+                        MAX(ao.submitted_at) as last_offer_date,
+                        bu.logo_url
                     FROM users u
+                    LEFT JOIN bank_users bu ON u.user_id = bu.user_id
                     LEFT JOIN application_offers ao ON u.user_id = ao.bank_user_id
                     WHERE u.user_type = 'bank_user'
-                    GROUP BY u.user_id, u.email, u.entity_name, u.account_status, u.created_at, u.updated_at
+                    GROUP BY u.user_id, u.email, u.entity_name, u.account_status, u.created_at, u.updated_at, bu.logo_url
                 `;
             }
 
@@ -303,7 +309,8 @@ export async function POST(req) {
             entity_name,
             first_name,
             last_name,
-            registration_status = 'active'
+            registration_status = 'active',
+            password
         } = body;
         
         const admin_user_id = adminUser.admin_id;
@@ -315,6 +322,9 @@ export async function POST(req) {
                 { status: 400 }
             );
         }
+
+        // Use provided password or generate a secure default
+        const userPassword = password || 'default_password';
 
         if (!['business', 'individual', 'bank'].includes(user_type)) {
             return NextResponse.json(
@@ -334,7 +344,7 @@ export async function POST(req) {
                 `INSERT INTO users (email, password, user_type, entity_name, account_status, created_at, updated_at)
                  VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
                  RETURNING user_id`,
-                [email, 'default_password', `${user_type}_user`, entity_name || `${first_name} ${last_name}`.trim(), registration_status]
+                [email, userPassword, `${user_type}_user`, entity_name || `${first_name} ${last_name}`.trim(), registration_status]
             );
             
             const userId = userResult.rows[0].user_id;
@@ -396,6 +406,7 @@ export async function POST(req) {
                     user_id: userId,
                     user_type,
                     email,
+                    password: userPassword,
                     registration_status,
                     timestamp: new Date().toISOString()
                 }

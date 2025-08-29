@@ -302,6 +302,21 @@ export async function POST(req) {
                 WHERE application_id = $1
             `, [body.application_id, body.bank_user_id]);
 
+            // Also populate bank_offer_submissions table for consistency
+            await client.query(`
+                INSERT INTO bank_offer_submissions (
+                    application_id, 
+                    bank_user_id, 
+                    bank_name, 
+                    offer_id, 
+                    submitted_at
+                ) VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (application_id, bank_user_id) 
+                DO UPDATE SET 
+                    offer_id = EXCLUDED.offer_id,
+                    submitted_at = EXCLUDED.submitted_at
+            `, [body.application_id, body.bank_user_id, body.bank_name || '', offerId, new Date()]);
+
             // Get the full offer details to return
             const offerId = result.rows[0].offer_id;
             const fullOfferQuery = await client.query(`

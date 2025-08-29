@@ -30,9 +30,9 @@ export async function POST(req) {
             const businessResult = await client.query(
                 `SELECT 
                     trade_name, cr_number, cr_national_number, legal_form, 
-                    registration_status, issue_date_gregorian, city, activities, 
-                    contact_info, has_ecommerce, store_url, cr_capital, 
-                    cash_capital, management_structure, management_managers
+                    registration_status, issue_date_gregorian, city, 
+                    has_ecommerce, store_url, cr_capital, 
+                    cash_capital, management_structure
                  FROM business_users 
                  WHERE user_id = $1`,
                 [user_id]
@@ -45,19 +45,22 @@ export async function POST(req) {
 
             const business = businessResult.rows[0];
 
+            // Note: Removed problematic JSON fields (activities, contact_info, management_managers) 
+            // to avoid JSON parsing errors. These fields are not essential for POS application submission.
+
             // UPDATED: Insert into pos_application with all data in one query (no ignored_by needed)
             const posAppResult = await client.query(
                 `
                 INSERT INTO pos_application 
                     (user_id, status, submitted_at, notes, uploaded_document, own_pos_system, 
                      uploaded_filename, uploaded_mimetype, trade_name, cr_number, cr_national_number, 
-                     legal_form, registration_status, issue_date_gregorian, city, activities, contact_info, 
+                     legal_form, registration_status, issue_date_gregorian, city, 
                      has_ecommerce, store_url, cr_capital, cash_capital, management_structure, 
-                     management_managers, contact_person, contact_person_number, number_of_pos_devices, 
+                     contact_person, contact_person_number, number_of_pos_devices, 
                      city_of_operation, auction_end_time, opened_by, purchased_by)
                 VALUES 
                     ($1, 'live_auction', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-                     $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
+                     $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
                 RETURNING application_id
                 `,
                 [
@@ -66,9 +69,9 @@ export async function POST(req) {
                     own_pos_system ?? null, uploaded_filename || null, uploaded_mimetype || null,
                     business.trade_name, business.cr_number, business.cr_national_number,
                     business.legal_form, business.registration_status, business.issue_date_gregorian,
-                    business.city, business.activities, business.contact_info, business.has_ecommerce,
+                    business.city, business.has_ecommerce,
                     business.store_url, business.cr_capital, business.cash_capital,
-                    business.management_structure, business.management_managers,
+                    business.management_structure,
                     contact_person || null, contact_person_number || null,
                     number_of_pos_devices || null, city_of_operation || null, auction_end_time,
                     [], [] // Initialize empty arrays for tracking (no ignored_by needed)

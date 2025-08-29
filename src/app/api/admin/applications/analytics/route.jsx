@@ -115,11 +115,11 @@ export async function GET(req) {
                         u.entity_name as bank_name,
                         u.email as bank_email,
                         COUNT(DISTINCT pa.application_id) as total_applications,
-                        COUNT(DISTINCT CASE WHEN bu.user_id = ANY(pa.purchased_by) THEN pa.application_id END) as applications_with_offers,
+                        COUNT(DISTINCT bos.application_id) as applications_with_offers,
                         ROUND(
                             CASE 
                                 WHEN COUNT(DISTINCT pa.application_id) > 0 
-                                THEN (COUNT(DISTINCT CASE WHEN bu.user_id = ANY(pa.purchased_by) THEN pa.application_id END)::DECIMAL / COUNT(DISTINCT pa.application_id)) * 100 
+                                THEN (COUNT(DISTINCT bos.application_id)::DECIMAL / COUNT(DISTINCT pa.application_id)) * 100 
                                 ELSE 0 
                             END, 2
                         ) as conversion_rate,
@@ -127,14 +127,14 @@ export async function GET(req) {
                             AVG(EXTRACT(EPOCH FROM (bav.viewed_at - pa.submitted_at))/3600), 2
                         ) as avg_response_time_hours,
                         ROUND(
-                            AVG(EXTRACT(EPOCH FROM (ao.submitted_at - bav.viewed_at))/3600), 2
+                            AVG(EXTRACT(EPOCH FROM (bos.submitted_at - bav.viewed_at))/3600), 2
                         ) as avg_offer_submission_time_hours
                     FROM pos_application pa
                     CROSS JOIN LATERAL unnest(pa.opened_by) AS opened_bank_id
                     JOIN bank_users bu ON opened_bank_id = bu.user_id
                     JOIN users u ON bu.user_id = u.user_id
                     LEFT JOIN bank_application_views bav ON pa.application_id = bav.application_id AND bu.user_id = bav.bank_user_id
-                    LEFT JOIN application_offers ao ON pa.application_id = ao.submitted_application_id AND bu.user_id = ao.bank_user_id
+                    LEFT JOIN bank_offer_submissions bos ON pa.application_id = bos.application_id AND bu.user_id = bos.bank_user_id
                     WHERE u.user_type = 'bank_user'
                     GROUP BY u.entity_name, u.email, bu.user_id
                 )
@@ -207,6 +207,10 @@ export async function GET(req) {
             const totalIgnoredApplications = applicationStats.find(row => row.status === 'ignored')?.count || 0;
             const totalLiveAuctions = applicationStats.find(row => row.status === 'live_auction')?.count || 0;
             const overallCompletionRate = totalApplications > 0 ? Math.round((totalCompletedApplications / totalApplications) * 100) : 0;
+            
+            // Get total offers count
+            const totalOffersResult = await client.query('SELECT COUNT(*) as total_offers FROM bank_offer_submissions');
+            const totalOffers = parseInt(totalOffersResult.rows[0].total_offers);
 
             return NextResponse.json({
                 success: true,
@@ -217,6 +221,7 @@ export async function GET(req) {
                         total_ignored_applications: totalIgnoredApplications,
                         total_live_auctions: totalLiveAuctions,
                         overall_completion_rate: overallCompletionRate,
+                        total_offers_submitted: totalOffers,
                         recent_applications: applicationStats.reduce((sum, row) => sum + parseInt(row.count), 0)
                     },
                     by_status: data.application_stats || [],

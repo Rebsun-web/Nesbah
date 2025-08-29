@@ -18,7 +18,7 @@ export async function POST(req, { params }) {
             return NextResponse.json({ success: false, message: 'Invalid action' }, { status: 400 });
         }
 
-        // UPDATED: Check if already purchased using pos_application table
+        // Check if already purchased using pos_application table
         const check = await pool.query(
             `SELECT * FROM pos_application
              WHERE application_id = $1 AND $2 = ANY(purchased_by)`,
@@ -35,15 +35,7 @@ export async function POST(req, { params }) {
                 [applicationId, bankUserId, 25.00, 'lead_purchase']
             );
 
-            // Add to approved_leads table to track bank purchases
-            await pool.query(
-                `INSERT INTO approved_leads (application_id, bank_user_id, purchased_at)
-                 VALUES ($1, $2, NOW())
-                 ON CONFLICT (application_id, bank_user_id) DO NOTHING`,
-                [applicationId, bankUserId]
-            );
-
-            // UPDATED: Update pos_application with purchase tracking
+            // Update pos_application with purchase tracking
             await pool.query(
                 `UPDATE pos_application
                  SET
@@ -53,13 +45,6 @@ export async function POST(req, { params }) {
                  WHERE application_id = $3`,
                 [bankUserId, 25.00, applicationId]
             );
-
-            // Update the tracking table to mark this as purchased
-            await pool.query(`
-                UPDATE application_offer_tracking 
-                SET purchased_at = NOW()
-                WHERE application_id = $1 AND bank_user_id = $2
-            `, [applicationId, bankUserId]);
 
             // Keep pos_application status as 'live_auction' - don't change to 'completed'
             // This allows multiple banks to purchase the same application
@@ -92,7 +77,7 @@ export async function POST(req, { params }) {
             uploadedFilename = file.name;
           }
 
-          // UPDATED: Check if purchased using pos_application table
+          // Check if purchased using pos_application table
           const result = await pool.query(
             `SELECT application_id FROM pos_application WHERE application_id = $1 AND $2 = ANY(purchased_by)`,
             [applicationId, bankUserId]
@@ -104,6 +89,8 @@ export async function POST(req, { params }) {
             const offerResult = await pool.query(
               `INSERT INTO application_offers (
                 submitted_application_id,
+                bank_user_id,
+                submitted_by_user_id,
                 offer_device_setup_fee,
                 offer_transaction_fee_mada,
                 offer_transaction_fee_visa_mc,
@@ -112,13 +99,14 @@ export async function POST(req, { params }) {
                 uploaded_document,
                 uploaded_mimetype,
                 uploaded_filename,
-                submitted_by_user_id,
                 status,
                 offer_selection_deadline
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
               RETURNING offer_id`,
               [
                 submittedApplicationId,
+                bankUserId, // Set bank_user_id
+                bankUserId, // Set submitted_by_user_id to same value
                 offer_device_setup_fee || null,
                 offer_transaction_fee_mada || null,
                 offer_transaction_fee_visa_mc || null,
@@ -127,7 +115,6 @@ export async function POST(req, { params }) {
                 uploadedDocument,
                 uploadedMimetype,
                 uploadedFilename,
-                bankUserId,
                 'submitted',
                 new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
               ]
@@ -137,24 +124,13 @@ export async function POST(req, { params }) {
             try {
                 const offerId = offerResult.rows[0].offer_id;
                 await AnalyticsService.trackOfferSubmission(applicationId, bankUserId, offerId);
+                
             } catch (error) {
                 console.error('Failed to track offer submission:', error);
                 // Don't fail the request if analytics tracking fails
             }
 
-            // Manually update the tracking table with offer details
-            await pool.query(`
-                UPDATE application_offer_tracking 
-                SET 
-                    offer_id = $1,
-                    offer_sent_at = NOW(),
-                    current_offer_status = 'submitted',
-                    offer_window_start = NOW(),
-                    offer_window_end = NOW() + INTERVAL '24 hours'
-                WHERE application_id = $2 AND bank_user_id = $3
-            `, [offerResult.rows[0].offer_id, applicationId, bankUserId]);
-
-            // UPDATED: Update offers count in pos_application
+            // Update offers count in pos_application
             await pool.query(
               `UPDATE pos_application
                SET offers_count = offers_count + 1
@@ -168,15 +144,6 @@ export async function POST(req, { params }) {
           }
         }
 
-        // Check for expired auctions that need to be processed
-        try {
-            const { AuctionExpiryHandler } = await import('@/lib/auction-expiry-handler');
-            await AuctionExpiryHandler.handleExpiredAuctions();
-        } catch (error) {
-            console.error('❌ Error handling expired auctions:', error);
-            // Don't fail the request if auction expiry handling fails
-        }
-
         return NextResponse.json({ success: true, message: 'Offer submitted or lead purchased.' });
     } catch (err) {
         console.error('Failed to mark lead as purchased:', err);
@@ -188,7 +155,7 @@ export async function GET(req, { params }) {
     const businessUserId = (await params).id;
 
     try {
-        // UPDATED: Query using pos_application table with new structure
+        // Query using pos_application table with current structure
         const result = await pool.query(
           `SELECT
             u.entity_name,

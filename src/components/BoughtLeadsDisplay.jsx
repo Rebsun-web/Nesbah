@@ -137,7 +137,7 @@ export default function BoughtLeadsDisplay({ userInfo }) {
                     <DocumentArrowDownIcon className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900">No purchased leads</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                        You haven't purchased any leads yet.
+                        You haven&apos;t purchased any leads yet.
                     </p>
                 </div>
             </div>

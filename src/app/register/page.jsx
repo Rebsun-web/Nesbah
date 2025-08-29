@@ -11,16 +11,15 @@ import RegistrationModal from '@/components/RegistrationModal';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import {Navbar} from "@/components/navbar";
 import {Container} from "@/components/container";
-import { BuildingOfficeIcon, BanknotesIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { BuildingOfficeIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Register() {
     const { t } = useLanguage();
-    const [userType, setUserType] = useState(null); // 'business' or 'bank'
+    const [userType, setUserType] = useState('business'); // Set to business by default
     const [showPassword, setShowPassword] = useState(false);
     const [cr_national_number, setCrNationalNumber] = useState('');
-    const [sama_license_number, setSamaLicenseNumber] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,10 +29,8 @@ export default function Register() {
     const [errorMessage, setErrorMessage] = useState('');
     const [modalMessage, setModalMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [verificationStep, setVerificationStep] = useState('initial'); // 'initial', 'verifying', 'verified', 'details'
+    const [verificationStep, setVerificationStep] = useState('initial'); // 'initial', 'verifying', 'verified', 'account_creation'
     const [verifiedData, setVerifiedData] = useState(null);
-    const [bankLogo, setBankLogo] = useState(null);
-    const [logoPreview, setLogoPreview] = useState(null);
     
     // Field validation states
     const [fieldErrors, setFieldErrors] = useState({});
@@ -50,11 +47,6 @@ export default function Register() {
     const validateCRNumber = (crNumber) => {
         const crRegex = /^\d{10}$/;
         return crRegex.test(crNumber);
-    };
-
-    const validateSAMALicense = (license) => {
-        const licenseRegex = /^\d{4}$/;
-        return licenseRegex.test(license);
     };
 
     const validatePhoneNumber = (phone) => {
@@ -90,13 +82,8 @@ export default function Register() {
         }
         
         // CR Number validation for business
-        if (userType === 'business' && (!cr_national_number || !validateCRNumber(cr_national_number))) {
+        if (!cr_national_number || !validateCRNumber(cr_national_number)) {
             errors.cr_national_number = 'Please enter a valid 10-digit CR number';
-        }
-        
-        // SAMA License validation for bank
-        if (userType === 'bank' && (!sama_license_number || !validateSAMALicense(sama_license_number))) {
-            errors.sama_license_number = 'Please enter a valid 4-digit SAMA license number';
         }
         
         // Phone number validation
@@ -129,72 +116,37 @@ export default function Register() {
         return Object.keys(errors).length === 0;
     };
 
-    const handleUserTypeSelection = (type) => {
-        setUserType(type);
+    const resetForm = () => {
         setVerificationStep('initial');
         setVerifiedData(null);
         // Reset form fields
         setCrNationalNumber('');
-        setSamaLicenseNumber('');
         setEmail('');
         setPassword('');
         setConfirmPassword('');
         setPasswordError('');
-        setBankLogo(null);
-        setLogoPreview(null);
         setFieldErrors({});
         setPhoneNumber('');
         setContactPerson('');
         setTermsAccepted(false);
     };
 
-    const handleLogoUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            // Validate file type
-            if (!file.type.startsWith('image/')) {
-                setErrorMessage('Please select a valid image file');
-                return;
-            }
-            
-            // Validate file size (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                setErrorMessage('Logo file size must be less than 5MB');
-                return;
-            }
-            
-            setBankLogo(file);
-            
-            // Create preview
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                setLogoPreview(e.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+
 
     const handleVerifyAndContinue = async (e) => {
         e.preventDefault();
         
-        // Validate initial form
-        if (!validateForm()) {
+        // Only validate CR number for verification
+        if (!cr_national_number || !validateCRNumber(cr_national_number)) {
+            setFieldErrors({ cr_national_number: 'Please enter a valid 10-digit CR number' });
             return;
         }
         
         setIsLoading(true);
 
         try {
-            let endpoint = '';
-            let payload = {};
-
-            if (userType === 'business') {
-                endpoint = '/api/users/register/business_users/verify';
-                payload = { cr_national_number, email };
-            } else if (userType === 'bank') {
-                endpoint = '/api/users/register/bank_users/verify';
-                payload = { sama_license_number, email };
-            }
+            const endpoint = '/api/users/register/business_users/verify';
+            const payload = { cr_national_number };
 
             const response = await fetch(endpoint, {
                 method: 'POST',
@@ -206,10 +158,31 @@ export default function Register() {
 
             if (response.ok && data.success) {
                 setVerifiedData(data.data);
-                setVerificationStep('verified');
+                setVerificationStep('account_creation');
             } else {
-                setErrorMessage(data.error || 'Verification failed');
+                let errorMsg = data.error || 'Verification failed';
+                let isExistingAccount = false;
+                
+                // Handle specific error cases
+                if (response.status === 409) {
+                    isExistingAccount = true;
+                    if (data.existingEmail) {
+                        errorMsg = `This business is already registered with email: ${data.existingEmail}. Please log in with that account instead.`;
+                    } else {
+                        errorMsg = 'This business is already registered. Please log in with your existing account.';
+                    }
+                }
+                
+                setErrorMessage(errorMsg);
                 setIsModalOpen(true);
+                
+                // If it's an existing account, also show a prominent banner
+                if (isExistingAccount) {
+                    setFieldErrors(prev => ({
+                        ...prev,
+                        cr_national_number: 'This CR number is already registered. Please enter new CR number or log in with your existing account.'
+                    }));
+                }
             }
         } catch (error) {
             console.error('Verification error:', error);
@@ -223,47 +196,45 @@ export default function Register() {
     const handleFinalRegistration = async (e) => {
         e.preventDefault();
         
-        // Validate final form
-        if (!validateForm()) {
+        // Validate account creation form
+        const errors = {};
+        
+        if (!email || !validateEmail(email)) {
+            errors.email = 'Please enter a valid email address';
+        }
+        
+        if (!password) {
+            errors.password = 'Password is required';
+        } else {
+            const passwordValidation = validatePassword(password);
+            if (!passwordValidation.isValid) {
+                errors.password = Object.values(passwordValidation.errors).filter(Boolean);
+            }
+        }
+        
+        if (password !== confirmPassword) {
+            errors.confirmPassword = 'Passwords do not match';
+        }
+        
+        if (!termsAccepted) {
+            errors.terms = 'You must accept the terms and conditions';
+        }
+        
+        setFieldErrors(errors);
+        if (Object.keys(errors).length > 0) {
             return;
         }
 
         setIsLoading(true);
 
         try {
-            let endpoint = '';
-            let payload = {
+            const endpoint = '/api/users/register/business_users/';
+            const payload = {
                 email,
                 password,
-                phone_number: phoneNumber,
-                contact_person: contactPerson,
+                cr_national_number: verifiedData.cr_national_number,
                 ...verifiedData
             };
-
-            // Handle logo upload for bank users
-            if (userType === 'bank' && bankLogo) {
-                const formData = new FormData();
-                formData.append('logo', bankLogo);
-                
-                // Upload logo first
-                const uploadResponse = await fetch('/api/upload/bank-logo', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (uploadResponse.ok) {
-                    const uploadData = await uploadResponse.json();
-                    payload.logo_url = uploadData.logo_url;
-                } else {
-                    console.error('Logo upload failed, proceeding without logo');
-                }
-            }
-
-            if (userType === 'business') {
-                endpoint = '/api/users/register/business_users/';
-            } else if (userType === 'bank') {
-                endpoint = '/api/users/register/bank_users/';
-            }
 
             const response = await fetch(endpoint, {
                 method: 'POST',
@@ -273,131 +244,58 @@ export default function Register() {
 
             const data = await response.json();
 
-            if (response.ok) {
-                setIsSuccess(true);
-                setModalMessage(userType === 'business' 
-                    ? 'تم تسجيل حسابك بنجاح! سيتم إرسال تفاصيل الحساب إلى بريدك الإلكتروني.'
-                    : 'تم تقديم طلب التسجيل بنجاح! سيتم مراجعة طلبك والرد عليك خلال 3-5 أيام عمل.'
-                );
+            if (response.ok && data.success) {
+                // Auto-login the user after successful registration
+                try {
+                    const loginResponse = await fetch('/api/users/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password }),
+                    });
+
+                    const loginData = await loginResponse.json();
+
+                    if (loginResponse.ok && loginData.success) {
+                        // Store user data in localStorage
+                        localStorage.setItem('user', JSON.stringify(loginData.user));
+                        
+                        // Redirect to portal
+                        window.location.href = '/login';
+                    } else {
+                        // If auto-login fails, redirect to login page
+                        setErrorMessage('Account created successfully! Please log in with your credentials.');
+                        setIsModalOpen(true);
+                        setTimeout(() => {
+                            window.location.href = '/login';
+                        }, 2000);
+                    }
+                } catch (loginError) {
+                    console.error('Auto-login error:', loginError);
+                    // If auto-login fails, redirect to login page
+                    setErrorMessage('Account created successfully! Please log in with your credentials.');
+                    setIsModalOpen(true);
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                }
             } else {
-                setIsSuccess(false);
-                setModalMessage(data?.error || 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.');
+                setErrorMessage(data?.error || 'Account creation failed. Please try again.');
+                setIsModalOpen(true);
             }
         } catch (error) {
             console.error('Registration error:', error);
-            setIsSuccess(false);
-            setModalMessage('حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى لاحقًا.');
-        } finally {
+            setErrorMessage('Account creation failed. Please try again later.');
             setIsModalOpen(true);
+        } finally {
             setIsLoading(false);
         }
     };
 
     const goBack = () => {
-        setVerificationStep('initial');
-        setVerifiedData(null);
+        resetForm();
     };
 
-    // User Type Selection Screen
-    if (!userType) {
-        return (
-            <main className="overflow-hidden bg-white">
-                <Container className="relative">
-                    <Navbar />
-                </Container>
-                <div className="isolate flex min-h-dvh items-center justify-center p-6 lg:p-8">
-                    <div className="w-full max-w-4xl">
-                        {/* Language Switcher */}
-                        <div className="flex justify-end mb-4">
-                            <LanguageSwitcher variant="minimal" />
-                        </div>
-                        
-                        <div className="text-center mb-8">
-                            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                                Welcome to Nesbah
-                            </h1>
-                            <p className="text-lg text-gray-600">
-                                Choose Your Registration Type
-                            </p>
-                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Business Registration Card */}
-                            <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100 hover:border-purple-200 transition-all duration-300 p-8">
-                                <div className="text-center mb-6">
-                                    <BuildingOfficeIcon className="mx-auto h-16 w-16 text-purple-600 mb-4" />
-                                    <h2 className="text-2xl font-semibold text-gray-900 mb-2">Business Registration</h2>
-                                    <p className="text-gray-600 mb-4">For companies, SMEs, and startups</p>
-                                </div>
-                                
-                                <div className="space-y-3 mb-6">
-                                    <div className="flex items-center text-sm text-gray-600">
-                                        <CheckCircleIcon className="h-5 w-5 text-purple-500 mr-2" />
-                                        Companies & Corporations
-                                    </div>
-                                    <div className="flex items-center text-sm text-gray-600">
-                                        <CheckCircleIcon className="h-5 w-5 text-purple-500 mr-2" />
-                                        Small & Medium Enterprises
-                                    </div>
-                                    <div className="flex items-center text-sm text-gray-600">
-                                        <CheckCircleIcon className="h-5 w-5 text-purple-500 mr-2" />
-                                        Startups & New Ventures
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={() => handleUserTypeSelection('business')}
-                                    className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200"
-                                >
-                                    REGISTER AS BUSINESS
-                                </button>
-                            </div>
-
-                            {/* Bank Registration Card */}
-                            <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100 hover:border-purple-200 transition-all duration-300 p-8">
-                                <div className="text-center mb-6">
-                                    <BanknotesIcon className="mx-auto h-16 w-16 text-purple-600 mb-4" />
-                                    <h2 className="text-2xl font-semibold text-gray-900 mb-2">Bank Registration</h2>
-                                    <p className="text-gray-600 mb-4">For licensed banks and financial institutions</p>
-                                </div>
-                                
-                                <div className="space-y-3 mb-6">
-                                    <div className="flex items-center text-sm text-gray-600">
-                                        <CheckCircleIcon className="h-5 w-5 text-purple-500 mr-2" />
-                                        Licensed Commercial Banks
-                                    </div>
-                                    <div className="flex items-center text-sm text-gray-600">
-                                        <CheckCircleIcon className="h-5 w-5 text-purple-500 mr-2" />
-                                        Islamic Banks
-                                    </div>
-                                    <div className="flex items-center text-sm text-gray-600">
-                                        <CheckCircleIcon className="h-5 w-5 text-purple-500 mr-2" />
-                                        Investment Companies
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={() => handleUserTypeSelection('bank')}
-                                    className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200"
-                                >
-                                    REGISTER AS BANK
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="text-center mt-8">
-                            <p className="text-gray-500">
-                                Already have an account?{' '}
-                                <Link href="/login" className="text-purple-600 hover:text-purple-800 font-medium">
-                                    Sign In
-                                </Link>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </main>
-        );
-    }
 
     // Initial Verification Screen
     if (verificationStep === 'initial') {
@@ -411,125 +309,66 @@ export default function Register() {
                         <form onSubmit={handleVerifyAndContinue} className="p-3 sm:p-11">
                             <div className="flex items-center justify-center pb-6">
                                 <h2 className="text-center text-lg font-semibold text-gray-900">
-                                    {userType === 'business' ? 'Business Registration' : 'Bank Registration'}
+                                    Business Registration
                                 </h2>
                             </div>
 
-                            <div className="flex items-center justify-center pb-4 pt-6">
-                                {userType === 'business' ? (
-                                    <BuildingOfficeIcon className="h-16 w-16 text-purple-600" />
-                                ) : (
-                                    <BanknotesIcon className="h-16 w-16 text-purple-600" />
-                                )}
-                            </div>
-
-                            {userType === 'business' ? (
-                                <Field className="mt-4 space-y-3">
-                                    <Label className="text-sm/5 font-medium text-gray-700">
-                                        رقم السجل التجاري (CR National Number)
-                                    </Label>
-                                    <input
-                                        type="text"
-                                        value={cr_national_number}
-                                        onChange={(e) => {
-                                            setCrNationalNumber(e.target.value);
-                                            if (fieldErrors.cr_national_number) {
-                                                setFieldErrors(prev => ({ ...prev, cr_national_number: null }));
-                                            }
-                                        }}
-                                        required
-                                        placeholder="1010XXXXXX"
-                                        className={`block w-full rounded-lg border px-4 py-2 shadow ${
-                                            fieldErrors.cr_national_number ? 'border-red-500' : 'border-gray-300'
-                                        } focus:border-purple-500 focus:ring-purple-500`}
-                                    />
-                                    {fieldErrors.cr_national_number && (
-                                        <p className="text-sm text-red-500 flex items-center">
-                                            <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
-                                            {fieldErrors.cr_national_number}
-                                        </p>
-                                    )}
-                                </Field>
-                            ) : (
-                                <Field className="mt-4 space-y-3">
-                                    <Label className="text-sm/5 font-medium text-gray-700">
-                                        رقم ترخيص مؤسسة النقد (SAMA License Number)
-                                    </Label>
-                                    <input
-                                        type="text"
-                                        value={sama_license_number}
-                                        onChange={(e) => {
-                                            setSamaLicenseNumber(e.target.value);
-                                            if (fieldErrors.sama_license_number) {
-                                                setFieldErrors(prev => ({ ...prev, sama_license_number: null }));
-                                            }
-                                        }}
-                                        required
-                                        placeholder="1000"
-                                        className={`block w-full rounded-lg border px-4 py-2 shadow ${
-                                            fieldErrors.sama_license_number ? 'border-red-500' : 'border-gray-300'
-                                        } focus:border-purple-500 focus:ring-purple-500`}
-                                    />
-                                    {fieldErrors.sama_license_number && (
-                                        <p className="text-sm text-red-500 flex items-center">
-                                            <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
-                                            {fieldErrors.sama_license_number}
-                                        </p>
-                                    )}
-                                </Field>
-                            )}
-
                             <Field className="mt-4 space-y-3">
                                 <Label className="text-sm/5 font-medium text-gray-700">
-                                    البريد الإلكتروني
+                                    رقم السجل التجاري (CR National Number)
                                 </Label>
                                 <input
-                                    type="email"
-                                    value={email}
+                                    type="text"
+                                    value={cr_national_number}
                                     onChange={(e) => {
-                                        setEmail(e.target.value);
-                                        if (fieldErrors.email) {
-                                            setFieldErrors(prev => ({ ...prev, email: null }));
+                                        setCrNationalNumber(e.target.value);
+                                        if (fieldErrors.cr_national_number) {
+                                            setFieldErrors(prev => ({ ...prev, cr_national_number: null }));
                                         }
                                     }}
                                     required
-                                    placeholder={userType === 'business' ? "user@company.com" : "admin@saudibank.com"}
+                                    placeholder="1010XXXXXX"
                                     className={`block w-full rounded-lg border px-4 py-2 shadow ${
-                                        fieldErrors.email ? 'border-red-500' : 'border-gray-300'
+                                        fieldErrors.cr_national_number ? 'border-orange-500 bg-orange-50' : 'border-gray-300'
                                     } focus:border-purple-500 focus:ring-purple-500`}
                                 />
-                                {fieldErrors.email && (
-                                    <p className="text-sm text-red-500 flex items-center">
+                                {fieldErrors.cr_national_number && (
+                                    <p className={`text-sm flex items-center ${
+                                        fieldErrors.cr_national_number.includes('already registered') 
+                                            ? 'text-orange-600' 
+                                            : 'text-red-500'
+                                    }`}>
                                         <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
-                                        {fieldErrors.email}
+                                        {fieldErrors.cr_national_number}
                                     </p>
                                 )}
                             </Field>
+                            
+
 
                             <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
                                 <p className="text-sm text-purple-800 text-center">
-                                    {userType === 'business' 
-                                        ? "We'll extract your business details automatically using Wathiq."
-                                        : "We'll extract your bank details automatically using SAMA registry."
-                                    }
+                                    We'll verify your business registration and retrieve details from Wathiq.
                                 </p>
                             </div>
 
-                            <div className="mt-8 flex gap-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setUserType(null)}
-                                    className="flex-1 bg-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-400 transition-all duration-200"
-                                >
-                                    BACK
-                                </button>
+                            <div className="mt-8">
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50"
+                                    className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50"
                                 >
-                                    {isLoading ? 'VERIFYING...' : 'VERIFY & CONTINUE'}
+                                    {isLoading ? 'VERIFYING...' : 'VERIFY BUSINESS'}
                                 </button>
+                            </div>
+
+                            <div className="text-center mt-6">
+                                <p className="text-gray-500">
+                                    Already have an account?{' '}
+                                    <Link href="/login" className="text-purple-600 hover:text-purple-800 font-medium">
+                                        Sign In
+                                    </Link>
+                                </p>
                             </div>
                         </form>
                     </div>
@@ -538,8 +377,8 @@ export default function Register() {
         );
     }
 
-    // Verified Data Display and Final Registration
-    if (verificationStep === 'verified' && verifiedData) {
+    // Account Creation Screen
+    if (verificationStep === 'account_creation' && verifiedData) {
         return (
             <main className="overflow-hidden bg-white">
                 <Container className="relative">
@@ -550,7 +389,7 @@ export default function Register() {
                         <form onSubmit={handleFinalRegistration} className="p-3 sm:p-11">
                             <div className="flex items-center justify-center pb-6">
                                 <h2 className="text-center text-lg font-semibold text-gray-900">
-                                    {userType === 'business' ? 'Business Details' : 'Bank Details'}
+                                    Create Your Account
                                 </h2>
                             </div>
 
@@ -559,63 +398,40 @@ export default function Register() {
                                 <div className="flex items-center">
                                     <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
                                     <span className="text-sm font-medium text-green-800">
-                                        Verified via {userType === 'business' ? 'Wathiq' : 'SAMA Registry'}
+                                        Business verified successfully via Wathiq
                                     </span>
                                 </div>
                             </div>
 
-                            {/* Auto-populated Information */}
+                            {/* Business Information Display */}
                             <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                                <h3 className="text-md font-semibold mb-4 text-gray-900">Verified Information</h3>
+                                <h3 className="text-md font-semibold mb-4 text-gray-900">Business Information</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {userType === 'business' ? (
-                                        <>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">Company Name</label>
-                                                <p className="text-sm text-gray-900">{verifiedData.trade_name}</p>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">CR Number</label>
-                                                <p className="text-sm text-gray-900">{verifiedData.cr_number}</p>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">Status</label>
-                                                <p className="text-sm text-green-600 font-medium">Active</p>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">Capital</label>
-                                                <p className="text-sm text-gray-900">SAR {verifiedData.cr_capital?.toLocaleString()}</p>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">Bank Name</label>
-                                                <p className="text-sm text-gray-900">{verifiedData.entity_name}</p>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">SAMA License</label>
-                                                <p className="text-sm text-gray-900">{verifiedData.sama_license_number}</p>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">Status</label>
-                                                <p className="text-sm text-green-600 font-medium">Active</p>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">Bank Type</label>
-                                                <p className="text-sm text-gray-900">{verifiedData.bank_type}</p>
-                                            </div>
-                                        </>
-                                    )}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Company Name</label>
+                                        <p className="text-sm text-gray-900 font-medium">{verifiedData.trade_name}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">CR Number</label>
+                                        <p className="text-sm text-gray-900">{verifiedData.cr_number}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Status</label>
+                                        <p className="text-sm text-green-600 font-medium">Active</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Capital</label>
+                                        <p className="text-sm text-gray-900">SAR {verifiedData.cr_capital?.toLocaleString()}</p>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Contact Information */}
+                            {/* Account Creation Form */}
                             <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                                <h3 className="text-md font-semibold mb-4 text-gray-900">Contact Information</h3>
+                                <h3 className="text-md font-semibold mb-4 text-gray-900">Account Details</h3>
                                 <div className="space-y-4">
                                     <Field>
-                                        <Label className="text-sm/5 font-medium text-gray-700">Email Address</Label>
+                                        <Label className="text-sm/5 font-medium text-gray-700">Email Address *</Label>
                                         <input
                                             type="email"
                                             value={email}
@@ -626,6 +442,7 @@ export default function Register() {
                                                 }
                                             }}
                                             required
+                                            placeholder="user@company.com"
                                             className={`block w-full rounded-lg border px-4 py-2 shadow mt-1 ${
                                                 fieldErrors.email ? 'border-red-500' : 'border-gray-300'
                                             } focus:border-purple-500 focus:ring-purple-500`}
@@ -637,102 +454,8 @@ export default function Register() {
                                             </p>
                                         )}
                                     </Field>
-                                    
-                                    <Field>
-                                        <Label className="text-sm/5 font-medium text-gray-700">Phone Number</Label>
-                                        <input
-                                            type="tel"
-                                            value={phoneNumber}
-                                            onChange={(e) => {
-                                                setPhoneNumber(e.target.value);
-                                                if (fieldErrors.phoneNumber) {
-                                                    setFieldErrors(prev => ({ ...prev, phoneNumber: null }));
-                                                }
-                                            }}
-                                            placeholder="+966501234567"
-                                            className={`block w-full rounded-lg border px-4 py-2 shadow mt-1 ${
-                                                fieldErrors.phoneNumber ? 'border-red-500' : 'border-gray-300'
-                                            } focus:border-purple-500 focus:ring-purple-500`}
-                                        />
-                                        {fieldErrors.phoneNumber && (
-                                            <p className="text-sm text-red-500 flex items-center mt-1">
-                                                <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
-                                                {fieldErrors.phoneNumber}
-                                            </p>
-                                        )}
-                                    </Field>
-                                    
-                                    <Field>
-                                        <Label className="text-sm/5 font-medium text-gray-700">Contact Person</Label>
-                                        <input
-                                            type="text"
-                                            value={contactPerson}
-                                            onChange={(e) => {
-                                                setContactPerson(e.target.value);
-                                                if (fieldErrors.contactPerson) {
-                                                    setFieldErrors(prev => ({ ...prev, contactPerson: null }));
-                                                }
-                                            }}
-                                            placeholder="Full Name"
-                                            className={`block w-full rounded-lg border px-4 py-2 shadow mt-1 ${
-                                                fieldErrors.contactPerson ? 'border-red-500' : 'border-gray-300'
-                                            } focus:border-purple-500 focus:ring-purple-500`}
-                                        />
-                                        {fieldErrors.contactPerson && (
-                                            <p className="text-sm text-red-500 flex items-center mt-1">
-                                                <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
-                                                {fieldErrors.contactPerson}
-                                            </p>
-                                        )}
-                                    </Field>
                                 </div>
                             </div>
-
-                            {/* Bank Logo Upload */}
-                            {userType === 'bank' && (
-                                <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                                    <h3 className="text-md font-semibold mb-4 text-gray-900">Bank Logo</h3>
-                                    <div className="space-y-4">
-                                        <Field>
-                                            <Label className="text-sm/5 font-medium text-gray-700">Upload Bank Logo</Label>
-                                            <div className="mt-1 flex items-center space-x-4">
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={handleLogoUpload}
-                                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-                                                />
-                                            </div>
-                                            <p className="mt-1 text-xs text-gray-500">
-                                                Upload your bank logo (JPG, PNG, GIF). Max size: 5MB.
-                                            </p>
-                                        </Field>
-                                        
-                                        {logoPreview && (
-                                            <div className="mt-4">
-                                                <Label className="text-sm/5 font-medium text-gray-700">Logo Preview</Label>
-                                                <div className="mt-2 flex items-center space-x-4">
-                                                    <img
-                                                        src={logoPreview}
-                                                        alt="Logo preview"
-                                                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setBankLogo(null);
-                                                            setLogoPreview(null);
-                                                        }}
-                                                        className="text-sm text-red-600 hover:text-red-800"
-                                                    >
-                                                        Remove
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Password Setup */}
                             <div className="bg-gray-50 rounded-lg p-6 mb-6">
@@ -748,6 +471,12 @@ export default function Register() {
                                                     setPassword(e.target.value);
                                                     if (fieldErrors.password) {
                                                         setFieldErrors(prev => ({ ...prev, password: null }));
+                                                    }
+                                                    // Check if passwords match in real-time when password changes
+                                                    if (confirmPassword && e.target.value && e.target.value !== confirmPassword) {
+                                                        setFieldErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
+                                                    } else if (confirmPassword && e.target.value && e.target.value === confirmPassword) {
+                                                        setFieldErrors(prev => ({ ...prev, confirmPassword: null }));
                                                     }
                                                 }}
                                                 required
@@ -798,6 +527,12 @@ export default function Register() {
                                                     if (fieldErrors.confirmPassword) {
                                                         setFieldErrors(prev => ({ ...prev, confirmPassword: null }));
                                                     }
+                                                    // Check if passwords match in real-time
+                                                    if (password && e.target.value && password !== e.target.value) {
+                                                        setFieldErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
+                                                    } else if (password && e.target.value && password === e.target.value) {
+                                                        setFieldErrors(prev => ({ ...prev, confirmPassword: null }));
+                                                    }
                                                 }}
                                                 required
                                                 placeholder="Confirm your password"
@@ -812,6 +547,12 @@ export default function Register() {
                                                 {fieldErrors.confirmPassword}
                                             </p>
                                         )}
+                                        {password && confirmPassword && password === confirmPassword && !fieldErrors.confirmPassword && (
+                                            <p className="mt-1 text-sm text-green-600 flex items-center">
+                                                <CheckCircleIcon className="h-4 w-4 mr-1" />
+                                                Passwords match
+                                            </p>
+                                        )}
                                     </Field>
                                 </div>
                             </div>
@@ -819,7 +560,9 @@ export default function Register() {
                             {/* Terms and Conditions */}
                             <div className="mb-6">
                                 <Field className="flex items-center gap-3">
-                                    <Checkbox
+                                    <input
+                                        type="checkbox"
+                                        id="terms"
                                         name="terms"
                                         checked={termsAccepted}
                                         onChange={(e) => {
@@ -828,15 +571,9 @@ export default function Register() {
                                                 setFieldErrors(prev => ({ ...prev, terms: null }));
                                             }
                                         }}
-                                        className={clsx(
-                                            'group block size-4 rounded border border-transparent shadow ring-1 ring-black/10 focus:outline-none',
-                                            'data-[checked]:bg-purple-600 data-[checked]:ring-purple-600',
-                                            'data-[focus]:outline data-[focus]:outline-2 data-[focus]:outline-offset-2 data-[focus]:outline-purple-600',
-                                        )}
-                                    >
-                                        <CheckIcon className="fill-white opacity-0 group-data-[checked]:opacity-100" />
-                                    </Checkbox>
-                                    <Label className="text-sm text-gray-700">
+                                        className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                    />
+                                    <label htmlFor="terms" className="text-sm text-gray-700 cursor-pointer">
                                         I agree to the{' '}
                                         <Link href="/terms" className="text-purple-600 hover:text-purple-800">
                                             Terms & Conditions
@@ -845,7 +582,7 @@ export default function Register() {
                                         <Link href="/privacy" className="text-purple-600 hover:text-purple-800">
                                             Privacy Policy
                                         </Link>
-                                    </Label>
+                                    </label>
                                 </Field>
                                 {fieldErrors.terms && (
                                     <p className="text-sm text-red-500 flex items-center mt-1">
@@ -869,7 +606,7 @@ export default function Register() {
                                     disabled={isLoading}
                                     className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50"
                                 >
-                                    {isLoading ? 'SUBMITTING...' : 'SUBMIT REGISTRATION'}
+                                    {isLoading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
                                 </button>
                             </div>
                         </form>

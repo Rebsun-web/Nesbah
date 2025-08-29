@@ -69,6 +69,12 @@ export async function GET(req, { params }) {
                     pa.notes,
                     pa.uploaded_filename,
                     pa.uploaded_mimetype,
+                    pa.assigned_user_id,
+                    -- Assigned user information (if assigned to a bank)
+                    assigned_u.entity_name as assigned_trade_name,
+                    assigned_u.email as assigned_email,
+                    assigned_bu.logo_url as assigned_logo_url,
+                    assigned_u.user_type as assigned_user_type,
                     CASE 
                         WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' AND pa.auction_end_time <= NOW() + INTERVAL '1 hour' THEN 'auction_ending_soon'
                         WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' AND pa.offer_selection_end_time <= NOW() + INTERVAL '1 hour' THEN 'selection_ending_soon'
@@ -77,6 +83,8 @@ export async function GET(req, { params }) {
                         ELSE 'normal'
                     END as urgency_level
                 FROM pos_application pa
+                LEFT JOIN bank_users assigned_bu ON pa.assigned_user_id = assigned_bu.user_id
+                LEFT JOIN users assigned_u ON assigned_bu.user_id = assigned_u.user_id
                 WHERE pa.application_id = $1
             `;
             
@@ -188,7 +196,8 @@ export async function PUT(req, { params }) {
             city,
             contact_person,
             contact_person_number,
-            notes
+            notes,
+            assigned_user_id
         } = body;
 
         const client = await pool.connectWithRetry();
@@ -201,13 +210,14 @@ export async function PUT(req, { params }) {
                 UPDATE pos_application 
                 SET 
                     current_application_status = COALESCE($1, current_application_status),
-                    admin_notes = COALESCE($2, admin_notes)
-                WHERE application_id = $3
+                    admin_notes = COALESCE($2, admin_notes),
+                    assigned_user_id = COALESCE($3, assigned_user_id)
+                WHERE application_id = $4
                 RETURNING *
             `;
             
             const posResult = await client.query(posUpdateQuery, [
-                status, admin_notes, applicationId
+                status, admin_notes, assigned_user_id, applicationId
             ]);
 
             if (posResult.rows.length === 0) {

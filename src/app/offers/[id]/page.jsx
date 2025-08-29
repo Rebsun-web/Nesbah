@@ -22,8 +22,9 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useViewTracking } from '@/hooks/useViewTracking';
+import AuthGuard from '@/components/auth/AuthGuard';
 
-export default function OfferDetailsPage() {
+function OfferDetailsPageContent() {
     const { t } = useLanguage()
     const params = useParams()
     const router = useRouter()
@@ -42,10 +43,14 @@ export default function OfferDetailsPage() {
     useEffect(() => {
         const stored = localStorage.getItem('user');
         if (stored) {
-            const bankUser = JSON.parse(stored);
-            if (bankUser?.user_id && params.id) {
-                // For offer details, we track the application ID if available
-                // This will be enhanced when we have the application ID in the offer data
+            try {
+                const bankUser = JSON.parse(stored);
+                if (bankUser?.user_type === 'bank_user' && bankUser?.user_id && params.id) {
+                    // For offer details, we track the application ID if available
+                    // This will be enhanced when we have the application ID in the offer data
+                }
+            } catch (error) {
+                console.error('❌ Error parsing user data:', error);
             }
         }
     }, [params.id]);
@@ -446,5 +451,13 @@ export default function OfferDetailsPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function OfferDetailsPage() {
+    return (
+        <AuthGuard requiredUserType="bank_user">
+            <OfferDetailsPageContent />
+        </AuthGuard>
     )
 }

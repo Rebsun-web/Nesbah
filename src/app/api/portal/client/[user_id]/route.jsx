@@ -4,18 +4,48 @@ import pool from '@/lib/db';
 import { authenticateAPIRequest } from '@/lib/auth/api-auth';
 
 export async function GET(req, { params }) {
-    // Authenticate the request
-    const authResult = await authenticateAPIRequest(req, 'business_user');
-    if (!authResult.success) {
+    console.log('🔍 API: Portal client request received');
+    
+    // Get user from cookies (middleware already validated)
+    const userToken = req.cookies.get('user_token')?.value;
+    if (!userToken) {
+        console.log('🔍 API: No user token found');
         return NextResponse.json(
-            { success: false, error: authResult.error },
-            { status: authResult.status || 401 }
+            { success: false, error: 'No authentication token' },
+            { status: 401 }
         );
     }
     
-    const { user_id } = await params;
+    try {
+        // Import JWT utility for verification
+        const JWTUtils = (await import('@/lib/auth/jwt-utils.js')).default;
+        
+        // Verify JWT token
+        const verificationResult = JWTUtils.verifyToken(userToken);
+        
+        if (!verificationResult.valid) {
+            console.log('🔍 API: Invalid token');
+            return NextResponse.json(
+                { success: false, error: 'Invalid token' },
+                { status: 401 }
+            );
+        }
+        
+        const user = verificationResult.payload;
+        console.log('🔍 API: Authenticated user:', user);
+        
+        const { user_id } = await params;
 
-    const client = await pool.connectWithRetry();
+        // Ensure user can only access their own data
+        if (user.user_id !== parseInt(user_id)) {
+            console.log('🔍 API: Access denied - user ID mismatch');
+            return NextResponse.json(
+                { success: false, error: 'Access denied' },
+                { status: 403 }
+            );
+        }
+
+        const client = await pool.connectWithRetry();
     
     try {
         // OPTIMIZED: Single query with specific column selection for better performance
@@ -57,5 +87,12 @@ export async function GET(req, { params }) {
         return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
     } finally {
         client.release();
+    }
+    } catch (error) {
+        console.error('🔍 API: JWT verification error:', error);
+        return NextResponse.json(
+            { success: false, error: 'Authentication error' },
+            { status: 401 }
+        );
     }
 }

@@ -1,0 +1,289 @@
+0 verbose cli /Users/nikitavoronkin/.nvm/versions/node/v20.19.4/bin/node /Users/nikitavoronkin/.nvm/versions/node/v20.19.4/bin/npm
+1 info using npm@10.8.2
+2 info using node@v20.19.4
+3 silly config load:file:/Users/nikitavoronkin/.nvm/versions/node/v20.19.4/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/.npmrc
+5 silly config load:file:/Users/nikitavoronkin/.npmrc
+6 silly config load:file:/Users/nikitavoronkin/.nvm/versions/node/v20.19.4/etc/npmrc
+7 verbose title npm install
+8 verbose argv "install" "--prefer-offline" "--no-audit" "--no-fund" "--progress" "false"
+9 verbose logfile logs-max:10 dir:/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/.npm-cache/_logs/2025-08-28T20_40_16_361Z-
+10 verbose logfile /Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/.npm-cache/_logs/2025-08-28T20_40_16_361Z-debug-0.log
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly logfile done cleaning log files
+13 silly idealTree buildDeps
+14 silly fetch manifest @next/bundle-analyzer@^15.4.0
+15 silly packumentCache full:https://registry.npmjs.org/@next%2fbundle-analyzer cache-miss
+16 verbose shrinkwrap failed to load node_modules/.package-lock.json out of date, updated: node_modules
+17 http fetch GET 200 https://registry.npmjs.org/@next%2fbundle-analyzer 1233ms (cache miss)
+18 silly packumentCache full:https://registry.npmjs.org/@next%2fbundle-analyzer set size:undefined disposed:false
+19 silly fetch manifest eslint-config-next@^14.2.0
+20 silly packumentCache full:https://registry.npmjs.org/eslint-config-next cache-miss
+21 http fetch GET 200 https://registry.npmjs.org/eslint-config-next 243ms (cache miss)
+22 silly packumentCache full:https://registry.npmjs.org/eslint-config-next set size:undefined disposed:false
+23 silly fetch manifest eslint@^8
+24 silly packumentCache full:https://registry.npmjs.org/eslint cache-miss
+25 http fetch GET 200 https://registry.npmjs.org/eslint 130ms (cache miss)
+26 silly packumentCache full:https://registry.npmjs.org/eslint set size:undefined disposed:false
+27 silly fetch manifest typescript@^5
+28 silly packumentCache full:https://registry.npmjs.org/typescript cache-miss
+29 http fetch GET 200 https://registry.npmjs.org/typescript 250ms (cache miss)
+30 silly packumentCache full:https://registry.npmjs.org/typescript set size:undefined disposed:false
+31 silly placeDep ROOT @next/bundle-analyzer@15.5.2 OK for: radiant@0.1.0 want: ^15.4.0
+32 silly placeDep ROOT eslint-config-next@14.2.32 REPLACE for: radiant@0.1.0 want: ^14.2.0
+33 silly fetch manifest webpack-bundle-analyzer@4.10.1
+34 silly packumentCache full:https://registry.npmjs.org/webpack-bundle-analyzer cache-miss
+35 silly fetch manifest @next/eslint-plugin-next@14.2.32
+36 silly packumentCache full:https://registry.npmjs.org/@next%2feslint-plugin-next cache-miss
+37 silly fetch manifest eslint-plugin-react-hooks@^4.5.0 || 5.0.0-canary-7118f5dd7-20230705
+38 silly packumentCache full:https://registry.npmjs.org/eslint-plugin-react-hooks cache-miss
+39 http fetch GET 200 https://registry.npmjs.org/webpack-bundle-analyzer 73ms (cache miss)
+40 silly packumentCache full:https://registry.npmjs.org/webpack-bundle-analyzer set size:undefined disposed:false
+41 http fetch GET 200 https://registry.npmjs.org/eslint-plugin-react-hooks 274ms (cache miss)
+42 silly packumentCache full:https://registry.npmjs.org/eslint-plugin-react-hooks set size:undefined disposed:false
+43 http fetch GET 200 https://registry.npmjs.org/@next%2feslint-plugin-next 378ms (cache miss)
+44 silly packumentCache full:https://registry.npmjs.org/@next%2feslint-plugin-next set size:undefined disposed:false
+45 silly placeDep ROOT webpack-bundle-analyzer@4.10.1 OK for: @next/bundle-analyzer@15.5.2 want: 4.10.1
+46 silly fetch manifest @discoveryjs/json-ext@0.5.7
+47 silly packumentCache full:https://registry.npmjs.org/@discoveryjs%2fjson-ext cache-miss
+48 silly fetch manifest acorn-walk@^8.0.0
+49 silly packumentCache full:https://registry.npmjs.org/acorn-walk cache-miss
+50 silly fetch manifest commander@^7.2.0
+51 silly packumentCache full:https://registry.npmjs.org/commander cache-miss
+52 silly fetch manifest gzip-size@^6.0.0
+53 silly packumentCache full:https://registry.npmjs.org/gzip-size cache-miss
+54 silly fetch manifest html-escaper@^2.0.2
+55 silly packumentCache full:https://registry.npmjs.org/html-escaper cache-miss
+56 silly fetch manifest is-plain-object@^5.0.0
+57 silly packumentCache full:https://registry.npmjs.org/is-plain-object cache-miss
+58 silly fetch manifest opener@^1.5.2
+59 silly packumentCache full:https://registry.npmjs.org/opener cache-miss
+60 silly fetch manifest sirv@^2.0.3
+61 silly packumentCache full:https://registry.npmjs.org/sirv cache-miss
+62 silly fetch manifest ws@^7.3.1
+63 silly packumentCache full:https://registry.npmjs.org/ws cache-miss
+64 http fetch GET 200 https://registry.npmjs.org/acorn-walk 81ms (cache miss)
+65 silly packumentCache full:https://registry.npmjs.org/acorn-walk set size:undefined disposed:false
+66 http fetch GET 200 https://registry.npmjs.org/commander 92ms (cache miss)
+67 silly packumentCache full:https://registry.npmjs.org/commander set size:undefined disposed:false
+68 http fetch GET 200 https://registry.npmjs.org/@discoveryjs%2fjson-ext 104ms (cache miss)
+69 silly packumentCache full:https://registry.npmjs.org/@discoveryjs%2fjson-ext set size:undefined disposed:false
+70 http fetch GET 200 https://registry.npmjs.org/opener 110ms (cache miss)
+71 silly packumentCache full:https://registry.npmjs.org/opener set size:undefined disposed:false
+72 http fetch GET 200 https://registry.npmjs.org/html-escaper 111ms (cache miss)
+73 silly packumentCache full:https://registry.npmjs.org/html-escaper set size:undefined disposed:false
+74 http fetch GET 200 https://registry.npmjs.org/is-plain-object 119ms (cache miss)
+75 silly packumentCache full:https://registry.npmjs.org/is-plain-object set size:undefined disposed:false
+76 http fetch GET 200 https://registry.npmjs.org/gzip-size 124ms (cache miss)
+77 silly packumentCache full:https://registry.npmjs.org/gzip-size set size:undefined disposed:false
+78 http fetch GET 200 https://registry.npmjs.org/ws 139ms (cache miss)
+79 silly packumentCache full:https://registry.npmjs.org/ws set size:undefined disposed:false
+80 http fetch GET 200 https://registry.npmjs.org/sirv 152ms (cache miss)
+81 silly packumentCache full:https://registry.npmjs.org/sirv set size:undefined disposed:false
+82 silly fetch manifest eslint@^7.23.0 || ^8.0.0
+83 silly packumentCache full:https://registry.npmjs.org/eslint cache-miss
+84 http fetch GET 200 https://registry.npmjs.org/eslint 27ms (cache hit)
+85 silly packumentCache full:https://registry.npmjs.org/eslint set size:1831603 disposed:false
+86 silly placeDep ROOT @next/eslint-plugin-next@14.2.32 OK for: eslint-config-next@14.2.32 want: 14.2.32
+87 silly placeDep ROOT eslint-plugin-react-hooks@5.0.0-canary-7118f5dd7-20230705 OK for: eslint-config-next@14.2.32 want: ^4.5.0 || 5.0.0-canary-7118f5dd7-20230705
+88 silly fetch manifest glob@10.3.10
+89 silly packumentCache full:https://registry.npmjs.org/glob cache-miss
+90 http fetch GET 200 https://registry.npmjs.org/glob 52ms (cache miss)
+91 silly packumentCache full:https://registry.npmjs.org/glob set size:undefined disposed:false
+92 silly placeDep node_modules/@next/eslint-plugin-next glob@10.3.10 OK for: @next/eslint-plugin-next@14.2.32 want: 10.3.10
+93 silly fetch manifest jackspeak@^2.3.5
+94 silly packumentCache full:https://registry.npmjs.org/jackspeak cache-miss
+95 silly fetch manifest minimatch@^9.0.1
+96 silly packumentCache full:https://registry.npmjs.org/minimatch cache-miss
+97 http fetch GET 200 https://registry.npmjs.org/jackspeak 39ms (cache miss)
+98 silly packumentCache full:https://registry.npmjs.org/jackspeak set size:undefined disposed:false
+99 http fetch GET 200 https://registry.npmjs.org/minimatch 54ms (cache miss)
+100 silly packumentCache full:https://registry.npmjs.org/minimatch set size:undefined disposed:false
+101 silly fetch manifest bufferutil@^4.0.1
+102 silly packumentCache full:https://registry.npmjs.org/bufferutil cache-miss
+103 http fetch GET 200 https://registry.npmjs.org/bufferutil 42ms (cache miss)
+104 silly packumentCache full:https://registry.npmjs.org/bufferutil set size:undefined disposed:false
+105 silly fetch manifest utf-8-validate@^5.0.2
+106 silly packumentCache full:https://registry.npmjs.org/utf-8-validate cache-miss
+107 http fetch GET 200 https://registry.npmjs.org/utf-8-validate 53ms (cache miss)
+108 silly packumentCache full:https://registry.npmjs.org/utf-8-validate set size:undefined disposed:false
+109 silly placeDep ROOT @discoveryjs/json-ext@0.5.7 OK for: webpack-bundle-analyzer@4.10.1 want: 0.5.7
+110 silly placeDep ROOT acorn-walk@8.3.4 OK for: webpack-bundle-analyzer@4.10.1 want: ^8.0.0
+111 silly placeDep node_modules/webpack-bundle-analyzer commander@7.2.0 OK for: webpack-bundle-analyzer@4.10.1 want: ^7.2.0
+112 silly placeDep ROOT gzip-size@6.0.0 OK for: webpack-bundle-analyzer@4.10.1 want: ^6.0.0
+113 silly placeDep ROOT html-escaper@2.0.2 OK for: webpack-bundle-analyzer@4.10.1 want: ^2.0.2
+114 silly placeDep node_modules/webpack-bundle-analyzer is-plain-object@5.0.0 OK for: webpack-bundle-analyzer@4.10.1 want: ^5.0.0
+115 silly placeDep ROOT opener@1.5.2 OK for: webpack-bundle-analyzer@4.10.1 want: ^1.5.2
+116 silly placeDep ROOT sirv@2.0.4 OK for: webpack-bundle-analyzer@4.10.1 want: ^2.0.3
+117 silly placeDep node_modules/webpack-bundle-analyzer ws@7.5.10 OK for: webpack-bundle-analyzer@4.10.1 want: ^7.3.1
+118 silly fetch manifest duplexer@^0.1.2
+119 silly packumentCache full:https://registry.npmjs.org/duplexer cache-miss
+120 silly fetch manifest mrmime@^2.0.0
+121 silly packumentCache full:https://registry.npmjs.org/mrmime cache-miss
+122 silly fetch manifest totalist@^3.0.0
+123 silly packumentCache full:https://registry.npmjs.org/totalist cache-miss
+124 silly fetch manifest @polka/url@^1.0.0-next.24
+125 silly packumentCache full:https://registry.npmjs.org/@polka%2furl cache-miss
+126 http fetch GET 200 https://registry.npmjs.org/totalist 52ms (cache miss)
+127 silly packumentCache full:https://registry.npmjs.org/totalist set size:undefined disposed:false
+128 http fetch GET 200 https://registry.npmjs.org/duplexer 53ms (cache miss)
+129 silly packumentCache full:https://registry.npmjs.org/duplexer set size:undefined disposed:false
+130 http fetch GET 200 https://registry.npmjs.org/mrmime 55ms (cache miss)
+131 silly packumentCache full:https://registry.npmjs.org/mrmime set size:undefined disposed:false
+132 http fetch GET 200 https://registry.npmjs.org/@polka%2furl 64ms (cache miss)
+133 silly packumentCache full:https://registry.npmjs.org/@polka%2furl set size:undefined disposed:false
+134 silly placeDep ROOT duplexer@0.1.2 OK for: gzip-size@6.0.0 want: ^0.1.2
+135 silly placeDep ROOT @polka/url@1.0.0-next.29 OK for: sirv@2.0.4 want: ^1.0.0-next.24
+136 silly placeDep ROOT mrmime@2.0.1 OK for: sirv@2.0.4 want: ^2.0.0
+137 silly placeDep ROOT totalist@3.0.1 OK for: sirv@2.0.4 want: ^3.0.0
+138 silly placeDep node_modules/@next/eslint-plugin-next jackspeak@2.3.6 OK for: glob@10.3.10 want: ^2.3.5
+139 silly placeDep node_modules/@next/eslint-plugin-next minimatch@9.0.5 OK for: glob@10.3.10 want: ^9.0.1
+140 silly fetch manifest brace-expansion@^2.0.1
+141 silly packumentCache full:https://registry.npmjs.org/brace-expansion cache-miss
+142 http fetch GET 200 https://registry.npmjs.org/brace-expansion 59ms (cache miss)
+143 silly packumentCache full:https://registry.npmjs.org/brace-expansion set size:undefined disposed:false
+144 silly placeDep node_modules/@next/eslint-plugin-next brace-expansion@2.0.2 OK for: minimatch@9.0.5 want: ^2.0.1
+145 silly reify mark retired [
+145 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/bare-events'
+145 silly reify ]
+146 silly reify mark retired [
+146 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/pg-cloudflare'
+146 silly reify ]
+147 silly reify mark retired [
+147 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/sharp'
+147 silly reify ]
+148 silly reify mark retired [
+148 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@emnapi/runtime'
+148 silly reify ]
+149 silly reify mark retired [
+149 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@esbuild/darwin-x64'
+149 silly reify ]
+150 silly reify mark retired [
+150 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@img/sharp-darwin-x64'
+150 silly reify ]
+151 silly reify mark retired [
+151 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@img/sharp-libvips-darwin-x64'
+151 silly reify ]
+152 silly reify mark retired [
+152 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@types/trusted-types'
+152 silly reify ]
+153 silly reify mark retired [
+153 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/acorn-walk'
+153 silly reify ]
+154 silly reify mark retired [
+154 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/duplexer'
+154 silly reify ]
+155 silly reify mark retired [
+155 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/eslint-config-next'
+155 silly reify ]
+156 silly reify mark retired [
+156 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/eslint-plugin-react-hooks'
+156 silly reify ]
+157 silly reify mark retired [
+157 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/gzip-size'
+157 silly reify ]
+158 silly reify mark retired [
+158 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/html-escaper'
+158 silly reify ]
+159 silly reify mark retired [
+159 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/mrmime'
+159 silly reify ]
+160 silly reify mark retired [
+160 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/opener',
+160 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/opener'
+160 silly reify ]
+161 silly reify mark retired [
+161 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/sanity/node_modules/@types/node'
+161 silly reify ]
+162 silly reify mark retired [
+162 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/sirv'
+162 silly reify ]
+163 silly reify mark retired [
+163 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/totalist'
+163 silly reify ]
+164 silly reify mark retired [
+164 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/webpack-bundle-analyzer',
+164 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/webpack-bundle-analyzer'
+164 silly reify ]
+165 silly reify mark retired [
+165 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@babel/parser',
+165 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/parser'
+165 silly reify ]
+166 silly reify mark retired [
+166 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@discoveryjs/json-ext'
+166 silly reify ]
+167 silly reify mark retired [
+167 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@next/bundle-analyzer'
+167 silly reify ]
+168 silly reify mark retired [
+168 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@next/eslint-plugin-next'
+168 silly reify ]
+169 silly reify mark retired [
+169 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@polka/url'
+169 silly reify ]
+170 silly reify mark retired [
+170 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@sanity/import',
+170 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/sanity-import'
+170 silly reify ]
+171 silly reify mark retired [
+171 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@sanity/runtime-cli',
+171 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/sanity-run'
+171 silly reify ]
+172 silly reify moves {
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/bare-events': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bare-events-mSFbyvwn',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/pg-cloudflare': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.pg-cloudflare-EkdCKCWv',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/sharp': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.sharp-CzfrL7uD',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@emnapi/runtime': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@emnapi/.runtime-OfyunjPF',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@esbuild/darwin-x64': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@esbuild/.darwin-x64-YGQ1hEHu',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@img/sharp-darwin-x64': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@img/.sharp-darwin-x64-NknNdcV5',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@img/sharp-libvips-darwin-x64': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@img/.sharp-libvips-darwin-x64-Hi97D15t',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@types/trusted-types': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@types/.trusted-types-d5hqxvcm',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/acorn-walk': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.acorn-walk-MMK1RTUd',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/duplexer': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.duplexer-v0uQCeTh',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/eslint-config-next': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.eslint-config-next-GC2ZYyZp',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/eslint-plugin-react-hooks': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.eslint-plugin-react-hooks-TgRdsxfa',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/gzip-size': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.gzip-size-5uj44Jgj',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/html-escaper': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.html-escaper-R7RvZAEd',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/mrmime': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.mrmime-ydwUfCZt',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/opener': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.opener-kNoZt2Mx',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/opener': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/.opener-shtC8Dbz',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/sanity/node_modules/@types/node': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/sanity/node_modules/@types/.node-1XyDiKeQ',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/sirv': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.sirv-W64pqzLp',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/totalist': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.totalist-i5Vg8ghB',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/webpack-bundle-analyzer': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.webpack-bundle-analyzer-nfoWMbLU',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/webpack-bundle-analyzer': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/.webpack-bundle-analyzer-BMZ4vOzO',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@babel/parser': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@babel/.parser-idW35Y3m',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/parser': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/.parser-JYWUOtgr',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@discoveryjs/json-ext': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@discoveryjs/.json-ext-jXtd0pN6',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@next/bundle-analyzer': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@next/.bundle-analyzer-k9girEZD',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@next/eslint-plugin-next': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@next/.eslint-plugin-next-f2JmCk45',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@polka/url': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@polka/.url-1prbi4Bm',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@sanity/import': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@sanity/.import-aMRtmE99',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/sanity-import': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/.sanity-import-46nhbg4h',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@sanity/runtime-cli': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/@sanity/.runtime-cli-yKS5NXvL',
+172 silly reify   '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/sanity-run': '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.bin/.sanity-run-goPU49d4'
+172 silly reify }
+173 verbose stack Error: ENOTEMPTY: directory not empty, rename '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/eslint-plugin-react-hooks' -> '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.eslint-plugin-react-hooks-TgRdsxfa'
+173 verbose stack     at async Object.rename (node:internal/fs/promises:782:10)
+173 verbose stack     at async moveFile (/Users/nikitavoronkin/.nvm/versions/node/v20.19.4/lib/node_modules/npm/node_modules/@npmcli/fs/lib/move-file.js:30:5)
+173 verbose stack     at async Promise.allSettled (index 11)
+173 verbose stack     at async [reifyPackages] (/Users/nikitavoronkin/.nvm/versions/node/v20.19.4/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:325:11)
+173 verbose stack     at async Arborist.reify (/Users/nikitavoronkin/.nvm/versions/node/v20.19.4/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:142:5)
+173 verbose stack     at async Install.exec (/Users/nikitavoronkin/.nvm/versions/node/v20.19.4/lib/node_modules/npm/lib/commands/install.js:150:5)
+173 verbose stack     at async Npm.exec (/Users/nikitavoronkin/.nvm/versions/node/v20.19.4/lib/node_modules/npm/lib/npm.js:207:9)
+173 verbose stack     at async module.exports (/Users/nikitavoronkin/.nvm/versions/node/v20.19.4/lib/node_modules/npm/lib/cli/entry.js:74:5)
+174 error code ENOTEMPTY
+175 error syscall rename
+176 error path /Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/eslint-plugin-react-hooks
+177 error dest /Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.eslint-plugin-react-hooks-TgRdsxfa
+178 error errno -66
+179 error ENOTEMPTY: directory not empty, rename '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/eslint-plugin-react-hooks' -> '/Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/node_modules/.eslint-plugin-react-hooks-TgRdsxfa'
+180 silly unfinished npm timer reify 1756413617196
+181 silly unfinished npm timer reify:retireShallow 1756413621442
+182 verbose cwd /Users/nikitavoronkin/Desktop/Pet Projects/Nesbah
+183 verbose os Darwin 23.6.0
+184 verbose node v20.19.4
+185 verbose npm  v10.8.2
+186 verbose exit -66
+187 verbose code -66
+188 error A complete log of this run can be found in: /Users/nikitavoronkin/Desktop/Pet Projects/Nesbah/.npm-cache/_logs/2025-08-28T20_40_16_361Z-debug-0.log

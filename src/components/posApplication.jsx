@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { PhotoIcon } from '@heroicons/react/24/solid'
 import emailjs from '@emailjs/browser'
-
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export function PosApplication({ user, onSuccess}) {
+  const { t } = useLanguage()
   const crNationalNumber = user?.business?.cr_national_number || '';
   const tradeName = user?.business?.trade_name || '';
   const email = user?.email || '';
@@ -19,9 +20,34 @@ export function PosApplication({ user, onSuccess}) {
   const [contactPersonNumber, setContactPersonNumber] = useState('');
   const [numberOfPos, setNumberOfPos] = useState('');
   const [cityOfOperation, setCityOfOperation] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const clearUploadedFile = () => {
+    setUploadedFile(null);
+    setBase64File(null);
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
+    
+    if (!file) {
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please upload only PDF, JPG, or DOCX files.');
+      return;
+    }
+
+    // Validate file size (10MB = 10 * 1024 * 1024 bytes)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('File size must be less than 10MB.');
+      return;
+    }
+
     setUploadedFile(file);
 
     const reader = new FileReader();
@@ -34,13 +60,34 @@ export function PosApplication({ user, onSuccess}) {
       });
       console.log('Uploaded file preview:', reader.result);
     };
-    if (file) {
-      reader.readAsDataURL(file);
-    }
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate required fields
+    if (!contactPerson.trim()) {
+      alert('Please enter a contact person.');
+      return;
+    }
+
+    if (!contactPersonNumber.trim()) {
+      alert('Please enter a contact mobile number.');
+      return;
+    }
+
+    if (!numberOfPos.trim()) {
+      alert('Please enter the number of POS devices required.');
+      return;
+    }
+
+    if (!cityOfOperation.trim()) {
+      alert('Please enter the city of operation.');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     const formData = {
       user_id: user.user_id,
@@ -59,6 +106,11 @@ export function PosApplication({ user, onSuccess}) {
     };
 
     try {
+      console.log('📤 Submitting POS application with data:', {
+        ...formData,
+        uploaded_document: base64File ? `${base64File.data.substring(0, 50)}...` : null
+      });
+      
       const response = await fetch('/api/posApplication', {
         method: 'POST',
         headers: {
@@ -100,248 +152,298 @@ export function PosApplication({ user, onSuccess}) {
       }
     } catch (error) {
       console.error('Unexpected error submitting application:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-      <div className="divide-y divide-gray-900/10">
-        <div className="grid grid-cols-1 gap-y-8 pb-10">
-          <form
-              className="rounded-xl bg-gray-100 shadow-sm ring-1 ring-gray-900/5"
-              onSubmit={handleSubmit}
-          >
-            <div className="px-4 py-6 sm:p-8">
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className="w-full">
+      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
+                <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">Apply for Service</h1>
+                <p className="text-indigo-100">Complete your POS finance application</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                {/* CR National Number */}
-                <div>
-                  <label htmlFor="cr_national_number" className="block text-sm font-medium text-gray-900">
-                    CR national number
-                  </label>
-                  <div className="mt-2">
-                    <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
-                      <input
-                          id="cr_national_number"
-                          name="cr_national_number"
-                          type="text"
-                          value={crNationalNumber}
-                          readOnly
-                          className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
+        {/* Status Bar */}
+        <div className="px-8 py-4 bg-slate-50 border-b border-slate-200">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-600">
+              Please fill in all required fields to submit your application
+            </p>
+          </div>
+        </div>
 
-                {/* Trade Name */}
-                <div>
-                  <label htmlFor="trade_name" className="block text-sm font-medium text-gray-900">
-                    Trade name
-                  </label>
-                  <div className="mt-2">
-                    <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
-                      <input
-                          id="trade_name"
-                          name="trade_name"
-                          type="text"
-                          value={tradeName}
-                          readOnly
-                          className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* POS System */}
-                <div>
-                  <label htmlFor="own_pos_system" className="block text-sm font-medium text-gray-900">
-                    Do you already have a POS system?
-                  </label>
-                  <div className="mt-2">
-                    <select
-                        id="own_pos_system"
-                        name="own_pos_system"
-                        value={ownPosSystem}
-                        onChange={(e) => setOwnPosSystem(e.target.value)}
-                        className="block w-full rounded-md bg-white px-3 py-2 text-sm text-gray-900 outline outline-1 outline-gray-300 focus:outline-indigo-600"
-                    >
-                      <option value="no">No</option>
-                      <option value="yes">Yes</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-900">
-                    Email
-                  </label>
-                  <div className="mt-2">
-                    <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
-                      <input
-                          id="email"
-                          name="email"
-                          type="email"
-                          value={email}
-                          readOnly
-                          className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="contactperson" className="block text-sm font-medium text-gray-900">
-                    Contact person
-                  </label>
-                  <div className="mt-2">
-                    <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
-                      <input
-                          id="contactperson"
-                          name="contactperson"
-                          type="text"
-                          value={contactPerson}
-                          onChange={(e) => setContactPerson(e.target.value)}
-                          className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="contactpersonnumber" className="block text-sm font-medium text-gray-900">
-                    Contact mobile number
-                  </label>
-                  <div className="mt-2">
-                    <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
-                      <input
-                          id="contactpersonnumber"
-                          name="contactpersonnumber"
-                          type="text"
-                          value={contactPersonNumber}
-                          onChange={(e) => setContactPersonNumber(e.target.value)}
-                          className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="nrofpos" className="block text-sm font-medium text-gray-900">
-                    Number of POS devices required
-                  </label>
-                  <div className="mt-2">
-                    <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
-                      <input
-                          id="nrofpos"
-                          name="nrofpos"
-                          type="text"
-                          value={numberOfPos}
-                          onChange={(e) => setNumberOfPos(e.target.value)}
-                          className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="cityofoperation" className="block text-sm font-medium text-gray-900">
-                    City of operation
-                  </label>
-                  <div className="mt-2">
-                    <div
-                        className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
-                      <input
-                          id="cityofoperation"
-                          name="cityofoperation"
-                          type="text"
-                          value={cityOfOperation}
-                          onChange={(e) => setCityOfOperation(e.target.value)}
-                          className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-
-                {/* Notes */}
-                <div className="lg:col-span-2">
-                  <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
-                    Notes
-                  </label>
-                  <div className="mt-2">
-                  <textarea
-                      id="notes"
-                      name="notes"
-                      rows={4}
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline outline-1 outline-gray-300 placeholder:text-gray-400 focus:outline-indigo-600"
-                  />
-                  </div>
-                </div>
-
-                {/* Upload */}
-                <div className="lg:col-span-2">
-                  <label htmlFor="file-upload" className="block text-sm font-medium text-gray-900">
-                    Upload document
-                  </label>
-                  <div
-                      className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
-                    <div className="text-center">
-                      <PhotoIcon className="mx-auto h-12 w-12 text-gray-300" aria-hidden="true"/>
-                      <div className="mt-4 flex text-sm text-gray-600">
-                        <label
-                            htmlFor="file-upload"
-                            className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 hover:text-indigo-500"
-                        >
-                          <span>Upload a file</span>
-                          <input
-                              id="file-upload"
-                              name="file-upload"
-                              type="file"
-                              className="sr-only"
-                              onChange={handleFileUpload}
-                          />
-                        </label>
-                        <p className="pl-1">or drag and drop</p>
-                      </div>
-                      <p className="text-xs text-gray-600">pdf, JPG, .docx up to 10MB</p>
-                    </div>
-                  </div>
-                  {uploadedFile && (
-                      <div className="mt-4 text-sm text-gray-700">
-                        <p><strong>Uploaded file(s):</strong> {uploadedFile.name}</p>
-                        <a
-                            href={URL.createObjectURL(uploadedFile)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-indigo-600 hover:underline"
-                        >
-                          Preview file
-                        </a>
-                      </div>
-                  )}
-                </div>
-
+        {/* Form Content */}
+        <form onSubmit={handleSubmit} className="px-8 py-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* CR National Number */}
+            <div>
+              <label htmlFor="cr_national_number" className="block text-sm font-semibold text-slate-700 mb-2">
+                CR National Number
+              </label>
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                <input
+                  id="cr_national_number"
+                  name="cr_national_number"
+                  type="text"
+                  value={crNationalNumber}
+                  readOnly
+                  className="block w-full bg-transparent text-sm font-medium text-blue-900 border-none outline-none"
+                />
               </div>
             </div>
 
-            {/* Form Footer */}
-            <div className="flex items-center justify-end gap-x-6 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-              <button type="button" className="text-sm font-semibold text-gray-900">
-                Reset
-              </button>
-              <button
-                  type="submit"
-                  className="rounded-full bg-gradient-to-r from-[#1E1851] to-[#4436B7] px-6 py-2 text-sm font-normal text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-indigo-600"
-              >
-                Submit Application
-              </button>
+            {/* Trade Name */}
+            <div>
+              <label htmlFor="trade_name" className="block text-sm font-semibold text-slate-700 mb-2">
+                Trade Name
+              </label>
+              <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-3 border border-purple-100">
+                <input
+                  id="trade_name"
+                  name="trade_name"
+                  type="text"
+                  value={tradeName}
+                  readOnly
+                  className="block w-full bg-transparent text-sm font-medium text-purple-900 border-none outline-none"
+                />
+              </div>
             </div>
-          </form>
-        </div>
+
+            {/* POS System */}
+            <div>
+              <label htmlFor="own_pos_system" className="block text-sm font-medium text-gray-900">
+                Do you already have a POS system?
+              </label>
+              <div className="mt-2">
+                <select
+                  id="own_pos_system"
+                  name="own_pos_system"
+                  value={ownPosSystem}
+                  onChange={(e) => setOwnPosSystem(e.target.value)}
+                  className="block w-full rounded-md bg-white px-3 py-2 text-sm text-gray-900 outline outline-1 outline-gray-300 focus:outline-indigo-600"
+                >
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-900">
+                Email
+              </label>
+              <div className="mt-2">
+                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={email}
+                    readOnly
+                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="contactperson" className="block text-sm font-medium text-gray-900">
+                Contact person
+              </label>
+              <div className="mt-2">
+                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                  <input
+                    id="contactperson"
+                    name="contactperson"
+                    type="text"
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="contactpersonnumber" className="block text-sm font-medium text-gray-900">
+                Contact mobile number
+              </label>
+              <div className="mt-2">
+                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                  <input
+                    id="contactpersonnumber"
+                    name="contactpersonnumber"
+                    type="text"
+                    value={contactPersonNumber}
+                    onChange={(e) => setContactPersonNumber(e.target.value)}
+                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="nrofpos" className="block text-sm font-medium text-gray-900">
+                Number of POS devices required
+              </label>
+              <div className="mt-2">
+                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                  <input
+                    id="nrofpos"
+                    name="nrofpos"
+                    type="text"
+                    value={numberOfPos}
+                    onChange={(e) => setNumberOfPos(e.target.value)}
+                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="cityofoperation" className="block text-sm font-medium text-gray-900">
+                {t('pos.cityOfOperation')}
+              </label>
+              <div className="mt-2">
+                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                  <input
+                    id="cityofoperation"
+                    name="cityofoperation"
+                    type="text"
+                    value={cityOfOperation}
+                    onChange={(e) => setCityOfOperation(e.target.value)}
+                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="lg:col-span-2">
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
+                {t('pos.notes')}
+              </label>
+              <div className="mt-2">
+                <textarea
+                  id="notes"
+                  name="notes"
+                  rows={4}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline outline-1 outline-gray-300 placeholder:text-gray-400 focus:outline-indigo-600"
+                />
+              </div>
+            </div>
+
+            {/* Upload */}
+            <div className="lg:col-span-2">
+              <label htmlFor="file-upload" className="block text-sm font-medium text-gray-900">
+                {t('pos.uploadDocument')}
+              </label>
+              <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
+                <div className="text-center">
+                  <PhotoIcon className="mx-auto h-12 w-12 text-gray-300" aria-hidden="true"/>
+                  <div className="mt-4 flex text-sm text-gray-600">
+                    <label
+                      htmlFor="file-upload"
+                      className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 hover:text-indigo-500"
+                    >
+                      <span>{t('pos.uploadFile')}</span>
+                      <input
+                        id="file-upload"
+                        name="file-upload"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.docx"
+                        className="sr-only"
+                        onChange={handleFileUpload}
+                      />
+                    </label>
+                    <p className="pl-1">{t('pos.orDragAndDrop')}</p>
+                  </div>
+                  <p className="text-xs text-gray-600">{t('pos.fileTypes')}</p>
+                </div>
+              </div>
+              {uploadedFile && (
+                <div className="mt-4 text-sm text-gray-700">
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium text-green-800">{uploadedFile.name}</p>
+                        <p className="text-green-600">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <a
+                        href={URL.createObjectURL(uploadedFile)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                      >
+                        {t('pos.previewFile')}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={clearUploadedFile}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Form Footer */}
+          <div className="flex items-center justify-end gap-x-6 border-t border-slate-200 pt-6 mt-6">
+            <button type="button" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
+              {t('common.reset')}
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`rounded-lg px-6 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all duration-200 ${
+                isSubmitting 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
+              }`}
+            >
+              {isSubmitting ? (
+                <div className="flex items-center space-x-2">
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Submitting...</span>
+                </div>
+              ) : (
+                t('pos.submitApplication')
+              )}
+            </button>
+          </div>
+        </form>
       </div>
+    </div>
   )
 }

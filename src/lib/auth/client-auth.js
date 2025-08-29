@@ -5,26 +5,21 @@ export function getAuthHeaders() {
         'Content-Type': 'application/json',
     }
     
-    // Get user token from localStorage (for regular user authentication)
+    // Get user data from localStorage for user identification
     const user = localStorage.getItem('user')
     if (user) {
         try {
             const userData = JSON.parse(user)
-            // Use JWT token for user authentication
-            if (userData.jwt_token) {
-                headers['Authorization'] = `Bearer ${userData.jwt_token}`
-            } else {
-                // Fallback to user token in header
-                headers['x-user-token'] = JSON.stringify(userData)
-            }
+            // Add user data to headers for server-side identification
+            headers['x-user-token'] = JSON.stringify(userData)
         } catch (error) {
             console.error('Error parsing user data:', error)
         }
     }
     
-    // Note: Admin authentication is handled via HTTP-only cookies
-    // We don't need to add admin headers here as the server will
-    // automatically include the admin_token cookie
+    // Note: JWT tokens are handled via HTTP-only cookies
+    // The server will automatically include the user_token cookie
+    // when credentials: 'include' is set in the fetch request
     
     return headers
 }
@@ -64,24 +59,45 @@ export function logout() {
 }
 
 export async function makeAuthenticatedRequest(url, options = {}) {
-    // Get authentication headers
-    const authHeaders = getAuthHeaders()
-    
-    const response = await fetch(url, {
-        ...options,
-        credentials: 'include', // This ensures cookies are sent
-        headers: {
-            ...authHeaders,
-            ...options.headers,
-        },
-    })
-    
-    // If unauthorized, redirect to login
-    if (response.status === 401) {
-        console.log('🔧 ClientAuth: 401 response, redirecting to login')
-        logout()
-        return null
+    try {
+        console.log('🔧 ClientAuth: Making request to:', url);
+        console.log('🔧 ClientAuth: URL type:', typeof url);
+        console.log('🔧 ClientAuth: URL value:', url);
+        
+        // Get authentication headers
+        const authHeaders = getAuthHeaders()
+        console.log('🔧 ClientAuth: Auth headers:', authHeaders);
+        
+        const fetchOptions = {
+            ...options,
+            credentials: 'include', // This ensures cookies are sent
+            headers: {
+                ...authHeaders,
+                ...options.headers,
+            },
+        };
+        
+        console.log('🔧 ClientAuth: Fetch options:', fetchOptions);
+        console.log('🔧 ClientAuth: Fetch options type:', typeof fetchOptions);
+        
+        // Validate URL before fetch
+        if (!url || typeof url !== 'string') {
+            throw new Error(`Invalid URL: ${url} (type: ${typeof url})`);
+        }
+        
+        const response = await fetch(url, fetchOptions)
+        console.log('🔧 ClientAuth: Response status:', response.status);
+        
+        // If unauthorized, redirect to login
+        if (response.status === 401) {
+            console.log('🔧 ClientAuth: 401 response, redirecting to login')
+            logout()
+            return null
+        }
+        
+        return response
+    } catch (error) {
+        console.error('🔧 ClientAuth: Error in makeAuthenticatedRequest:', error);
+        throw error;
     }
-    
-    return response
 }
