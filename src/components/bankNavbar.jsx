@@ -14,7 +14,6 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import BankLogo from '@/components/BankLogo'
 import BankLogoUploadModal from '@/components/BankLogoUploadModal'
-import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
 import LanguageSwitcher from './LanguageSwitcher'
 import { useLanguage } from '@/contexts/LanguageContext'
 

@@ -1,45 +1,30 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React from 'react'
 
-// Authentication check component for admin portal
-function AuthCheck({ children }) {
-    const [isChecking, setIsChecking] = useState(true)
-    const [isAuthenticated, setIsAuthenticated] = useState(false)
+export default function AdminLayout({ children }) {
     const [adminUser, setAdminUser] = useState(null)
-    const router = useRouter()
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const checkAuth = () => {
+        const checkAuth = async () => {
             try {
-                // Check for admin user
-                const storedUser = localStorage.getItem('adminUser')
-                if (storedUser) {
-                    const userData = JSON.parse(storedUser)
-                    
-                    // Validate user type - admin portal is for admin users
-                    if (userData.user_type === 'admin_user') {
-                        setAdminUser(userData)
-                        setIsAuthenticated(true)
-                        setIsChecking(false)
-                        return
-                    } else {
-                        console.log(`❌ User type mismatch. Expected: admin_user, Got: ${userData.user_type}`)
-                        localStorage.removeItem('adminUser')
+                // Simple JWT check - just try to get admin user info
+                const response = await fetch('/api/admin/auth/me', {
+                    credentials: 'include'
+                })
+
+                if (response.ok) {
+                    const data = await response.json()
+                    if (data.success && data.adminUser) {
+                        setAdminUser(data.adminUser)
                     }
                 }
-
-                // No valid user found
-                console.log('❌ No authenticated admin user found')
-                setIsAuthenticated(false)
-                setIsChecking(false)
-                
             } catch (error) {
-                console.error('❌ Error checking authentication:', error)
-                localStorage.removeItem('adminUser')
-                setIsAuthenticated(false)
-                setIsChecking(false)
+                console.log('Admin auth check failed:', error)
+            } finally {
+                setLoading(false)
             }
         }
 
@@ -47,19 +32,19 @@ function AuthCheck({ children }) {
     }, [])
 
     // Show loading while checking
-    if (isChecking) {
+    if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Checking authentication...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading admin panel...</p>
                 </div>
             </div>
         )
     }
 
-    // Show access denied if not authenticated
-    if (!isAuthenticated) {
+    // Show access denied if no admin user
+    if (!adminUser) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
@@ -70,16 +55,18 @@ function AuthCheck({ children }) {
                             </svg>
                         </div>
                         <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-                        <p className="text-gray-600 mb-6">You need to be logged in as an admin user to access this page.</p>
+                        <p className="text-gray-600 mb-6">
+                            You need to be logged in as an admin user to access this page.
+                        </p>
                         <div className="space-y-3">
                             <button
-                                onClick={() => router.push('/login')}
+                                onClick={() => window.location.href = '/login'}
                                 className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium"
                             >
                                 Go to Login
                             </button>
                             <button
-                                onClick={() => router.push('/')}
+                                onClick={() => window.location.href = '/'}
                                 className="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors font-medium"
                             >
                                 Return to Home
@@ -91,14 +78,7 @@ function AuthCheck({ children }) {
         )
     }
 
-    // Render children if authenticated
-    return children
-}
-export default function AdminLayout({ children }) {
-    return (
-        <AuthCheck>
-            {children}
-        </AuthCheck>
-    )
+    // Render children if admin user is available
+    return React.cloneElement(children, { adminUser })
 }
 

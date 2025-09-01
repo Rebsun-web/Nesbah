@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react';
 import PasswordField from './PasswordField';
 
@@ -137,7 +139,7 @@ const UserCreationForm = () => {
                         autoComplete="new-password"
                     />
                     <p className="mt-1 text-xs text-gray-500">
-                        💡 Focus on this field to trigger your browser's password suggestion feature
+                        💡 Focus on this field to trigger your browser&apos;s password suggestion feature
                     </p>
                 </div>
 

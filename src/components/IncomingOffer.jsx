@@ -1,9 +1,21 @@
 'use client'
 import { useEffect, useState } from 'react'
 
+// Constants
+const APPLICATION_TIMEOUT_SECONDS = 48 * 60 * 60; // 48 hours in seconds
+
+function formatDuration(seconds) {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  return `${hrs.toString().padStart(2, '0')}:${mins
+      .toString()
+      .padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
 
 export default function IncomingOffer({ user }) {
     const [applications, setApplications] = useState([]);
+    const [currentTime, setCurrentTime] = useState(new Date());
     useEffect(() => {
         const fetchApplications = async () => {
             try {
@@ -11,14 +23,6 @@ export default function IncomingOffer({ user }) {
                 const data = await res.json();
                 if (data.success) {
                     setApplications(data.data);
-                    const now = new Date();
-                    const initialTimes = {};
-                    data.data.forEach((app) => {
-                        const submittedAt = new Date(app.submitted_at);
-                        const diffSeconds = Math.floor((now - submittedAt) / 1000);
-                        initialTimes[app.application_id] = diffSeconds;
-                    });
-                    setElapsedTimes(initialTimes);
                 }
             } catch (err) {
                 console.error('Error fetching applications:', err);
@@ -30,15 +34,10 @@ export default function IncomingOffer({ user }) {
         }
     }, [user]);
 
+    // Update current time every second for real-time countdown
     useEffect(() => {
         const interval = setInterval(() => {
-            setElapsedTimes((prevTimes) => {
-                const updated = { ...prevTimes };
-                Object.keys(updated).forEach((id) => {
-                    updated[id] += 1;
-                });
-                return updated;
-            });
+            setCurrentTime(new Date());
         }, 1000);
         return () => clearInterval(interval);
     }, []);
@@ -63,10 +62,28 @@ export default function IncomingOffer({ user }) {
                             <h2 className="text-lg font-semibold text-white">
                                 Application #{index + 1}
                             </h2>
-                            <span
-                                className="inline-flex items-center rounded-full bg-red-300 px-3 py-1 text-sm font-medium text-red-800">
-              ⏳ {formatDuration(elapsedTimes[app.application_id] || 0)}
-            </span>
+                            {(() => {
+                              const submittedAt = new Date(app.submitted_at);
+                              const elapsedSeconds = Math.floor((currentTime - submittedAt) / 1000);
+                              const remainingSeconds = APPLICATION_TIMEOUT_SECONDS - elapsedSeconds;
+                              
+                              // Debug information (can be removed in production)
+                              console.log(`App #${app.application_id}: Submitted ${elapsedSeconds}s ago, ${remainingSeconds}s remaining`);
+                              
+                              // Only show countdown if there's still time remaining
+                              if (remainingSeconds > 0) {
+                                return (
+                                  <span
+                                      className="inline-flex items-center rounded-full bg-red-300 px-3 py-1 text-sm font-medium text-red-800">
+                    ⏳ {formatDuration(remainingSeconds)}
+                  </span>
+                                );
+                              } else {
+                                // Countdown has expired (48 hours have passed)
+                                console.log(`App #${app.application_id}: Countdown expired, hiding timer`);
+                                return null;
+                              }
+                            })()}
                         </div>
 
                         <div className="bg-gray-50 px-4 py-5 sm:p-6 space-y-2">

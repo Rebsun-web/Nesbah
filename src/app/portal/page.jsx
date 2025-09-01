@@ -38,6 +38,7 @@ function BusinessPortal() {
     const [applicationData, setApplicationData] = useState(null);
     const [lastUpdate, setLastUpdate] = useState(null);
     const [previousStatus, setPreviousStatus] = useState(null);
+    const [isLoadingBusinessInfo, setIsLoadingBusinessInfo] = useState(false);
 
     // Memoize status info to prevent unnecessary recalculations
     const statusInfo = useMemo(() => {
@@ -101,17 +102,10 @@ function BusinessPortal() {
                 const application = appData.data[0]; // Get the first (and only) application
                 setApplicationData(application);
                 
-                // Check if status changed and show notification
+                // Check if status changed
                 if (application.status !== applicationStatus) {
                     setPreviousStatus(applicationStatus);
                     setApplicationStatus(application.status);
-                    
-                    // Show notification for important status changes
-                    if (application.status === 'completed') {
-                        alert('✅ Congratulations! Your deal has been completed successfully.');
-                    } else if (application.status === 'ignored') {
-                        alert('ℹ️ No banks submitted offers for your application. You can submit a new application if needed.');
-                    }
                 } else {
                     setApplicationStatus(application.status);
                 }
@@ -170,6 +164,7 @@ function BusinessPortal() {
                 console.log('🔍 Portal: User data:', parsedUser);
             
             // Test with direct fetch first
+            setIsLoadingBusinessInfo(true);
             (async () => {
                 try {
                     const response = await fetch(`/api/portal/client/${parsedUser.user_id}`, {
@@ -206,6 +201,8 @@ function BusinessPortal() {
                         message: error.message,
                         stack: error.stack
                     });
+                } finally {
+                    setIsLoadingBusinessInfo(false);
                 }
             })();
 
@@ -228,17 +225,26 @@ function BusinessPortal() {
     }, [hasApplication, applicationStatus, fetchApplicationData]);
 
     return (
-      <div className="overflow-hidden pb-32">
+      <div className="min-h-screen flex flex-col">
         {isSubmitted && <ApplicationSubmittedModal />}
         <BusinessNavbar />
 
         {/* 🟪 Container 1 (Business Info) */}
-        <div className="min-h-full">
+        <div className="flex-1">
           <div className="pt-5">
             <main>
               <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 gap-6">
-                  <BusinessInformation businessInfo={businessInfo} />
+                  {isLoadingBusinessInfo ? (
+                    <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                      <div className="px-8 py-12 text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="mt-4 text-gray-600">Loading business information...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <BusinessInformation businessInfo={businessInfo} />
+                  )}
                 </div>
                 <div className="mx-auto max-w-7xl py-2">
                   {/* Application Status Display */}
@@ -251,7 +257,7 @@ function BusinessPortal() {
                             <div className="flex items-center space-x-3">
                               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
                                 <div className="text-2xl text-white">
-                                  {statusInfo.icon}
+                                  {statusInfo?.icon || '⏳'}
                                 </div>
                               </div>
                               <div>
@@ -270,8 +276,8 @@ function BusinessPortal() {
                                 {t('common.refresh')}
                               </button>
                               <div className="flex items-center space-x-2">
-                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusInfo.color}`}>
-                                  {statusInfo.label}
+                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusInfo?.color || 'bg-gray-100 text-gray-800'}`}>
+                                  {statusInfo?.label || 'Loading...'}
                                 </span>
                               </div>
                             </div>
@@ -282,7 +288,7 @@ function BusinessPortal() {
                         <div className="px-8 py-4 bg-slate-50 border-b border-slate-200">
                           <div className="flex items-center justify-between">
                             <p className="text-sm text-slate-600">
-                              {statusInfo.description}
+                              {statusInfo?.description || 'Loading application status...'}
                             </p>
                             {lastUpdate && (
                               <p className="text-xs text-slate-500">
@@ -294,56 +300,85 @@ function BusinessPortal() {
 
                         {/* Status Details */}
                         <div className="px-8 py-6">
-                          <div className="flex items-start space-x-4">
-                            <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center text-2xl ${statusInfo.color.replace('text-', 'bg-').replace('bg-', '')}`}>
-                              {statusInfo.icon}
-                            </div>
-                            <div className="flex-1">
-                              <h4 className={`text-lg font-bold ${statusInfo.color.split(' ')[1]} mb-2`}>
-                                {statusInfo.label}
-                              </h4>
-                              <p className="text-slate-600 mb-4">
-                                {statusInfo.description}
-                              </p>
-                              
-                              {/* Additional status-specific information */}
-                              {applicationData && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  {applicationData.submitted_at && (
-                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
-                                      <div className="flex items-center space-x-2">
-                                        <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <div>
-                                          <div className="text-xs font-medium text-blue-700">{t('portal.submittedDate')}</div>
-                                          <div className="text-sm font-bold text-blue-900">
-                                            {new Date(applicationData.submitted_at).toLocaleDateString()}
-                                          </div>
-                                        </div>
-                                      </div>
+                          {/* Status Information */}
+                          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
+                            <div className="divide-y divide-gray-200">
+                              <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center space-x-3">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                                    <div className="text-lg text-purple-600">
+                                      {statusInfo?.icon || '⏳'}
                                     </div>
-                                  )}
-                                  
-                                  {applicationData.submitted_at && (
-                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-3 border border-green-100">
-                                      <div className="flex items-center space-x-2">
-                                        <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <div>
-                                          <div className="text-xs font-medium text-green-700">{t('portal.submittedTime')}</div>
-                                          <div className="text-sm font-bold text-green-900">
-                                            {new Date(applicationData.submitted_at).toLocaleTimeString()}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700">Current Status</span>
                                 </div>
-                              )}
+                                <span className={`text-sm font-semibold px-3 py-1 rounded-full ${statusInfo?.color || 'bg-gray-100 text-gray-800'}`}>
+                                  {statusInfo?.label || 'Loading...'}
+                                </span>
+                              </div>
+                              
+                              <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center space-x-3">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                                    <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700">Status Description</span>
+                                </div>
+                                <span className="text-sm text-gray-900 font-semibold max-w-md text-right">
+                                  {statusInfo.description}
+                                </span>
+                              </div>
                             </div>
                           </div>
+                          
+                          {/* Application Details */}
+                          {applicationData && (
+                            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                              <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                                <h5 className="text-lg font-semibold text-gray-900 flex items-center">
+                                  <svg className="h-5 w-5 text-purple-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  Application Details
+                                </h5>
+                              </div>
+                              <div className="divide-y divide-gray-200">
+                                {applicationData.submitted_at && (
+                                  <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div className="flex items-center space-x-3">
+                                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                                        <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-sm font-medium text-gray-700">Submitted Date</span>
+                                    </div>
+                                    <span className="text-sm text-gray-900 font-semibold">
+                                      {new Date(applicationData.submitted_at).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                )}
+                                
+                                {applicationData.submitted_at && (
+                                  <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div className="flex items-center space-x-3">
+                                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                                        <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-sm font-medium text-gray-700">Submitted Time</span>
+                                    </div>
+                                    <span className="text-sm text-gray-900 font-semibold">
+                                      {new Date(applicationData.submitted_at).toLocaleTimeString()}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -360,7 +395,7 @@ function BusinessPortal() {
 
                 </div>
                 {!hasApplication && (
-                <div className="bg-white pb-10 pt-5">
+                <div className="bg-white pt-5">
                   <div className="mx-auto max-w-7xl pt-2">
                     <header className="mb-3">
                       <h2 className="text-2xl font-semibold tracking-tight text-purple-900">
@@ -422,19 +457,12 @@ function BusinessPortal() {
             </main>
           </div>
         </div>
+        <NewFooter className="mt-auto" />
       </div>
     )
 }
 
 
 export default function BusinessDashboardPage() {
-    return (
-        <div>
-            <main className="pb-16">
-                <Container/>
-                <BusinessPortal/>
-            </main>
-            <NewFooter/>
-        </div>
-    )
+    return <BusinessPortal />
 }

@@ -8,7 +8,7 @@ import { Heading } from '@/components/heading'
 import { Select } from '@/components/select'
 import StackedCard from '@/components/stackedCard'
 import BankLeadsTable from "@/components/BankLeadsTable"
-import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
+
 import BankLogoUploadModal from '@/components/BankLogoUploadModal'
 import { CameraIcon, ChartBarIcon, UserGroupIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 import { Button } from '@/components/button'
@@ -29,8 +29,13 @@ function BankPortal() {
         setUserInfo(user)
 
         // Fetch leads
-        makeAuthenticatedRequest('/api/leads')
-            .then((res) => res ? res.json() : null)
+        fetch('/api/leads', {
+            credentials: 'include',
+            headers: {
+                'x-user-token': JSON.stringify(user)
+            }
+        })
+            .then((res) => res.json())
             .then((data) => {
                 if (data && data.success) {
                     setLeads(data.data)
@@ -39,14 +44,19 @@ function BankPortal() {
             .catch((err) => console.error('Failed to fetch leads:', err))
 
         // Fetch lead stats
-        makeAuthenticatedRequest('/api/leads/stats')
-            .then((res) => res ? res.json() : null)
+        fetch('/api/leads/stats', {
+            credentials: 'include',
+            headers: {
+                'x-user-token': JSON.stringify(user)
+            }
+        })
+            .then((res) => res.json())
             .then((data) => {
-                console.log('Stats response:', data);  // 👈 Check this
                 if (data && data.success) {
                     setStats(data.data);
                 }
-            });
+            })
+            .catch((err) => console.error('Failed to fetch stats:', err));
     }, [])
 
     const handleLogoUploadSuccess = (newLogoUrl) => {
@@ -58,8 +68,38 @@ function BankPortal() {
         }
     }
 
+    const refreshLeads = async () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}')
+            const response = await fetch('/api/leads', {
+                credentials: 'include',
+                headers: {
+                    'x-user-token': JSON.stringify(user)
+                }
+            })
+            const data = await response.json()
+            if (data && data.success) {
+                setLeads(data.data)
+            }
+            
+            // Also refresh stats
+            const statsResponse = await fetch('/api/leads/stats', {
+                credentials: 'include',
+                headers: {
+                    'x-user-token': JSON.stringify(user)
+                }
+            })
+            const statsData = await statsResponse.json()
+            if (statsData && statsData.success) {
+                setStats(statsData.data)
+            }
+        } catch (error) {
+            console.error('Failed to refresh leads:', error)
+        }
+    }
+
     return (
-        <div className="overflow-hidden pb-32">
+        <div className="overflow-hidden">
             {/* 🟪 Container 1 (Dashboard Stats) */}
             <div className="min-h-full">
                 <div className="pt-10">
@@ -95,12 +135,12 @@ function BankPortal() {
             </div>
 
             {/* 🟦 2nd Container (Current Applications) */}
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-8">
                 <div className="mx-auto max-w-7xl">
                     <h1 className="text-2xl font-semibold tracking-tight text-gray-900 mb-6">
                         {t('leads.incoming')}
                     </h1>
-                    <BankLeadsTable data={leads} />
+                    <BankLeadsTable data={leads} onLeadSubmitSuccess={refreshLeads} />
                 </div>
             </div>
 
@@ -118,12 +158,12 @@ function BankPortal() {
 
 export default function BankDashboardPage() {
     return (
-        <div>
-            <main className="pb-32">
+        <div className="min-h-screen flex flex-col">
+            <main className="flex-1 flex flex-col">
                 <BankNavbar />
                 <BankPortal />
             </main>
-            <NewFooter />
+            <NewFooter className="mt-auto" />
         </div>
     )
 }

@@ -14,6 +14,9 @@ import {
     CheckCircleIcon
 } from '@heroicons/react/24/outline'
 
+// Constants
+const APPLICATION_TIMEOUT_SECONDS = 48 * 60 * 60; // 48 hours in seconds
+
 function formatDuration(seconds) {
   const hrs = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
@@ -26,7 +29,7 @@ function formatDuration(seconds) {
 export default function YourApplication({ user }) {
   const { t } = useLanguage()
   const [applications, setApplications] = useState([]);
-  const [elapsedTimes, setElapsedTimes] = useState({});
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -35,14 +38,7 @@ export default function YourApplication({ user }) {
         const data = await res.json();
         if (data.success) {
           setApplications(data.data);
-          const now = new Date();
-          const initialTimes = {};
-          data.data.forEach((app) => {
-            const submittedAt = new Date(app.submitted_at);
-            const diffSeconds = Math.floor((now - submittedAt) / 1000);
-            initialTimes[app.application_id] = diffSeconds;
-          });
-          setElapsedTimes(initialTimes);
+          // No need to set initial elapsed times - we'll calculate them dynamically
         }
       } catch (err) {
         console.error('Error fetching applications:', err);
@@ -54,15 +50,10 @@ export default function YourApplication({ user }) {
     }
   }, [user]);
 
+  // Update current time every second for real-time countdown
   useEffect(() => {
     const interval = setInterval(() => {
-      setElapsedTimes((prevTimes) => {
-        const updated = { ...prevTimes };
-        Object.keys(updated).forEach((id) => {
-          updated[id] += 1;
-        });
-        return updated;
-      });
+      setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -108,7 +99,7 @@ export default function YourApplication({ user }) {
               {t('application.reviewStatus')}
             </p>
             <p className="text-xs text-slate-500">
-              Last updated: {new Date().toLocaleTimeString()}
+              Last updated: {currentTime.toLocaleTimeString()}
             </p>
           </div>
         </div>
@@ -120,150 +111,182 @@ export default function YourApplication({ user }) {
               {/* Application Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100">
-                    <CheckCircleIcon className="h-6 w-6 text-indigo-600" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
+                    <CheckCircleIcon className="h-6 w-6 text-purple-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">
+                    <h3 className="text-lg font-bold text-gray-900">
                       {t('application.application')} #{index + 1}
                     </h3>
                     <div className="flex items-center space-x-3 mt-1">
-                      <span className="text-sm text-slate-500">
+                      <span className="text-sm text-gray-500">
                         Submitted: {new Date(app.submitted_at).toLocaleDateString()}
                       </span>
-                      <span className="text-sm text-slate-500">
+                      <span className="text-sm text-gray-500">
                         {new Date(app.submitted_at).toLocaleTimeString()}
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-800">
-                    {elapsedTimes[app.application_id] >= 432000
-                      ? t('application.expired')
-                      : `⏳ ${formatDuration(elapsedTimes[app.application_id] || 0)}`}
-                  </span>
-                </div>
+                {(() => {
+                  const submittedAt = new Date(app.submitted_at);
+                  const elapsedSeconds = Math.floor((currentTime - submittedAt) / 1000);
+                  const remainingSeconds = APPLICATION_TIMEOUT_SECONDS - elapsedSeconds;
+                  
+                  // Debug information (can be removed in production)
+                  console.log(`App #${app.application_id}: Submitted ${elapsedSeconds}s ago, ${remainingSeconds}s remaining`);
+                  
+                  // Only show countdown if there's still time remaining
+                  if (remainingSeconds > 0) {
+                    return (
+                      <div className="flex items-center space-x-3">
+                        <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-800">
+                          ⏳ {formatDuration(remainingSeconds)}
+                        </span>
+                      </div>
+                    );
+                  } else {
+                    // Countdown has expired (48 hours have passed)
+                    console.log(`App #${app.application_id}: Countdown expired, hiding timer`);
+                    return null;
+                  }
+                })()}
               </div>
 
               {/* Application Details */}
               <div className="mb-6">
-                <h4 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-                  <BuildingOfficeIcon className="h-5 w-5 text-indigo-600 mr-2" />
+                <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <BuildingOfficeIcon className="h-5 w-5 text-purple-600 mr-2" />
                   {t('application.details')}
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
-                    <div className="flex items-center space-x-2">
-                      <CalendarIcon className="h-4 w-4 text-blue-600" />
-                      <div>
-                        <div className="text-xs font-medium text-blue-700">{t('application.submittedAt')}</div>
-                        <div className="text-sm font-bold text-blue-900">
-                          {new Date(app.submitted_at).toLocaleString()}
+                
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="divide-y divide-gray-200">
+                    {/* Submitted Date */}
+                    <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                          <CalendarIcon className="h-4 w-4 text-purple-600" />
                         </div>
+                        <span className="text-sm font-medium text-gray-700">{t('application.submittedAt')}</span>
                       </div>
+                      <span className="text-sm text-gray-900 font-semibold">
+                        {new Date(app.submitted_at).toLocaleString()}
+                      </span>
                     </div>
-                  </div>
 
-                  {app.cr_number && (
-                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-3 border border-green-100">
-                      <div className="flex items-center space-x-2">
-                        <DocumentTextIcon className="h-4 w-4 text-green-600" />
-                        <div>
-                          <div className="text-xs font-medium text-green-700">{t('application.crNumber')}</div>
-                          <div className="text-sm font-bold text-green-900">{app.cr_number}</div>
+                    {/* CR Number */}
+                    {app.cr_number && (
+                      <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                            <DocumentTextIcon className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-700">{t('application.crNumber')}</span>
                         </div>
+                        <span className="text-sm text-gray-900 font-semibold">{app.cr_number}</span>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-3 border border-purple-100">
-                    <div className="flex items-center space-x-2">
-                      <CreditCardIcon className="h-4 w-4 text-purple-600" />
-                      <div>
-                        <div className="text-xs font-medium text-purple-700">{t('application.posDevices')}</div>
-                        <div className="text-sm font-bold text-purple-900">{app.number_of_pos_devices}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg p-3 border border-orange-100">
-                    <div className="flex items-center space-x-2">
-                      <MapPinIcon className="h-4 w-4 text-orange-600" />
-                      <div>
-                        <div className="text-xs font-medium text-orange-700">{t('application.cityOfOperation')}</div>
-                        <div className="text-sm font-bold text-orange-900">{app.city_of_operation}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg p-3 border border-indigo-100">
-                    <div className="flex items-center space-x-2">
-                      <UserIcon className="h-4 w-4 text-indigo-600" />
-                      <div>
-                        <div className="text-xs font-medium text-indigo-700">{t('application.contactPerson')}</div>
-                        <div className="text-sm font-bold text-indigo-900">{app.contact_person}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-3 border border-teal-100">
-                    <div className="flex items-center space-x-2">
-                      <PhoneIcon className="h-4 w-4 text-teal-600" />
-                      <div>
-                        <div className="text-xs font-medium text-teal-700">{t('application.mobileNumber')}</div>
-                        <div className="text-sm font-bold text-teal-900">{app.contact_person_number}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-lg p-3 border border-slate-100">
-                    <div className="flex items-center space-x-2">
-                      <DocumentTextIcon className="h-4 w-4 text-slate-600" />
-                      <div>
-                        <div className="text-xs font-medium text-slate-700">{t('application.ownPosSystem')}</div>
-                        <div className="text-sm font-bold text-slate-900">
-                          {app.own_pos_system ? t('common.yes') : t('common.no')}
+                    {/* POS Devices */}
+                    <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                          <CreditCardIcon className="h-4 w-4 text-purple-600" />
                         </div>
+                        <span className="text-sm font-medium text-gray-700">{t('application.posDevices')}</span>
                       </div>
+                      <span className="text-sm text-gray-900 font-semibold">{app.number_of_pos_devices}</span>
                     </div>
-                  </div>
 
-                  {app.notes && (
-                    <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-lg p-3 border border-yellow-100 md:col-span-3">
-                      <div className="flex items-start space-x-2">
-                        <DocumentTextIcon className="h-4 w-4 text-yellow-600 mt-0.5" />
-                        <div>
-                          <div className="text-xs font-medium text-yellow-700">{t('application.notes')}</div>
-                          <div className="text-sm text-yellow-900">{app.notes}</div>
+                    {/* City of Operation */}
+                    <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                          <MapPinIcon className="h-4 w-4 text-purple-600" />
                         </div>
+                        <span className="text-sm font-medium text-gray-700">{t('application.cityOfOperation')}</span>
                       </div>
+                      <span className="text-sm text-gray-900 font-semibold">{app.city_of_operation}</span>
                     </div>
-                  )}
+
+                    {/* Contact Person */}
+                    <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                          <UserIcon className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">{t('application.contactPerson')}</span>
+                      </div>
+                      <span className="text-sm text-gray-900 font-semibold">{app.contact_person}</span>
+                    </div>
+
+                    {/* Mobile Number */}
+                    <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                          <PhoneIcon className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">{t('application.mobileNumber')}</span>
+                      </div>
+                      <span className="text-sm text-gray-900 font-semibold">{app.contact_person_number}</span>
+                    </div>
+
+                    {/* Own POS System */}
+                    <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                          <DocumentTextIcon className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">{t('application.ownPosSystem')}</span>
+                      </div>
+                      <span className="text-sm text-gray-900 font-semibold">
+                        {app.own_pos_system ? t('common.yes') : t('common.no')}
+                      </span>
+                    </div>
+
+                    {/* Notes */}
+                    {app.notes && (
+                      <div className="px-6 py-4 flex items-start justify-between hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start space-x-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0 mt-0.5">
+                            <DocumentTextIcon className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-700">{t('application.notes')}</span>
+                        </div>
+                        <span className="text-sm text-gray-900 font-semibold max-w-md text-right">
+                          {app.notes}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Uploaded Document */}
               {app.uploaded_document && (
                 <div className="mb-6 pt-6 border-t border-slate-200">
-                  <h4 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-                    <DocumentIcon className="h-5 w-5 text-indigo-600 mr-2" />
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <DocumentIcon className="h-5 w-5 text-purple-600 mr-2" />
                     {t('application.uploadedDocuments')}
                   </h4>
-                  <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-3 border border-indigo-100">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <DocumentIcon className="h-4 w-4 text-indigo-600" />
+                  
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                          <DocumentIcon className="h-4 w-4 text-purple-600" />
+                        </div>
                         <div>
-                          <div className="text-xs font-medium text-indigo-700">{t('application.applicationDocument')}</div>
-                          <div className="text-sm text-indigo-900">{t('application.clickToDownload')}</div>
+                          <div className="text-sm font-medium text-gray-700">{t('application.applicationDocument')}</div>
+                          <div className="text-xs text-gray-500">{t('application.clickToDownload')}</div>
                         </div>
                       </div>
                       <a
                         href={`/api/download/${app.application_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl"
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200"
                       >
                         <DocumentIcon className="h-4 w-4 mr-2" />
                         {t('common.download')}
@@ -279,8 +302,8 @@ export default function YourApplication({ user }) {
         {/* Footer Note */}
         <div className="px-8 py-6 bg-slate-50 border-t border-slate-200">
           <div className="flex items-start space-x-3">
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-100 flex-shrink-0">
-              <DocumentIcon className="h-3 w-3 text-blue-600" />
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+              <DocumentIcon className="h-3 w-3 text-purple-600" />
             </div>
             <div>
               <h4 className="text-sm font-semibold text-slate-900 mb-1">{t('application.status')}</h4>

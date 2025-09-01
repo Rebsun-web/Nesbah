@@ -12,18 +12,22 @@ class AuctionExpiryHandler {
             console.log('⏰ Checking for expired auctions...');
 
             // Find applications that have expired and need status transition
+            // Use the 48-hour window from submitted_at if auction_end_time is not set
             const expiredApplications = await client.query(`
                 SELECT 
-                    sa.application_id,
-                    sa.offers_count,
-                    sa.auction_end_time,
+                    pa.application_id,
+                    pa.offers_count,
+                    pa.submitted_at,
+                    pa.auction_end_time,
                     pa.trade_name,
-                    EXTRACT(EPOCH FROM (sa.auction_end_time - NOW()))/3600 as hours_expired
-                FROM submitted_applications sa
-                JOIN pos_application pa ON sa.application_id = pa.application_id
-                WHERE sa.status = 'live_auction'
-                AND sa.auction_end_time <= NOW()
-                ORDER BY sa.auction_end_time ASC
+                    pa.current_application_status,
+                    EXTRACT(EPOCH FROM (
+                        COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') - NOW()
+                    ))/3600 as hours_expired
+                FROM pos_application pa
+                WHERE COALESCE(pa.current_application_status, pa.status) = 'live_auction'
+                AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') <= NOW()
+                ORDER BY COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') ASC
             `);
 
             if (expiredApplications.rows.length === 0) {
@@ -79,26 +83,28 @@ class AuctionExpiryHandler {
      * Transition application to completed status
      */
     static async transitionToCompleted(applicationId, client) {
-        // Update submitted_applications table
-        await client.query(
-            'UPDATE submitted_applications SET status = $1 WHERE application_id = $2',
-            ['completed', applicationId]
-        );
-
         // Update pos_application table
-        await client.query(
-            'UPDATE pos_application SET status = $1 WHERE application_id = $2',
-            ['completed', applicationId]
-        );
-
-        // Update application_offer_tracking if it exists
         await client.query(`
-            UPDATE application_offer_tracking 
-            SET current_application_status = 'completed',
-                offer_window_start = NOW(),
-                offer_window_end = NOW() + INTERVAL '24 hours'
+            UPDATE pos_application 
+            SET 
+                status = 'completed',
+                current_application_status = 'completed',
+                updated_at = NOW()
             WHERE application_id = $1
         `, [applicationId]);
+
+        // Update application_offer_tracking if it exists
+        try {
+            await client.query(`
+                UPDATE application_offer_tracking 
+                SET current_application_status = 'completed',
+                    offer_window_start = NOW(),
+                    offer_window_end = NOW() + INTERVAL '24 hours'
+                WHERE application_id = $1
+            `, [applicationId]);
+        } catch (error) {
+            console.warn(`⚠️  Could not update application_offer_tracking for application ${applicationId}:`, error.message);
+        }
 
         // Log the transition (optional - don't fail if audit log insertion fails)
         try {
@@ -115,24 +121,26 @@ class AuctionExpiryHandler {
      * Transition application to ignored status
      */
     static async transitionToIgnored(applicationId, client) {
-        // Update submitted_applications table
-        await client.query(
-            'UPDATE submitted_applications SET status = $1 WHERE application_id = $2',
-            ['ignored', applicationId]
-        );
-
         // Update pos_application table
-        await client.query(
-            'UPDATE pos_application SET status = $1 WHERE application_id = $2',
-            ['ignored', applicationId]
-        );
-
-        // Update application_offer_tracking if it exists
         await client.query(`
-            UPDATE application_offer_tracking 
-            SET current_application_status = 'ignored'
+            UPDATE pos_application 
+            SET 
+                status = 'ignored',
+                current_application_status = 'ignored',
+                updated_at = NOW()
             WHERE application_id = $1
         `, [applicationId]);
+
+        // Update application_offer_tracking if it exists
+        try {
+            await client.query(`
+                UPDATE application_offer_tracking 
+                SET current_application_status = 'ignored'
+                WHERE application_id = $1
+            `, [applicationId]);
+        } catch (error) {
+            console.warn(`⚠️  Could not update application_offer_tracking for application ${applicationId}:`, error.message);
+        }
 
         // Log the transition (optional - don't fail if audit log insertion fails)
         try {
@@ -149,22 +157,25 @@ class AuctionExpiryHandler {
      * Get applications that are approaching auction end (within 2 hours)
      */
     static async getUrgentApplications() {
-        const client = await pool.connectWithRetry();
+        const client = await pool.connect();
         
         try {
             const urgentResult = await client.query(`
                 SELECT 
-                    sa.application_id,
-                    sa.auction_end_time,
-                    sa.offers_count,
+                    pa.application_id,
+                    pa.submitted_at,
+                    pa.auction_end_time,
+                    pa.offers_count,
                     pa.trade_name,
-                    EXTRACT(EPOCH FROM (sa.auction_end_time - NOW()))/3600 as hours_until_expiry
-                FROM submitted_applications sa
-                JOIN pos_application pa ON sa.application_id = pa.application_id
-                WHERE sa.status = 'live_auction'
-                AND sa.auction_end_time > NOW()
-                AND sa.auction_end_time <= NOW() + INTERVAL '2 hours'
-                ORDER BY sa.auction_end_time ASC
+                    pa.current_application_status,
+                    EXTRACT(EPOCH FROM (
+                        COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') - NOW()
+                    ))/3600 as hours_until_expiry
+                FROM pos_application pa
+                WHERE COALESCE(pa.current_application_status, pa.status) = 'live_auction'
+                AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') > NOW()
+                AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') <= NOW() + INTERVAL '2 hours'
+                ORDER BY COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') ASC
             `);
 
             return urgentResult.rows;

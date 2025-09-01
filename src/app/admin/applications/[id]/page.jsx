@@ -12,7 +12,6 @@ import {
     XCircleIcon,
     ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
-import ProtectedRoute from '@/components/admin/ProtectedRoute'
 
 export default function ApplicationDetail() {
     const params = useParams()
@@ -205,60 +204,54 @@ export default function ApplicationDetail() {
 
     if (loading) {
         return (
-            <ProtectedRoute>
-                <div className="min-h-screen bg-gray-50">
-                    <div className="flex items-center justify-center min-h-screen">
-                        <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                            <p className="text-gray-600">Loading application...</p>
-                        </div>
+            <div className="min-h-screen bg-gray-50">
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading application...</p>
                     </div>
                 </div>
-            </ProtectedRoute>
+            </div>
         )
     }
 
     if (error) {
         return (
-            <ProtectedRoute>
-                <div className="min-h-screen bg-gray-50">
-                    <div className="flex items-center justify-center min-h-screen">
-                        <div className="text-center">
-                            <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Error</h2>
-                            <p className="text-gray-600 mb-4">{error}</p>
-                            <button
-                                onClick={() => router.push('/admin?tab=applications')}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                            >
-                                Back to Applications
-                            </button>
-                        </div>
+            <div className="min-h-screen bg-gray-50">
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="text-center">
+                        <div className="text-red-500 text-6xl mb-4">⚠️</div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Error</h2>
+                        <p className="text-gray-600 mb-4">{error}</p>
+                        <button
+                            onClick={() => router.push('/admin?tab=applications')}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                            Back to Applications
+                        </button>
                     </div>
                 </div>
-            </ProtectedRoute>
+            </div>
         )
     }
 
     if (!application) {
         return (
-            <ProtectedRoute>
-                <div className="min-h-screen bg-gray-50">
-                    <div className="flex items-center justify-center min-h-screen">
-                        <div className="text-center">
-                            <div className="text-gray-500 text-6xl mb-4">📄</div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Not Found</h2>
-                            <p className="text-gray-600 mb-4">The application you&apos;re looking for doesn&apos;t exist.</p>
-                            <button
-                                onClick={() => router.push('/admin?tab=applications')}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                            >
-                                Back to Applications
-                            </button>
-                        </div>
+            <div className="min-h-screen bg-gray-50">
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="text-center">
+                        <div className="text-gray-500 text-6xl mb-4">📄</div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Not Found</h2>
+                        <p className="text-gray-600 mb-4">The application you&apos;re looking for doesn&apos;t exist.</p>
+                        <button
+                            onClick={() => router.push('/admin?tab=applications')}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                            Back to Applications
+                        </button>
                     </div>
                 </div>
-            </ProtectedRoute>
+            </div>
         )
     }
 
@@ -269,8 +262,7 @@ export default function ApplicationDetail() {
     const auctionStartTime = getAuctionStartTime(application.auction_end_time)
 
     return (
-        <ProtectedRoute>
-            <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50">
                 {/* Header */}
                 <div className="bg-white shadow">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -601,6 +593,6 @@ export default function ApplicationDetail() {
                     </div>
                 </div>
             </div>
-        </ProtectedRoute>
+
     )
 }

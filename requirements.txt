@@ -1,0 +1,67 @@
+# Core Next.js and React dependencies
+next@^14.2.32
+react@^18
+react-dom@^18
+
+# UI Component Libraries
+@headlessui/react@^2.1.1
+@heroicons/react@^2.1.4
+flowbite@^3.1.2
+flowbite-react@^0.11.7
+
+# React Aria and Stately (required for Headless UI v2)
+@react-aria/utils@^3.29.0
+@react-stately/utils@^3.29.0
+@react-stately/collections@^3.29.0
+@react-stately/selection@^3.29.0
+
+# Styling and UI
+tailwindcss@^3.4.7
+autoprefixer@^10.4.20
+postcss@^8.4.40
+styled-components@^6.1.13
+styled-jsx@^5.1.7
+clsx@^2.1.1
+
+# Animation and Motion
+framer-motion@^11.2.10
+
+# Charts and Data Visualization
+apexcharts@^3.54.1
+chart.js@^4.4.8
+
+# HTTP and API
+axios@^1.9.0
+
+# Authentication and Security
+bcrypt@^5.1.1
+jsonwebtoken@^9.0.2
+
+# Database
+pg@^8.14.1
+
+# Email Services
+@emailjs/browser@^4.4.1
+@emailjs/nodejs@^5.0.2
+emailjs-com@^3.2.0
+
+# File Processing
+exceljs@^4.4.0
+html-to-image@^1.11.11
+html2canvas@^1.4.1
+
+# Utilities
+dayjs@^1.11.12
+dotenv@^17.2.1
+feed@^4.2.2
+flag-icons@^7.2.3
+react-use-measure@^2.1.1
+node-cron@^3.0.3
+
+# Development Dependencies
+eslint@^8
+eslint-config-next@14.2.11
+prettier@^3.3.2
+prettier-plugin-organize-imports@^4.0.0
+prettier-plugin-tailwindcss@^0.6.5
+typescript@^5

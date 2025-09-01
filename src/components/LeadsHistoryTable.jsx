@@ -35,18 +35,22 @@ export default function LeadsHistoryTable({ data }) {
     }
 
     return (
-        <div className="overflow-x-auto">
+        <div className="overflow-hidden">
             <Table>
                 <thead>
                 <tr>
-                    <th className="bg-gray-100 px-4 py-3 text-start text-sm font-semibold text-gray-700">
-                        Application ID
+                    <th className="bg-gray-100 px-3 py-3 text-center text-sm font-semibold text-gray-700 w-24">
+                        App ID
                     </th>
-                    <th className="bg-gray-100 px-4 py-4 text-start text-sm font-semibold text-gray-700">Business Name
+                    <th className="bg-gray-100 px-3 py-3 text-center text-sm font-semibold text-gray-700 w-32">
+                        Business Name
                     </th>
-                    <th className="bg-gray-100 px-4 py-3 text-start text-sm font-semibold text-gray-700">Offer Submitted
+                    <th className="bg-gray-100 px-3 py-3 text-center text-sm font-semibold text-gray-700 w-24">
+                        Offer Date
                     </th>
-                    <th className="bg-gray-100 px-4 py-3 text-start text-sm font-semibold text-gray-700">Application Status</th>
+                    <th className="bg-gray-100 px-3 py-3 text-center text-sm font-semibold text-gray-700 w-24">
+                        Status
+                    </th>
                 </tr>
                 </thead>
                 <TableBody>
@@ -56,17 +60,17 @@ export default function LeadsHistoryTable({ data }) {
                             className="cursor-pointer hover:bg-gray-100"
                             onClick={() => handleRowClick(lead.application_id)}
                         >
-                            <TableCell className="text-start">{lead.application_id}</TableCell>
-                            <TableCell className="text-start">
+                            <TableCell className="text-start text-xs">{lead.application_id}</TableCell>
+                            <TableCell className="text-start text-xs truncate" title={lead.trade_name || 'N/A'}>
                                 {lead.trade_name || 'N/A'}
                             </TableCell>
-                            <TableCell className="text-start">
+                            <TableCell className="text-start text-xs">
                                 {lead.offer_submitted_at 
                                     ? new Date(lead.offer_submitted_at).toLocaleDateString()
                                     : 'N/A'}
                             </TableCell>
-                            <TableCell className="text-start">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            <TableCell className="text-start text-xs">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                     Live Auction
                                 </span>
                             </TableCell>

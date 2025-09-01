@@ -39,7 +39,15 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
         bank_contact_phone: '',
         admin_notes: '',
         is_featured: false,
-        featured_reason: ''
+        featured_reason: '',
+        approved_financing_amount: '',
+        proposed_repayment_period_months: '',
+        interest_rate: '',
+        monthly_installment_amount: '',
+        grace_period_months: '',
+        relationship_manager_name: '',
+        relationship_manager_email: '',
+        relationship_manager_phone: ''
     })
 
     useEffect(() => {
@@ -156,7 +164,15 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
                     bank_contact_phone: '',
                     admin_notes: '',
                     is_featured: false,
-                    featured_reason: ''
+                    featured_reason: '',
+                    approved_financing_amount: '',
+                    proposed_repayment_period_months: '',
+                    interest_rate: '',
+                    monthly_installment_amount: '',
+                    grace_period_months: '',
+                    relationship_manager_name: '',
+                    relationship_manager_email: '',
+                    relationship_manager_phone: ''
                 })
             } else {
                 setError(data.error || 'Failed to create offer')
@@ -283,69 +299,22 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
                         </div>
                     </div>
 
-                    {/* Bank Contact Information */}
+                    {/* Required Financing Fields */}
                     <div className="bg-blue-50 p-4 rounded-lg">
-                        <h4 className="text-md font-medium text-gray-900 mb-4">Bank Contact Information</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <h4 className="text-md font-medium text-blue-900 mb-4">Required Financing Fields</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Contact Person
-                                </label>
-                                <input
-                                    type="text"
-                                    name="bank_contact_person"
-                                    value={formData.bank_contact_person}
-                                    onChange={handleInputChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Contact person name"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Contact Email
-                                </label>
-                                <input
-                                    type="email"
-                                    name="bank_contact_email"
-                                    value={formData.bank_contact_email}
-                                    onChange={handleInputChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="contact@bank.com"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Contact Phone
-                                </label>
-                                <input
-                                    type="tel"
-                                    name="bank_contact_phone"
-                                    value={formData.bank_contact_phone}
-                                    onChange={handleInputChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="+966 50 123 4567"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Financial Details */}
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="text-md font-medium text-gray-900 mb-4">Financial Details</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Device Setup Fee (SAR)
+                                    Approved Financing Amount (SAR) *
                                 </label>
                                 <input
                                     type="number"
-                                    name="offer_device_setup_fee"
-                                    value={formData.offer_device_setup_fee}
+                                    name="approved_financing_amount"
+                                    value={formData.approved_financing_amount}
                                     onChange={handleInputChange}
                                     step="0.01"
                                     min="0"
+                                    required
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                                     placeholder="0.00"
                                 />
@@ -353,199 +322,118 @@ export default function NewOfferModal({ isOpen, onClose, onSuccess }) {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Mada Transaction Fee (%)
+                                    Proposed Repayment Period (months) *
                                 </label>
                                 <input
                                     type="number"
-                                    name="offer_transaction_fee_mada"
-                                    value={formData.offer_transaction_fee_mada}
+                                    name="proposed_repayment_period_months"
+                                    value={formData.proposed_repayment_period_months}
+                                    onChange={handleInputChange}
+                                    min="1"
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="12"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Interest/Profit Rate (%) *
+                                </label>
+                                <input
+                                    type="number"
+                                    name="interest_rate"
+                                    value={formData.interest_rate}
                                     onChange={handleInputChange}
                                     step="0.01"
                                     min="0"
                                     max="100"
+                                    required
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="1.00"
+                                    placeholder="5.50"
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Visa/MC Transaction Fee (%)
+                                    Monthly Installment Amount (SAR) *
                                 </label>
                                 <input
                                     type="number"
-                                    name="offer_transaction_fee_visa_mc"
-                                    value={formData.offer_transaction_fee_visa_mc}
+                                    name="monthly_installment_amount"
+                                    value={formData.monthly_installment_amount}
                                     onChange={handleInputChange}
                                     step="0.01"
                                     min="0"
-                                    max="100"
+                                    required
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="2.00"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Deal Value (SAR)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={calculateDealValue()}
-                                    readOnly
-                                    className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700"
-                                    placeholder="Auto-calculated"
+                                    placeholder="0.00"
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Commission Rate (%)
+                                    Grace Period (months) - Optional
                                 </label>
                                 <input
                                     type="number"
-                                    name="commission_rate"
-                                    value={formData.commission_rate}
+                                    name="grace_period_months"
+                                    value={formData.grace_period_months}
                                     onChange={handleInputChange}
-                                    step="0.1"
                                     min="0"
-                                    max="100"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="3.0"
+                                    placeholder="0 (if applicable)"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    {/* Settlement & Terms */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Mada Settlement Time (hours)
-                            </label>
-                            <input
-                                type="number"
-                                name="offer_settlement_time_mada"
-                                value={formData.offer_settlement_time_mada}
-                                onChange={handleInputChange}
-                                min="1"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="12"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Visa/MC Settlement Time (hours)
-                            </label>
-                            <input
-                                type="number"
-                                name="offer_settlement_time_visa_mc"
-                                value={formData.offer_settlement_time_visa_mc}
-                                onChange={handleInputChange}
-                                min="1"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="24"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                General Settlement Time
-                            </label>
-                            <input
-                                type="text"
-                                name="settlement_time"
-                                value={formData.settlement_time}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="24-48 hours"
-                            />
-                        </div>
-                    </div>
-
-
-
-
-
-
-
-                    {/* Offer Terms */}
-                    <div className="grid grid-cols-1 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Offer Terms
-                            </label>
-                            <textarea
-                                name="offer_terms"
-                                value={formData.offer_terms}
-                                onChange={handleInputChange}
-                                rows="4"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Detailed terms and conditions of this offer..."
-                            />
-                        </div>
-                    </div>
-
-                    {/* Comments & Notes */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Offer Comment
-                            </label>
-                            <textarea
-                                name="offer_comment"
-                                value={formData.offer_comment}
-                                onChange={handleInputChange}
-                                rows="3"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Additional details about this offer..."
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Admin Notes
-                            </label>
-                            <textarea
-                                name="admin_notes"
-                                value={formData.admin_notes}
-                                onChange={handleInputChange}
-                                rows="3"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Internal notes..."
-                            />
-                        </div>
-                    </div>
-
-                    {/* Featured Offer Settings */}
-                    <div className="bg-orange-50 p-4 rounded-lg">
-                        <h4 className="text-md font-medium text-gray-900 mb-4">Featured Offer Settings</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <label className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    name="is_featured"
-                                    checked={formData.is_featured}
-                                    onChange={handleInputChange}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
-                                />
-                                <span className="text-sm text-gray-700">Mark as Featured Offer</span>
-                            </label>
-
+                    {/* Relationship Manager Details */}
+                    <div className="bg-green-50 p-4 rounded-lg">
+                        <h4 className="text-md font-medium text-green-900 mb-4">Relationship Manager Contact Details</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Featured Reason
+                                    Name *
                                 </label>
                                 <input
                                     type="text"
-                                    name="featured_reason"
-                                    value={formData.featured_reason}
+                                    name="relationship_manager_name"
+                                    value={formData.relationship_manager_name}
                                     onChange={handleInputChange}
+                                    required
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Why this offer should be featured..."
+                                    placeholder="Full Name"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email *
+                                </label>
+                                <input
+                                    type="email"
+                                    name="relationship_manager_email"
+                                    value={formData.relationship_manager_email}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="manager@bank.com"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Phone Number *
+                                </label>
+                                <input
+                                    type="tel"
+                                    name="relationship_manager_phone"
+                                    value={formData.relationship_manager_phone}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="+966 50 123 4567"
                                 />
                             </div>
                         </div>

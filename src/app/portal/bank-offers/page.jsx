@@ -1,0 +1,274 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Container } from '@/components/container'
+import BusinessNavbar from '@/components/businessNavbar'
+import { NewFooter } from '@/components/NewFooter'
+import BankOffersDisplay from '@/components/BankOffersDisplay'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useRouter } from 'next/navigation'
+
+function OffersPage() {
+    const { t } = useLanguage()
+    const router = useRouter()
+    const [userInfo, setUserInfo] = useState(null)
+    const [hasApplication, setHasApplication] = useState(false)
+    const [applicationStatus, setApplicationStatus] = useState(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [isLoadingAppData, setIsLoadingAppData] = useState(false)
+    const [error, setError] = useState(null)
+
+    useEffect(() => {
+        checkAuthentication()
+    }, [])
+
+    // Separate useEffect to fetch application data when userInfo changes
+    useEffect(() => {
+        console.log('🔄 useEffect triggered - userInfo:', userInfo?.user_id, 'hasApplication:', hasApplication)
+        if (userInfo && userInfo.user_id) {
+            console.log('🔄 userInfo changed, fetching application data for:', userInfo.user_id)
+            fetchApplicationData(userInfo.user_id)
+        } else {
+            console.log('⏳ Waiting for userInfo to be set...')
+        }
+    }, [userInfo])
+
+    const checkAuthentication = async () => {
+        try {
+            console.log('🔍 Starting authentication check...')
+            setIsLoading(true)
+            setError(null)
+            
+            // Check if user is logged in
+            const storedUser = localStorage.getItem('user')
+            console.log('🔍 Stored user from localStorage:', storedUser ? 'Found' : 'Not found')
+            
+            if (!storedUser) {
+                console.log('❌ No user found in localStorage')
+                router.push('/login')
+                return
+            }
+
+            const parsedUser = JSON.parse(storedUser)
+            console.log('🔍 Parsed user data:', { user_id: parsedUser.user_id, user_type: parsedUser.user_type })
+            
+            // Validate user type
+            if (parsedUser.user_type !== 'business_user') {
+                console.log(`❌ Invalid user type: ${parsedUser.user_type}`)
+                localStorage.removeItem('user')
+                router.push('/login')
+                return
+            }
+
+            setUserInfo(parsedUser)
+            console.log('✅ Authentication successful, userInfo set:', parsedUser.user_id)
+            
+        } catch (error) {
+            console.error('❌ Authentication check failed:', error)
+            setError('Authentication failed. Please log in again.')
+            localStorage.removeItem('user')
+            router.push('/login')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const fetchApplicationData = async (userId) => {
+        try {
+            setIsLoadingAppData(true)
+            console.log('🔍 Fetching application data for user:', userId)
+            
+            const appResponse = await fetch(`/api/posApplication/${userId}`)
+            
+            if (!appResponse.ok) {
+                if (appResponse.status === 401) {
+                    console.log('❌ Unauthorized - redirecting to login')
+                    localStorage.removeItem('user')
+                    router.push('/login')
+                    return
+                }
+                throw new Error(`HTTP error! status: ${appResponse.status}`)
+            }
+            
+            const appData = await appResponse.json()
+            console.log('📊 Application data received:', appData)
+            
+            if (appData.success && appData.data && appData.data.length > 0) {
+                const application = appData.data[0]
+                setApplicationStatus(application.status)
+                setHasApplication(true)
+                console.log('✅ Application found with status:', application.status)
+                console.log('🔄 Setting hasApplication to true')
+            } else {
+                setHasApplication(false)
+                setApplicationStatus(null)
+                console.log('ℹ️ No application found for user')
+                console.log('🔄 Setting hasApplication to false')
+            }
+        } catch (err) {
+            console.error('❌ Error fetching application data:', err)
+            setError('Failed to fetch application data. Please try again.')
+            setHasApplication(false)
+        } finally {
+            setIsLoadingAppData(false)
+        }
+    }
+
+    if (isLoading || isLoadingAppData) {
+        return (
+            <div>
+                <BusinessNavbar />
+                <main className="pb-16">
+                    <Container/>
+                    <div className="min-h-full">
+                        <div className="pt-5">
+                            <main>
+                                <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                                    <div className="flex items-center justify-center min-h-64">
+                                        <div className="text-center">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                                            <p className="mt-4 text-gray-600">Loading offers...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </main>
+                        </div>
+                    </div>
+                </main>
+                <NewFooter/>
+            </div>
+        )
+    }
+
+    // Don't render the main content until we have both userInfo and application data
+    if (!userInfo || !userInfo.user_id) {
+        return (
+            <div>
+                <BusinessNavbar />
+                <main className="pb-16">
+                    <Container/>
+                    <div className="min-h-full">
+                        <div className="pt-5">
+                            <main>
+                                <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                                    <div className="flex items-center justify-center min-h-64">
+                                        <div className="text-center">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                                            <p className="mt-4 text-gray-600">Loading user information...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </main>
+                        </div>
+                    </div>
+                </main>
+                <NewFooter/>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div>
+                <BusinessNavbar />
+                <main className="pb-16">
+                    <Container/>
+                    <div className="min-h-full">
+                        <div className="pt-5">
+                            <main>
+                                <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                                        <div className="text-center">
+                                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
+                                                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                </svg>
+                                            </div>
+                                            <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Offers</h3>
+                                            <p className="text-red-700 mb-4">{error}</p>
+                                            <button
+                                                onClick={() => router.push('/login')}
+                                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                            >
+                                                Go to Login
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </main>
+                        </div>
+                    </div>
+                </main>
+                <NewFooter/>
+            </div>
+        )
+    }
+
+    return (
+        <div>
+            <BusinessNavbar />
+            <main className="pb-16">
+                <Container/>
+                <div className="min-h-full">
+                    <div className="pt-5">
+                        <main>
+                            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                                {console.log('🔍 Render state:', { hasApplication, isLoadingAppData, userInfo: !!userInfo })}
+                                {hasApplication ? (
+                                    <BankOffersDisplay userInfo={userInfo} applicationStatus={applicationStatus} />
+                                ) : isLoadingAppData ? (
+                                    <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                                        <div className="px-8 py-12 text-center">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                                            <p className="mt-4 text-gray-600">Loading application data...</p>
+                                        </div>
+                                    </div>
+                                ) : !isLoadingAppData && userInfo ? (
+                                    <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                                        <div className="px-8 py-12 text-center">
+                                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 mb-6">
+                                                <svg className="h-10 w-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                            </div>
+                                            <h3 className="text-lg font-semibold text-slate-900 mb-2">No Application Found</h3>
+                                            <p className="text-slate-600 max-w-md mx-auto mb-6">
+                                                You need to submit an application first before you can view offers from banks.
+                                            </p>
+                                            <div className="space-y-3">
+                                                <a
+                                                    href="/portal"
+                                                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl"
+                                                >
+                                                    Go to Dashboard
+                                                </a>
+                                                <button
+                                                    onClick={() => router.push('/portal')}
+                                                    className="block w-full mt-3 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                                                >
+                                                    Submit New Application
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                                        <div className="px-8 py-12 text-center">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                                            <p className="mt-4 text-gray-600">Initializing...</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </main>
+                    </div>
+                </div>
+            </main>
+            <NewFooter/>
+        </div>
+    )
+}
+
+export default function OffersPageWrapper() {
+    return <OffersPage />
+}

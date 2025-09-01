@@ -186,7 +186,12 @@ export async function POST(req) {
             number_of_pos_devices,
             city_of_operation,
             own_pos_system,
-            notes
+            notes,
+            pos_provider_name,
+            pos_age_duration_months,
+            avg_monthly_pos_sales,
+            requested_financing_amount,
+            preferred_repayment_period_months
         } = body;
 
         // Validate required fields
@@ -280,9 +285,11 @@ export async function POST(req) {
                     has_ecommerce, store_url, cr_capital, cash_capital, management_structure,
                     management_names, contact_person, contact_person_number,
                     number_of_pos_devices, city_of_operation, own_pos_system, notes,
-                    revenue_collected, offers_count, opened_by, purchased_by
+                    revenue_collected, offers_count, opened_by, purchased_by,
+                    pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
+                    requested_financing_amount, preferred_repayment_period_months
                 ) VALUES (
-                    $1, $2, 'submitted', 'live_auction', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
+                    $1, $2, 'submitted', 'live_auction', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
                 ) RETURNING application_id
             `;
             
@@ -292,7 +299,9 @@ export async function POST(req) {
                 JSON.stringify(contact_info || {}), has_ecommerce, store_url, cr_capital,
                 cash_capital, management_structure, JSON.stringify(management_names || []),
                 contact_person, contact_person_number, number_of_pos_devices,
-                city_of_operation, own_pos_system, notes, 0, 0, '{}', '{}'
+                city_of_operation, own_pos_system, notes, 0, 0, '{}', '{}',
+                pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
+                requested_financing_amount, preferred_repayment_period_months
             ]);
             
             const applicationId = posApplicationResult.rows[0].application_id;

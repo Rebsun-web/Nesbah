@@ -26,20 +26,22 @@ function DesktopNav() {
   const { t } = useLanguage()
   
   return (
-      <nav className="relative hidden lg:flex">
-        {links.map(({ href, labelKey }) => (
-            <PlusGridItem key={href} className="relative flex">
-              <Link
-                  href={href}
-                  className="flex items-center px-4 py-3 text-base font-medium text-[#1E1851] bg-blend-multiply data-[hover]:bg-gray-950/[2.5%] border-none outline-none"
-              >
-                {t(labelKey)}
-              </Link>
-            </PlusGridItem>
-        ))}
-        <div className="flex items-center pr-2 gap-4">
+      <nav className="relative hidden lg:flex items-center">
+        <div className="flex items-center space-x-1">
+          {links.map(({ href, labelKey }) => (
+              <PlusGridItem key={href} className="relative flex">
+                <Link
+                    href={href}
+                    className="flex items-center px-4 py-3 text-base font-medium text-[#1E1851] bg-blend-multiply data-[hover]:bg-gray-950/[2.5%] border-none outline-none hover:text-[#742CFF] transition-colors duration-200"
+                >
+                  {t(labelKey)}
+                </Link>
+              </PlusGridItem>
+          ))}
+        </div>
+        <div className="flex items-center pl-8 gap-4">
           <LanguageSwitcher variant="minimal" />
-          <Button href="/login" type="button" className="rounded-full sm:border-2 sm:border-purple-800 !bg-transparent px-2 py-1 text-sm font-semibold sm:text-black shadow-sm sm:hover:bg-purple-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+          <Button href="/login" type="button" className="rounded-full sm:border-2 sm:border-purple-800 !bg-transparent px-4 py-2 text-sm font-semibold sm:text-black shadow-sm sm:hover:bg-purple-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors duration-200">
             {t('nav.login')}
           </Button>
         </div>
@@ -115,8 +117,8 @@ export function Navbar({banner}) {
   return (
       <Disclosure as="header" className="pt-6 sm:pt-8">
         <PlusGrid>
-          <PlusGridRow className="relative flex justify-between">
-            <div className="relative flex gap-6">
+          <PlusGridRow className="relative flex justify-between items-center">
+            <div className="relative flex gap-6 items-center">
               <PlusGridItem className="py-3">
                 <Link href="/" title="Home">
                   <Logo className="h-9" />

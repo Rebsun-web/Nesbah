@@ -23,12 +23,18 @@ export async function authenticateAPIRequest(req, requiredUserType = null) {
                 
                 if (userData.user_id && userData.user_type) {
                     // Validate user type if required
-                    if (requiredUserType && userData.user_type !== requiredUserType) {
-                        console.log('🔧 Auth: User type mismatch:', userData.user_type, '!=', requiredUserType);
-                        return { 
-                            success: false, 
-                            error: `Access denied. Required user type: ${requiredUserType}`,
-                            status: 403 
+                    if (requiredUserType) {
+                        // Special handling for bank portal - allow both bank_user and bank_employee
+                        if (requiredUserType === 'bank_user' && 
+                            (userData.user_type === 'bank_user' || userData.user_type === 'bank_employee')) {
+                            console.log('🔧 Auth: Bank access granted for:', userData.user_type);
+                        } else if (userData.user_type !== requiredUserType) {
+                            console.log('🔧 Auth: User type mismatch:', userData.user_type, '!=', requiredUserType);
+                            return { 
+                                success: false, 
+                                error: `Access denied. Required user type: ${requiredUserType}`,
+                                status: 403 
+                            }
                         }
                     }
                     console.log('🔧 Auth: Authentication successful with user token');
@@ -148,11 +154,17 @@ export async function authenticateAPIRequest(req, requiredUserType = null) {
                     const user = result.rows[0]
                     
                     // Validate user type if required
-                    if (requiredUserType && user.user_type !== requiredUserType) {
-                        return { 
-                            success: false, 
-                            error: `Access denied. Required user type: ${requiredUserType}`,
-                            status: 403 
+                    if (requiredUserType) {
+                        // Special handling for bank portal - allow both bank_user and bank_employee
+                        if (requiredUserType === 'bank_user' && 
+                            (user.user_type === 'bank_user' || user.user_type === 'bank_employee')) {
+                            console.log('🔧 Auth: Bank access granted for:', user.user_type);
+                        } else if (user.user_type !== requiredUserType) {
+                            return { 
+                                success: false, 
+                                error: `Access denied. Required user type: ${requiredUserType}`,
+                                status: 403 
+                            }
                         }
                     }
                     

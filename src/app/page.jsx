@@ -20,51 +20,24 @@ function Hero() {
         <Navbar />
       </Container>
       <div className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
-        <div className="mt-2 grid grid-cols-1 lg:mt-16 lg:grid-cols-[800px_400px] lg:gap-12">
-          <div className="my-16">
+        <div className="mt-2 grid grid-cols-1 lg:mt-16 lg:grid-cols-2 lg:gap-16 xl:gap-20">
+          {/* Left Column - Text Content */}
+          <div className="my-16 flex flex-col items-center lg:items-start lg:justify-center">
             <Heading
               as="h2"
-              className="max-w-sm text-center tracking-wide font-medium text-xl text-[#1E1851] lg:max-w-lg lg:text-start"
+              className="max-w-sm text-center tracking-wide font-medium text-2xl text-[#1E1851] lg:max-w-2xl lg:text-start lg:text-4xl xl:text-5xl 2xl:text-6xl"
             >
               {t('hero.mainTitle')}
             </Heading>
-            <p className="my-6 tracking-wide max-w-xl font-normal text-center lg:my-12 lg:text-start">
+            <p className="my-6 tracking-wide max-w-xl font-normal text-center text-gray-700 lg:my-8 lg:max-w-2xl lg:text-start lg:text-lg">
               {t('hero.description')}
             </p>
-            <div className="grid grid-cols-2 justify-start gap-2 sm:grid-cols-[auto_auto_auto]">
-              {/* First Button */}
+            
+            {/* POS Financing Button - Below Description Text */}
+            <div className="flex justify-center lg:justify-start w-full">
               <Button
-                className="inline-flex w-auto items-center justify-center gap-2 rounded-full px-6 py-4 text-sm font-medium text-white shadow-sm"
-                style={{
-                  background:
-                    'linear-gradient(90deg, #742CFF -9.53%, #1E1851 180.33%)',
-                }}
-              >
-                <img
-                  src="/characters/personalloanIcon.png"
-                  className="h-5 w-5 object-contain"
-                />
-                {t('services.personalLoans')}
-              </Button>
-
-              {/* Second Button */}
-              <Button
-                className="inline-flex w-auto items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium text-white shadow-sm"
-                style={{
-                  background:
-                    'linear-gradient(90deg, #742CFF -9.53%, #1E1851 180.33%)',
-                }}
-              >
-                <img
-                  src="/characters/ccIcon.png"
-                  className="h-5 w-5 object-contain"
-                />
-                {t('services.creditCards')}
-              </Button>
-
-              {/* Third Button - POS */}
-              <Button
-                className="col-span-2 inline-flex w-auto items-center gap-2 justify-self-center rounded-full px-6 py-3 text-sm font-medium text-white shadow-sm sm:col-span-1"
+                href="/login"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-3 rounded-full px-8 py-4 text-lg font-medium text-white shadow-lg hover:scale-105 transition-transform duration-200"
                 style={{
                   background:
                     'linear-gradient(90deg, #742CFF -9.53%, #1E1851 180.33%)',
@@ -72,31 +45,22 @@ function Hero() {
               >
                 <img
                   src="/characters/PosIcon.png"
-                  className="h-5 w-5 object-contain"
+                  className="h-6 w-6 object-contain"
+                  alt="POS Icon"
                 />
-                {t('services.pos')}
+                {t('services.posFinancing')}
               </Button>
             </div>
           </div>
-          <div className="grid grid-rows-[auto_auto] items-center justify-center gap-4">
-            <div className="h-[300px] sm:h-auto">
+          
+          {/* Right Column - Image Only */}
+          <div className="flex flex-col items-center justify-center">
+            <div className="h-[300px] sm:h-[400px] lg:h-[450px] xl:h-[500px] flex items-center justify-center">
               <img
                 src="/characters/HomeCartoon.png"
                 className="h-full w-full object-contain"
+                alt="Hero Illustration"
               />
-            </div>
-            <div>
-              <Button
-                href="/login"
-                type="button"
-                className="w-full items-center rounded-full px-2 py-1 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                style={{
-                  background:
-                    'linear-gradient(87.69deg, #1E1851 -9.53%, #4436B7 89.33%)',
-                }}
-              >
-                {t('nav.login')}
-              </Button>
             </div>
           </div>
         </div>
@@ -110,69 +74,75 @@ function BentoSection() {
   
   return (
     <div className="relative bg-[#F5F5F5] bg-opacity-50 py-8 lg:py-16">
-      <div className="flex justify-center">
-        <div className="flex lg:justify-items-center  lg:pb-4">
+      {/* Statistics Section */}
+      <div className="flex justify-center mb-8 lg:mb-12">
+        <div className="flex justify-center">
           <img
             src="/company/NumberOfPartner.png"
             className="h-[130px] w-[380px] object-contain lg:h-[130px] lg:w-[635px]"
+            alt="Partner Statistics"
           />
         </div>
       </div>
 
-      <div className="flex justify-center lg:pt-3 lg:pb-0 pb-8">
-        <span className="rounded-md bg-white px-5 py-3 text-base font-medium text-[#742CFF] shadow-lg">
+      {/* Our Services Button */}
+      <div className="flex justify-center mb-12 lg:mb-16">
+        <span className="rounded-md bg-white px-6 py-4 text-base font-medium text-[#742CFF] shadow-lg hover:shadow-xl transition-shadow duration-200">
           {t('services.ourServices')}
         </span>
       </div>
 
-      <div className="mx-auto max-w-7xl px-1 sm:px-2 lg:px-4">
-        {/* ✅ First Grid (Existing Layout) */}
-        <div className="grid grid-cols-1 lg:grid-cols-[auto_400px]">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* POS Financing Section - Primary Service */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+          {/* Right Column - Image */}
           <div className="order-1 flex items-center justify-center lg:order-2">
             <img
               src="/characters/pos.PNG"
-              className="h-auto w-[200px] object-contain lg:w-[350px]"
+              className="h-auto w-[250px] object-contain lg:w-[400px] xl:w-[450px]"
+              alt="POS Financing"
             />
           </div>
 
-          <div className="order-2 grid grid-rows-[auto_auto_auto] lg:justify-start lg:items-start items-center justify-center lg:order-1">
-            <div className="my-2 flex flex-col lg:items-start items-center px-4 text-[#1E1851] lg:my-16 pt-6">
+          {/* Left Column - Content */}
+          <div className="order-2 flex flex-col items-center lg:items-start lg:order-1">
+            <div className="text-center lg:text-start max-w-xl">
               {/* Heading */}
-              <h2 className="mb-2 text-center text-base font-bold text-[#6B3FC4] lg:text-xl">
-                {t('services.pos')}
+              <h2 className="mb-4 text-xl font-bold text-[#6B3FC4] lg:text-2xl xl:text-3xl">
+                {t('services.posFinancing')}
               </h2>
               {/* Subheading */}
-              <p className="mb-6 max-w-xl lg:text-start text-center text-sm lg:text-lg">
-                {t('services.posDescription')}
+              <p className="mb-8 text-base lg:text-lg text-gray-700 leading-relaxed">
+                {t('services.posFinancingDescription')}
               </p>
 
               {/* Features List */}
-              <div className="mb-8 flex flex-col justify-items-center gap-6">
-                <div className="flex items-center gap-4">
+              <div className="mb-8 flex flex-col gap-6">
+                <div className="flex items-center gap-4 justify-center lg:justify-start">
                   <img
                     src="/characters/PosOne.png"
-                    alt=""
-                    className="h-7 w-7 lg:h-10 lg:w-10"
+                    alt="Transparent Comparison"
+                    className="h-8 w-8 lg:h-10 lg:w-10 flex-shrink-0"
                   />
                   <span className="text-sm font-medium lg:text-lg">
                     {t('services.transparentComparison')}
                   </span>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 justify-center lg:justify-start">
                   <img
                     src="/characters/PosTwo.png"
-                    alt=""
-                    className="h-7 w-7 lg:h-10 lg:w-10"
+                    alt="Save Time"
+                    className="h-8 w-8 lg:h-10 lg:w-10 flex-shrink-0"
                   />
                   <span className="text-sm font-medium lg:text-lg">
                     {t('services.saveTime')}
                   </span>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 justify-center lg:justify-start">
                   <img
                     src="/characters/PosThree.png"
-                    alt=""
-                    className="h-7 w-7 lg:h-10 lg:w-10"
+                    alt="Direct Communication"
+                    className="h-8 w-8 lg:h-10 lg:w-10 flex-shrink-0"
                   />
                   <span className="text-sm font-medium lg:text-lg">
                     {t('services.directCommunication')}
@@ -181,259 +151,97 @@ function BentoSection() {
               </div>
 
               {/* Apply Now Button */}
-              <Button
-                href="https://nesbah.com.sa/register"
-                type="button"
-                className="rounded-full px-12 py-6 text-sm font-normal text-white shadow-sm focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                style={{
-                  background:
-                    'linear-gradient(87.69deg, #1E1851 -9.53%, #4436B7 89.33%)',
-                }}
-              >
-                {t('services.comparePOS')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SecondBentoSection() {
-  const { t } = useLanguage()
-  
-  return (
-    <div className="relative py-16 sm:py-16">
-      <div className="mx-auto max-w-7xl px-1 sm:px-2 lg:px-4">
-        {/* ✅ First Section - Credit Card */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[400px_auto]">
-          {/* 🖼️ Column 2 - Image */}
-          <div className="order-2 flex justify-center items-center lg:items-start lg:justify-start lg:order-1">
-            <img
-              src="/characters/creditcardHomepage.png"
-              className="h-auto w-[200px] object-contain lg:w-[400px]"
-              alt="Credit Card"
-            />
-          </div>
-          {/* 📝 Column 1 - Text */}
-          <div className="order-2 grid grid-rows-[auto_auto_auto] items-center justify-center lg:order-1 lg:pl-12">
-            <div className="flex flex-col lg:items-start items-center px-4 text-[#1E1851] lg:my-16">
-              <h2 className="mb-2 text-center text-base font-bold text-[#6B3FC4] lg:text-xl">
-                {t('services.compareCreditCards')}
-              </h2>
-              <p className="mb-6 max-w-xl text-start text-sm lg:text-lg">
-                {t('services.creditCardDescription')}
-              </p>
-              <div className="mb-8 flex flex-col gap-6">
-                <div className="flex items-center gap-4">
-                  <img
-                    src="/characters/CreditcardOne.png"
-                    alt=""
-                    className="h-10 w-10"
-                  />
-                  <span className="text-sm font-medium lg:text-lg">
-                    {t('services.personalizedRecommendations')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <img
-                    src="/characters/CreditcardTwo.png"
-                    alt=""
-                    className="h-10 w-10"
-                  />
-                  <span className="text-sm font-medium lg:text-lg">
-                    {t('services.clearComparison')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <img
-                    src="/characters/CreditcardThree.png"
-                    alt=""
-                    className="h-10 w-10"
-                  />
-                  <span className="text-sm font-medium lg:text-lg">
-                    {t('services.easyApplication')}
-                  </span>
-                </div>
-              </div>
-              <Button
-                href="https://nesbah.com.sa/register"
-                type="button"
-                className="rounded-full px-12 py-3 text-sm font-normal text-white shadow-sm focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                style={{
-                  background:
-                    'linear-gradient(87.69deg, #1E1851 -9.53%, #4436B7 89.33%)',
-                }}
-              >
-                {t('services.applyEasily')}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* ✅ Second Section - Personal Loans */}
-        <div className="mt-16 grid grid-cols-1 lg:grid-cols-[auto_400px]">
-          <div className="order-2 grid grid-rows-[auto_auto_auto] lg:justify-items-start justify-items-center pl-0 lg:order-2">
-            <div className="my-2 flex flex-col lg:items-start items-center px-4 text-[#1E1851] lg:my-16">
-              <h2 className="mb-2 text-center text-base font-bold text-[#6B3FC4] lg:text-xl">
-                {t('services.comparePersonalLoans')}
-              </h2>
-              <p className="mb-6 max-w-xl lg:text-start text-center text-sm lg:text-lg">
-                {t('services.personalLoanDescription')}
-              </p>
-              <div className="mb-8 flex flex-col gap-6">
-                <div className="flex items-center gap-4">
-                  <img
-                    src="/characters/PersonalloanOne.png"
-                    alt=""
-                    className="h-10 w-10"
-                  />
-                  <span className="text-sm font-medium lg:text-lg">
-                    {t('services.customOffers')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <img
-                    src="/characters/PersonalloanTwo.png"
-                    alt=""
-                    className="h-10 w-10"
-                  />
-                  <span className="text-sm font-medium lg:text-lg">
-                    {t('services.instantComparison')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <img
-                    src="/characters/PersonalloanThree.png"
-                    alt=""
-                    className="h-10 w-10"
-                  />
-                  <span className="text-sm font-medium lg:text-lg">
-                    {t('services.applyEasily')}
-                  </span>
-                </div>
-              </div>
-              <Button
-                href="https://nesbah.com.sa/register"
-                type="button"
-                className="rounded-full px-12 py-3 text-sm font-normal text-white shadow-sm focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                style={{
-                  background:
-                    'linear-gradient(87.69deg, #1E1851 -9.53%, #4436B7 89.33%)',
-                }}
-              >
-                {t('services.applyEasily')}
-              </Button>
-            </div>
-          </div>
-          <div className="order-1 flex items-center justify-center lg:order-2 pb-6">
-            <img
-              src="/characters/moneyHomepage.png"
-              className="h-auto w-[200px] object-contain lg:w-[400px]"
-              alt="Personal Loans"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function CalculatorHome() {
-  const { t } = useLanguage()
-  
-  return (
-    <div className="overflow-hidden py-6 sm:py-10">
-      <div className="mx-auto max-w-7xl md:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-x-8 gap-y-16 sm:gap-y-20 lg:grid-cols-2 lg:items-start">
-          <div className="px-6 lg:px-0 lg:pr-4 lg:pt-4">
-            <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-lg">
-              <h2 className="text-base/7 font-semibold text-indigo-600">
-                {t('calculator.title')}
-              </h2>
-              <p className="mt-2 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
-                {t('calculator.discoverTitle')}
-              </p>
-              <p className="mt-6 text-lg/8 text-gray-600">
-                {t('calculator.description')}
-              </p>
-              <div className="mt-10 flex items-start justify-start gap-x-3">
-                <p className="text-xs font-medium text-purple-800 md:text-sm">
-                  {t('calculator.marketStatus')}
-                </p>
-                <span className="inline-flex items-center gap-x-1.5 rounded-md bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800">
-                  <svg
-                    viewBox="0 0 6 6"
-                    aria-hidden="true"
-                    className="size-1.5 fill-yellow-500"
-                  >
-                    <circle r={3} cx={3} cy={3} />
-                  </svg>
-                  {t('calculator.marketStatusValue')}
-                </span>
-              </div>
-              <dl className="mt-10 max-w-xl space-y-8 text-base/7 text-gray-600 lg:max-w-none">
-                <div className="relative pr-9">
-                  <dt className="inline font-semibold text-gray-900">
-                    <CalculatorIcon
-                      aria-hidden="true"
-                      className="absolute right-1 top-1 size-5 text-indigo-600"
-                    />
-                  </dt>{' '}
-                  <dd className="inline">
-                    {t('calculator.feature1')}
-                  </dd>
-                </div>
-                <div className="relative pr-9">
-                  <dt className="inline font-semibold text-gray-900">
-                    <BanknotesIcon
-                      aria-hidden="true"
-                      className="absolute right-1 top-1 size-5 text-indigo-600"
-                    />
-
-                  </dt>{' '}
-                  <dd className="inline">
-                    {t('calculator.feature2')}
-                  </dd>
-                </div>
-              </dl>
-              <div className="pt-12">
+              <div className="flex justify-center lg:justify-start">
                 <Button
-                  href="https://nesbah.com.sa/register"
+                  href="/login"
                   type="button"
-                  className="focus-visible-outline focus-visible-outline-2 focus-visible-outline-offset-2 focus-visible-outline-indigo-600 w-full items-center rounded-full pt-2 text-sm font-semibold text-white shadow-sm"
+                  className="rounded-full px-12 py-6 text-base font-medium text-white shadow-lg hover:scale-105 transition-transform duration-200 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                   style={{
                     background:
                       'linear-gradient(87.69deg, #1E1851 -9.53%, #4436B7 89.33%)',
                   }}
                 >
-                  {t('calculator.calculateNow')}
+                  {t('services.applyForPosFinancing')}
                 </Button>
               </div>
             </div>
           </div>
-          <div className="sm:px-6 lg:px-0">
-            <div className="relative isolate overflow-hidden bg-indigo-500 px-6 pt-8 sm:mx-auto sm:max-w-2xl sm:rounded-3xl sm:pl-16 sm:pr-0 sm:pt-16 lg:mx-0 lg:max-w-none">
-              <div
-                aria-hidden="true"
-                className="absolute -inset-y-px -left-3 -z-10 w-full origin-bottom-left skew-x-[-30deg] bg-indigo-100 opacity-20 ring-1 ring-inset ring-white"
-              />
-              <div className="mx-auto max-w-2xl sm:mx-0 sm:max-w-none">
-                <img
-                  alt="Product screenshot"
-                  src="/screenshots/asucok.png"
-                  width={2432}
-                  height={1442}
-                  className="-mb-12 w-[57rem] max-w-none rounded-tl-xl bg-gray-800 ring-1 ring-white/10"
-                />
-              </div>
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/10 sm:rounded-3xl"
-              />
-            </div>
-          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FAQ() {
+  const { t } = useLanguage()
+  const [openItems, setOpenItems] = useState(new Set())
+
+  const toggleItem = (index) => {
+    const newOpenItems = new Set(openItems)
+    if (newOpenItems.has(index)) {
+      newOpenItems.delete(index)
+    } else {
+      newOpenItems.add(index)
+    }
+    setOpenItems(newOpenItems)
+  }
+
+  const faqItems = [
+    {
+      question: t('faq.posFinancing.title'),
+      answer: t('faq.posFinancing.content')
+    },
+    {
+      question: t('faq.howItWorks.title'),
+      answer: t('faq.howItWorks.content')
+    },
+    {
+      question: t('faq.requirements.title'),
+      answer: t('faq.requirements.content')
+    }
+  ]
+
+  return (
+    <div className="bg-white py-16 sm:py-24">
+      <div className="mx-auto max-w-4xl px-6 lg:px-8">
+        <div className="mx-auto divide-y divide-gray-900/10">
+          <h2 className="text-3xl font-bold leading-10 tracking-tight text-gray-900 text-center mb-12">
+            {t('faq.title')}
+          </h2>
+          <dl className="mt-10 space-y-6 divide-y divide-gray-900/10">
+            {faqItems.map((item, index) => (
+              <Disclosure as="div" key={index} className="pt-6">
+                {({ open }) => (
+                  <>
+                    <dt>
+                      <DisclosureButton
+                        className="flex w-full items-start justify-between text-left text-gray-900 hover:text-[#742CFF] transition-colors duration-200"
+                        onClick={() => toggleItem(index)}
+                      >
+                        <span className="text-lg font-semibold leading-7 pr-4">
+                          {item.question}
+                        </span>
+                        <span className="ml-6 flex h-7 items-center flex-shrink-0">
+                          {openItems.has(index) ? (
+                            <MinusSmallIcon className="h-6 w-6" aria-hidden="true" />
+                          ) : (
+                            <PlusSmallIcon className="h-6 w-6" aria-hidden="true" />
+                          )}
+                        </span>
+                      </DisclosureButton>
+                    </dt>
+                    {openItems.has(index) && (
+                      <dd className="mt-4 pr-12">
+                        <p className="text-base leading-7 text-gray-600">
+                          {item.answer}
+                        </p>
+                      </dd>
+                    )}
+                  </>
+                )}
+              </Disclosure>
+            ))}
+          </dl>
         </div>
       </div>
     </div>
@@ -444,138 +252,34 @@ function Newsletter() {
   const { t } = useLanguage()
   
   return (
-    <div className=" py-16 sm:py-24">
-      <div className="mx-auto max-w-7xl sm:px-3 lg:px-5">
-        <div className="relative isolate flex flex-col gap-10 overflow-hidden bg-gray-900 px-6 py-24 shadow-2xl sm:rounded-3xl sm:px-24 xl:flex-row xl:items-center xl:py-32">
-          <h2 className="max-w-xl text-balance tracking-wide text-3xl font-semibold text-white sm:text-4xl xl:flex-auto">
-            {t('newsletter.title')}
-          </h2>
-          <form className="w-full max-w-md">
-            <div className="flex gap-x-4">
-              <label htmlFor="email-address" className="sr-only">
-                {t('newsletter.emailLabel')}
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                required
-                placeholder={t('newsletter.emailPlaceholder')}
-                autoComplete="email"
-                className="min-w-0 flex-auto rounded-md bg-white/5 px-3.5 py-2 text-base text-white outline outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-white sm:text-sm/6"
-              />
-              <button
-                type="submit"
-                className="flex-none rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              >
-                {t('newsletter.subscribeButton')}
-              </button>
-            </div>
-            <p className="mt-4 text-sm/6 text-gray-300">
-              {t('newsletter.privacyText')}{' '}
-              <a href="#" className="font-semibold text-white">
-                {t('newsletter.privacyLink')}
-              </a>
-              .
-            </p>
-          </form>
-          <svg
-            viewBox="0 0 1024 1024"
-            aria-hidden="true"
-            className="absolute left-1/2 top-1/2 -z-10 size-[64rem] -translate-x-1/2"
+    <div className="bg-[#1E1851] py-16 sm:py-20">
+      <div className="mx-auto max-w-2xl px-6 lg:px-8 text-center">
+        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+          {t('newsletter.title')}
+        </h2>
+        <p className="mx-auto mt-4 max-w-xl text-lg leading-8 text-gray-300 lg:text-xl">
+          {t('newsletter.description')}
+        </p>
+        <form className="mx-auto mt-10 flex max-w-md gap-x-4">
+          <label htmlFor="email-address" className="sr-only">
+            Email address
+          </label>
+          <input
+            id="email-address"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            className="min-w-0 flex-auto rounded-md border-0 bg-white/10 px-4 py-3 text-white shadow-sm ring-1 ring-inset ring-white/20 focus:ring-2 focus:ring-inset focus:ring-white sm:text-sm sm:leading-6 placeholder-gray-400"
+            placeholder={t('newsletter.placeholder')}
+          />
+          <button
+            type="submit"
+            className="flex-none rounded-md bg-white px-4 py-3 text-sm font-semibold text-[#1E1851] shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors duration-200"
           >
-            <circle r={512} cx={512} cy={512} fill="url(#759c1415-0410-454c-8f7c-9a820de03641)" fillOpacity="0.7" />
-            <defs>
-              <radialGradient
-                r={1}
-                cx={0}
-                cy={0}
-                id="759c1415-0410-454c-8f7c-9a820de03641"
-                gradientUnits="userSpaceOnUse"
-                gradientTransform="translate(512 512) rotate(90) scale(512)"
-              >
-                <stop stopColor="#742CFF" />
-                <stop offset={1} stopColor="#461A99" stopOpacity={0} />
-              </radialGradient>
-            </defs>
-          </svg>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function FAQ () {
-  const { t } = useLanguage()
-
-  const faqs = [
-    {
-      question: t('faq.question1'),
-      answer: t('faq.answer1'),
-    },
-    {
-      question: t('faq.question2'),
-      answer: t('faq.answer2'),
-    },
-    {
-      question: t('faq.question3'),
-      answer: t('faq.answer3'),
-    },
-    {
-      question: t('faq.question4'),
-      answer: t('faq.answer4'),
-    },
-    {
-      question: t('faq.question5'),
-      answer: t('faq.answer5'),
-    },
-    {
-      question: t('faq.question6'),
-      answer: t('faq.answer6'),
-    },
-    {
-      question: t('faq.question7'),
-      answer: t('faq.answer7'),
-    },
-    {
-      question: t('faq.question8'),
-      answer: t('faq.answer8'),
-    },
-  ]
-
-  return (
-    <div className="">
-      <div className="mx-auto max-w-7xl px-6 py-6 lg:px-8 lg:py-20">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="text-center text-pretty text-2xl font-semibold tracking-tight bg-gradient-to-r from-[#6250f2] via-[#4436B7] to-[#281B66] bg-clip-text text-transparent lg:text-4xl">
-            {t('faq.title')}
-          </h2>
-          <dl className="mt-16 grid gap-x-8 gap-y-10 sm:grid-cols-1 lg:grid-cols-2">
-            {faqs.map((faq, index) => (
-              <div
-                key={index}
-                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
-              >
-                <Disclosure as="div" className="space-y-2">
-                  <dt>
-                    <DisclosureButton className="group flex w-full items-center justify-between text-left text-gray-900">
-                      <span className="text-start text-base font-semibold leading-7">{faq.question}</span>
-                      <span className="ml-2 flex h-7 items-center">
-              <PlusSmallIcon aria-hidden="true" className="size-6 group-data-[open]:hidden" />
-              <MinusSmallIcon aria-hidden="true" className="size-6 group-[&:not([data-open])]:hidden" />
-            </span>
-                    </DisclosureButton>
-                  </dt>
-                  <DisclosurePanel as="dd" className="pl-2">
-                    <p className="text-base leading-7 text-gray-600">{faq.answer}</p>
-                  </DisclosurePanel>
-                </Disclosure>
-              </div>
-            ))}
-          </dl>
-
-
-        </div>
+            {t('newsletter.subscribe')}
+          </button>
+        </form>
       </div>
     </div>
   )
@@ -591,8 +295,6 @@ export default function Home() {
         <Container className="mt-2"></Container>
         <div>
           <BentoSection />
-          <SecondBentoSection />
-          <CalculatorHome />
           <FAQ />
           <Newsletter />
         </div>

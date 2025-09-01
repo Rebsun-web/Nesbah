@@ -55,8 +55,8 @@ export default function CreateUserPage() {
                                 💡 Pro Tips
                             </h3>
                             <ul className="text-sm text-yellow-800 space-y-1">
-                                <li>• Make sure your browser's password manager is enabled</li>
-                                <li>• The suggestion works best with <code>autocomplete="new-password"</code></li>
+                                <li>• Make sure your browser&apos;s password manager is enabled</li>
+                                <li>• The suggestion works best with <code>autocomplete=&quot;new-password&quot;</code></li>
                                 <li>• You can also use the generate button (⚙️) to trigger suggestions</li>
                                 <li>• Password strength indicator helps verify security</li>
                                 <li>• Generated passwords are cryptographically secure</li>

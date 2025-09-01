@@ -25,7 +25,6 @@ export default function OfferManagement() {
     const [showNewOfferModal, setShowNewOfferModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
-    const [bankFilter, setBankFilter] = useState('all')
 
     useEffect(() => {
         fetchOffers()
@@ -97,19 +96,11 @@ export default function OfferManagement() {
         setShowEditModal(false)
     }
 
-
-
     const filteredOffers = offers.filter(offer => {
-        const matchesSearch = offer.business_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            offer.bank_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            offer.application_id?.toString().includes(searchTerm)
-        
-        const matchesBank = bankFilter === 'all' || offer.bank_name === bankFilter
-
-        return matchesSearch && matchesBank
+        return offer.business_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               offer.bank_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               offer.application_id?.toString().includes(searchTerm)
     })
-
-    const uniqueBanks = [...new Set(offers.map(offer => offer.bank_name))]
 
     if (loading) {
         return (
@@ -146,48 +137,35 @@ export default function OfferManagement() {
         <div className="space-y-6">
             {/* Header */}
             <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-3">
-                        <button 
-                            onClick={() => setShowNewOfferModal(true)}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
-                        >
-                            <PlusIcon className="h-4 w-4 mr-2" />
-                            New Offer
-                        </button>
-                    </div>
-                </div>
-
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="relative">
-                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search offers..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500"
-                        />
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-4">
+                        <div className="relative">
+                            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search by bank name, business name, or application ID..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-64 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <FunnelIcon className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-600">
+                                {filteredOffers.length} of {offers.length} offers
+                            </span>
+                        </div>
                     </div>
 
-                    <select
-                        value={bankFilter}
-                        onChange={(e) => setBankFilter(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    <button 
+                        onClick={() => setShowNewOfferModal(true)}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
                     >
-                        <option value="all">All Banks</option>
-                        {uniqueBanks.map(bank => (
-                            <option key={bank} value={bank}>{bank}</option>
-                        ))}
-                    </select>
-
-                    <div className="flex items-center space-x-2">
-                        <FunnelIcon className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-600">
-                            {filteredOffers.length} of {offers.length} offers
-                        </span>
-                    </div>
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        New Offer
+                    </button>
                 </div>
             </div>
 
@@ -224,7 +202,7 @@ export default function OfferManagement() {
                                     <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                                         <BanknotesIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                                         <p className="text-lg font-medium">No offers found</p>
-                                        <p className="text-sm">Try adjusting your search or filters</p>
+                                        <p className="text-sm">Try adjusting your search terms</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -502,6 +480,7 @@ export default function OfferManagement() {
                                                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
+
                                     </div>
 
                                     <div>
@@ -548,3 +527,4 @@ export default function OfferManagement() {
         </div>
     )
 }
+

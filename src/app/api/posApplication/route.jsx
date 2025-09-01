@@ -15,7 +15,12 @@ export async function POST(req) {
             contact_person,
             contact_person_number,
             number_of_pos_devices,
-            city_of_operation
+            city_of_operation,
+            pos_provider_name,
+            pos_age_duration_months,
+            avg_monthly_pos_sales,
+            requested_financing_amount,
+            preferred_repayment_period_months
         } = body;
 
         const submitted_at = new Date(); // capture submit time
@@ -57,10 +62,12 @@ export async function POST(req) {
                      legal_form, registration_status, issue_date_gregorian, city, 
                      has_ecommerce, store_url, cr_capital, cash_capital, management_structure, 
                      contact_person, contact_person_number, number_of_pos_devices, 
-                     city_of_operation, auction_end_time, opened_by, purchased_by)
+                     city_of_operation, auction_end_time, opened_by, purchased_by,
+                     pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
+                     requested_financing_amount, preferred_repayment_period_months)
                 VALUES 
                     ($1, 'live_auction', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-                     $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+                     $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
                 RETURNING application_id
                 `,
                 [
@@ -74,7 +81,9 @@ export async function POST(req) {
                     business.management_structure,
                     contact_person || null, contact_person_number || null,
                     number_of_pos_devices || null, city_of_operation || null, auction_end_time,
-                    [], [] // Initialize empty arrays for tracking (no ignored_by needed)
+                    [], [], // Initialize empty arrays for tracking (no ignored_by needed)
+                    pos_provider_name || null, pos_age_duration_months || null, avg_monthly_pos_sales || null,
+                    requested_financing_amount || null, preferred_repayment_period_months || null
                 ]
             );
 

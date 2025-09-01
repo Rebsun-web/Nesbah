@@ -260,7 +260,7 @@ export default function Register() {
                         localStorage.setItem('user', JSON.stringify(loginData.user));
                         
                         // Redirect to portal
-                        window.location.href = '/login';
+                        window.location.href = '/portal';
                     } else {
                         // If auto-login fails, redirect to login page
                         setErrorMessage('Account created successfully! Please log in with your credentials.');
@@ -348,7 +348,7 @@ export default function Register() {
 
                             <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
                                 <p className="text-sm text-purple-800 text-center">
-                                    We'll verify your business registration and retrieve details from Wathiq.
+                                    We&apos;ll verify your business registration and retrieve details from Wathiq.
                                 </p>
                             </div>
 

@@ -45,6 +45,7 @@ export default function LeadPage({ params }) {
         const res = await fetch(`/api/leads/${resolvedParams.id}`, {
             headers: {
                 'x-user-id': bankUser.user_id,
+                'x-user-type': bankUser.user_type,
             },
         });
 

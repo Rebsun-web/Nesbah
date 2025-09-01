@@ -39,9 +39,8 @@ export async function POST(req) {
                     const token = JWTUtils.generateUserToken(user);
 
                     let redirect = '/portal';
-                    if (user.user_type === 'admin_user') {
-                        redirect = '/admin';
-                    } else if (user.user_type === 'bank_user') {
+                    // Remove admin user handling - admin users should use /api/admin/auth/login
+                    if (user.user_type === 'bank_user') {
                         redirect = '/bankPortal';
                     }
 

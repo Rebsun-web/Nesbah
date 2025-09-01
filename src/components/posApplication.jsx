@@ -22,6 +22,13 @@ export function PosApplication({ user, onSuccess}) {
   const [cityOfOperation, setCityOfOperation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // New POS application fields
+  const [posProviderName, setPosProviderName] = useState('');
+  const [posAgeDuration, setPosAgeDuration] = useState('');
+  const [avgMonthlyPosSales, setAvgMonthlyPosSales] = useState('');
+  const [requestedFinancingAmount, setRequestedFinancingAmount] = useState('');
+  const [preferredRepaymentPeriod, setPreferredRepaymentPeriod] = useState('');
+
   const clearUploadedFile = () => {
     setUploadedFile(null);
     setBase64File(null);
@@ -87,6 +94,27 @@ export function PosApplication({ user, onSuccess}) {
       return;
     }
 
+    // Validate new required POS fields
+    if (!posProviderName.trim()) {
+      alert('Please enter the POS provider name.');
+      return;
+    }
+
+    if (!posAgeDuration.trim()) {
+      alert('Please enter the POS age duration in months.');
+      return;
+    }
+
+    if (!avgMonthlyPosSales.trim()) {
+      alert('Please enter the average monthly POS sales amount.');
+      return;
+    }
+
+    if (!requestedFinancingAmount.trim()) {
+      alert('Please enter the requested financing amount.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     const formData = {
@@ -103,6 +131,12 @@ export function PosApplication({ user, onSuccess}) {
       contact_person_number: contactPersonNumber,
       number_of_pos_devices: numberOfPos,
       city_of_operation: cityOfOperation,
+      // New POS application fields
+      pos_provider_name: posProviderName,
+      pos_age_duration_months: parseInt(posAgeDuration) || 0,
+      avg_monthly_pos_sales: parseFloat(avgMonthlyPosSales) || 0,
+      requested_financing_amount: parseFloat(requestedFinancingAmount) || 0,
+      preferred_repayment_period_months: preferredRepaymentPeriod ? parseInt(preferredRepaymentPeriod) : null
     };
 
     try {
@@ -328,6 +362,109 @@ export function PosApplication({ user, onSuccess}) {
                     value={cityOfOperation}
                     onChange={(e) => setCityOfOperation(e.target.value)}
                     className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* New POS Application Fields */}
+            <div>
+              <label htmlFor="posProviderName" className="block text-sm font-medium text-gray-900">
+                POS Provider Name *
+              </label>
+              <div className="mt-2">
+                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                  <input
+                    id="posProviderName"
+                    name="posProviderName"
+                    type="text"
+                    value={posProviderName}
+                    onChange={(e) => setPosProviderName(e.target.value)}
+                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    placeholder="e.g., Verifone, Ingenico, PAX"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="posAgeDuration" className="block text-sm font-medium text-gray-900">
+                POS Age Duration (months) *
+              </label>
+              <div className="mt-2">
+                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                  <input
+                    id="posAgeDuration"
+                    name="posAgeDuration"
+                    type="number"
+                    min="0"
+                    value={posAgeDuration}
+                    onChange={(e) => setPosAgeDuration(e.target.value)}
+                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    placeholder="e.g., 24"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="avgMonthlyPosSales" className="block text-sm font-medium text-gray-900">
+                Average Monthly POS Sales (SAR) *
+              </label>
+              <div className="mt-2">
+                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                  <input
+                    id="avgMonthlyPosSales"
+                    name="avgMonthlyPosSales"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={avgMonthlyPosSales}
+                    onChange={(e) => setAvgMonthlyPosSales(e.target.value)}
+                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    placeholder="e.g., 50000.00"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="requestedFinancingAmount" className="block text-sm font-medium text-gray-900">
+                Requested Financing Amount (SAR) *
+              </label>
+              <div className="mt-2">
+                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                  <input
+                    id="requestedFinancingAmount"
+                    name="requestedFinancingAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={requestedFinancingAmount}
+                    onChange={(e) => setRequestedFinancingAmount(e.target.value)}
+                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    placeholder="e.g., 100000.00"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="preferredRepaymentPeriod" className="block text-sm font-medium text-gray-900">
+                Preferred Repayment Period (months)
+              </label>
+              <div className="mt-2">
+                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                  <input
+                    id="preferredRepaymentPeriod"
+                    name="preferredRepaymentPeriod"
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={preferredRepaymentPeriod}
+                    onChange={(e) => setPreferredRepaymentPeriod(e.target.value)}
+                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    placeholder="e.g., 24 (optional)"
                   />
                 </div>
               </div>

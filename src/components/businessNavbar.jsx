@@ -17,7 +17,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 
 const navigation = [
     { name: 'nav.dashboard', href: '/portal' },
-    { name: 'nav.offers', href: '/portal/offers' },
+    { name: 'nav.offers', href: '/portal/bank-offers' },
 ]
 
 const userNavigation = [
@@ -50,6 +50,13 @@ export default function BusinessNavbar() {
         }
     }
 
+    const handleNavClick = (href) => {
+        console.log('🔍 Navigation clicked:', href)
+        console.log('🔍 Current pathname:', pathname)
+        console.log('🔍 Router state:', router)
+        router.push(href)
+    }
+
     return (
         <Disclosure as="nav" className="bg-[#1E1851]">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -74,19 +81,19 @@ export default function BusinessNavbar() {
                             {navigation.map((item) => {
                                 const isActive = pathname === item.href
                                 return (
-                                    <a
+                                    <button
                                         key={item.name}
-                                        href={item.href}
+                                        onClick={() => handleNavClick(item.href)}
                                         aria-current={isActive ? 'page' : undefined}
                                         className={classNames(
                                             isActive
                                                 ? 'bg-purple-700 text-white'
                                                 : 'text-gray-300 hover:bg-white-200 hover:text-white',
-                                            'rounded-md px-3 py-2 text-sm font-medium',
+                                            'rounded-md px-3 py-2 text-sm font-medium cursor-pointer',
                                         )}
                                     >
                                         {t(item.name)}
-                                    </a>
+                                    </button>
                                 )
                             })}
                         </div>
@@ -136,14 +143,14 @@ export default function BusinessNavbar() {
                         return (
                             <DisclosureButton
                                 key={item.name}
-                                as="a"
-                                href={item.href}
+                                as="button"
+                                onClick={() => handleNavClick(item.href)}
                                 aria-current={isActive ? 'page' : undefined}
                                 className={classNames(
                                     isActive
                                         ? 'bg-gray-900 text-white'
                                         : 'text-gray-300 hover:bg-gray-700 hover:text-white',
-                                    'block rounded-md px-3 py-2 text-base font-medium',
+                                    'block rounded-md px-3 py-2 text-base font-medium w-full text-left',
                                 )}
                             >
                                 {t(item.name)}

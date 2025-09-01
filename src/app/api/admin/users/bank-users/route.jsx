@@ -32,8 +32,12 @@ export async function GET(request) {
                 u.email,
                 u.user_type,
                 u.entity_name,
-                u.created_at
+                u.created_at,
+                bu.logo_url,
+                bu.sama_license_number,
+                bu.bank_type
             FROM users u
+            LEFT JOIN bank_users bu ON u.user_id = bu.user_id
             WHERE u.user_type = 'bank_user'
             ORDER BY u.email
         `)

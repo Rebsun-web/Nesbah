@@ -4,7 +4,7 @@ import { AnalyticsService } from '@/lib/analytics/analytics-service';
 
 export async function GET(req, { params }) {
     const applicationId = parseInt((await params).id);
-    const bankUserId = parseInt(req.headers.get('x-user-id'));
+    let bankUserId = parseInt(req.headers.get('x-user-id'));
 
     console.log('🔍 Parsed applicationId:', applicationId);
     console.log('🔍 Parsed bankUserId:', bankUserId);
@@ -13,19 +13,32 @@ export async function GET(req, { params }) {
         return NextResponse.json({ success: false, error: 'Missing bank user ID' }, { status: 400 });
     }
 
-    const client = await pool.connectWithRetry();
-
     try {
-        await client.query('BEGIN');
+        // If this is a bank employee, get the main bank user ID
+        if (req.headers.get('x-user-type') === 'bank_employee') {
+            try {
+                const bankEmployeeResult = await pool.query(
+                    'SELECT bank_user_id FROM bank_employees WHERE user_id = $1',
+                    [bankUserId]
+                );
+                
+                if (bankEmployeeResult.rows.length > 0) {
+                    bankUserId = bankEmployeeResult.rows[0].bank_user_id;
+                    console.log('🔍 Updated bankUserId for employee:', bankUserId);
+                }
+            } catch (error) {
+                console.error('Error getting bank user ID for employee:', error);
+                return NextResponse.json({ success: false, error: 'Failed to get bank information' }, { status: 500 });
+            }
+        }
 
         // UPDATED: Check application visibility state using pos_application table
-        const appRes = await client.query(
+        const appRes = await pool.query(
             `SELECT opened_by, purchased_by FROM pos_application WHERE application_id = $1`,
             [applicationId]
         );
 
         if (appRes.rowCount === 0) {
-            await client.query('ROLLBACK');
             return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
         }
 
@@ -35,35 +48,60 @@ export async function GET(req, { params }) {
 
         let appQuery = `
             SELECT
-                pa.application_id, pa.notes, pa.uploaded_document, pa.uploaded_filename, pa.uploaded_mimetype,
-                pa.contact_person, pa.contact_person_number, pa.number_of_pos_devices, pa.city_of_operation,
-                pa.own_pos_system, pa.submitted_at,
-                bu.trade_name, bu.registration_status, bu.cr_number, bu.cr_national_number,
-                COALESCE(bu.legal_form, '') as legal_form, 
-                bu.issue_date_gregorian, 
-                COALESCE(bu.confirmation_date_gregorian, '') as confirmation_date_gregorian,
-                bu.address, bu.sector, 
-                COALESCE(bu.city, '') as city,
-                bu.has_ecommerce, 
-                COALESCE(bu.store_url, '') as store_url, 
+                pa.application_id,
+                pa.user_id,
+                pa.status,
+                pa.submitted_at,
+                pa.auction_end_time,
+                pa.offers_count,
+                pa.revenue_collected,
+                pa.notes,
+                pa.number_of_pos_devices,
+                pa.city_of_operation,
+                pa.own_pos_system,
+                pa.uploaded_filename,
+                pa.uploaded_document,
+                pa.uploaded_mimetype,
+                pa.contact_person,
+                pa.contact_person_number,
+                
+                -- POS Application Specific Fields
+                pa.pos_provider_name,
+                pa.pos_age_duration_months,
+                pa.avg_monthly_pos_sales,
+                pa.requested_financing_amount,
+                pa.preferred_repayment_period_months,
+                pa.has_ecommerce,
+                pa.store_url,
+                
+                -- Business Information (Wathiq API data)
+                bu.trade_name,
+                bu.cr_number,
+                bu.cr_national_number,
+                bu.registration_status,
+                bu.address,
+                bu.sector,
                 bu.cr_capital,
-                COALESCE(bu.cash_capital, 0) as cash_capital, 
-                COALESCE(bu.in_kind_capital, '') as in_kind_capital, 
-                COALESCE(bu.avg_capital, 0) as avg_capital,
-                COALESCE(bu.management_structure, '') as management_structure, 
-                bu.management_managers, 
-                COALESCE(bu.activities, ARRAY[]::text[]) as activities,
-                bu.is_verified, 
-                COALESCE(bu.verification_date, NULL) as verification_date, 
-                COALESCE(bu.admin_notes, '') as admin_notes,
+                bu.cash_capital,
+                bu.in_kind_capital,
+                bu.avg_capital,
+                bu.legal_form,
+                bu.issue_date_gregorian,
+                bu.confirmation_date_gregorian,
+                bu.management_structure,
+                bu.management_managers,
                 bu.contact_info,
-                -- Additional personal details not provided by Wathiq API
-                pa.contact_person as business_contact_person,
-                pa.contact_person_number as business_contact_telephone,
-                u.email as business_contact_email
+                bu.activities,
+                bu.admin_notes,
+                bu.is_verified,
+                bu.verification_date,
+                
+                -- User Information
+                u.email as business_contact_email,
+                u.entity_name as business_entity_name
             FROM pos_application pa
-                     JOIN business_users bu ON pa.user_id = bu.user_id
-                     JOIN users u ON bu.user_id = u.user_id
+            JOIN business_users bu ON pa.user_id = bu.user_id
+            JOIN users u ON bu.user_id = u.user_id
             WHERE pa.application_id = $1
         `;
 
@@ -71,7 +109,7 @@ export async function GET(req, { params }) {
             // Hide sensitive information for opened but not purchased applications
             appQuery = appQuery.replace('bu.contact_info,', `'{}'::jsonb AS contact_info,`);
             appQuery = appQuery.replace('pa.contact_person as business_contact_person,', `'' as business_contact_person,`);
-            appQuery = appQuery.replace('pa.contact_person_number as business_contact_telephone,', `'' as business_contact_telephone,`);
+            appQuery = appQuery.replace('pa.contact_person_number as business_contact_telephone,', `'' as business_contact_person_number,`);
             appQuery = appQuery.replace('u.email as business_contact_email', `'' as business_contact_email`);
             
             // Hide some Wathiq data for opened but not purchased applications
@@ -82,7 +120,7 @@ export async function GET(req, { params }) {
 
         if (!isOpened) {
             // UPDATED: Update opened_by array in pos_application table
-            await client.query(
+            await pool.query(
                 `UPDATE pos_application
                  SET opened_by = array_append(opened_by, $1)
                  WHERE application_id = $2`,
@@ -99,7 +137,7 @@ export async function GET(req, { params }) {
         }
 
         if (isPurchased) {
-            await client.query(
+            await pool.query(
                 `UPDATE pos_application
                  SET status = 'completed'
                  WHERE application_id = $1`,
@@ -107,33 +145,75 @@ export async function GET(req, { params }) {
             );
         }
 
-        const appDataRes = await client.query(appQuery, [applicationId]);
+        const appDataRes = await pool.query(appQuery, [applicationId]);
+        const application = appDataRes.rows[0];
 
-        // UPDATED: Get offers using application_id directly from pos_application
-        const offerRes = await client.query(
-            `SELECT ao.*, u.entity_name
-             FROM application_offers ao
-                      JOIN users u ON u.user_id = ao.submitted_by_user_id
-             WHERE ao.submitted_application_id = $1
-               AND ao.submitted_by_user_id = $2
-             ORDER BY ao.submitted_at DESC`,
-            [applicationId, bankUserId]
-        );
+        if (!application) {
+            return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+        }
 
-        console.log('✅ offer_data rows:', offerRes.rows);
+        // Get offers for this application
+        const offersQuery = `
+            SELECT 
+                ao.offer_id,
+                ao.submitted_application_id,
+                ao.deal_value as offer_amount,
+                ao.offer_device_setup_fee as setup_fee,
+                ao.offer_transaction_fee_mada as transaction_fee_mada,
+                ao.offer_transaction_fee_visa_mc as transaction_fee_visa_mc,
+                ao.offer_settlement_time_mada,
+                ao.offer_settlement_time_visa_mc,
+                ao.offer_comment,
+                ao.offer_terms,
+                ao.status,
+                ao.submitted_by_user_id,
+                ao.submitted_at,
+                ao.expires_at,
+                ao.admin_notes,
+                ao.uploaded_filename,
+                ao.uploaded_mimetype,
+                ao.uploaded_document,
+                u.email as bank_email,
+                u.entity_name as bank_name
+            FROM application_offers ao
+            LEFT JOIN users u ON ao.submitted_by_user_id = u.user_id
+            WHERE ao.submitted_application_id = $1
+            ORDER BY ao.submitted_at DESC
+        `;
+        
+        const offersResult = await pool.query(offersQuery, [applicationId]);
+        application.offers = offersResult.rows;
 
-        await client.query('COMMIT');
+        // Get audit log for this application
+        const auditQuery = `
+            SELECT 
+                sal.log_id,
+                sal.from_status,
+                sal.to_status,
+                sal.reason,
+                sal.timestamp,
+                au.full_name as admin_name,
+                au.email as admin_email
+            FROM status_audit_log sal
+            LEFT JOIN admin_users au ON sal.admin_user_id = au.admin_id
+            WHERE sal.application_id = $1
+            ORDER BY sal.timestamp DESC
+            LIMIT 50
+        `;
+        
+        const auditResult = await pool.query(auditQuery, [applicationId]);
+        application.audit_log = auditResult.rows;
 
         return NextResponse.json({
             success: true,
-            data: appDataRes.rows[0],
-            offer_data: offerRes.rows[0] || null,
+            data: application
         });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        console.error('Error fetching lead details:', err);
-        return NextResponse.json({ success: false, error: 'Failed to fetch lead details' }, { status: 500 });
-    } finally {
-        client.release();
+
+    } catch (error) {
+        console.error('Application details error:', error);
+        return NextResponse.json(
+            { success: false, error: 'Failed to fetch application details' },
+            { status: 500 }
+        );
     }
 }

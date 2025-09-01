@@ -28,7 +28,16 @@ export async function GET(req, { params }) {
         ao.*,
         u.entity_name AS bank_name,
         bu.contact_person AS bank_contact_person,
-        bu.contact_person_number AS bank_contact_number
+        bu.contact_person_number AS bank_contact_number,
+        -- Financing fields
+        ao.approved_financing_amount,
+        ao.proposed_repayment_period_months,
+        ao.interest_rate,
+        ao.monthly_installment_amount,
+        ao.grace_period_months,
+        ao.relationship_manager_name,
+        ao.relationship_manager_phone,
+        ao.relationship_manager_email
       FROM application_offers ao
       JOIN bank_users bu ON ao.bank_user_id = bu.user_id
       JOIN users u ON bu.user_id = u.user_id

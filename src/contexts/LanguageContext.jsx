@@ -68,11 +68,6 @@ export function LanguageProvider({ children }) {
     }
     
     setIsInitialized(true)
-    
-    // Add hydrated class to show content
-    if (document.body) {
-      document.body.classList.add('hydrated')
-    }
   }, [])
 
   // Load translations when language changes

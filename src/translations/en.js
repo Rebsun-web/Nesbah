@@ -46,11 +46,16 @@ export default {
   'services.instantComparison': 'Instant Comparison',
   'services.personalizedRecommendations': 'Personalized Recommendations',
   'services.clearComparison': 'Clear Comparison',
-  'services.transparentComparison': 'Transparent Comparison',
-  'services.saveTime': 'Save Time',
-  'services.directCommunication': 'Direct Communication',
   'services.easyApplication': 'Apply Electronically with Ease',
   'services.applyEasily': 'Apply with Ease',
+  
+  // POS Financing (New MVP Service)
+  'services.posFinancing': 'POS Financing for Merchants',
+  'services.posFinancingDescription': 'Get competitive financing for your POS terminal needs. Connect with trusted banks and financial institutions for the best rates and terms.',
+  'services.applyForPosFinancing': 'Apply for POS Financing',
+  'services.transparentComparison': 'Transparent Comparison',
+  'services.saveTime': 'Save Time & Effort',
+  'services.directCommunication': 'Direct Bank Communication',
   
   // Calculator
   'calculator.title': 'Nesbah Calculator',
@@ -61,14 +66,6 @@ export default {
   'calculator.feature1': 'Check your eligibility instantly, compare multiple custom offers, and choose the financial solution that best suits your financial needs with ease and transparency.',
   'calculator.feature2': 'Learn immediately about expected installments, profit rates, and financing limits according to your personal data.',
   'calculator.calculateNow': 'Calculate Now',
-  
-  // Newsletter
-  'newsletter.title': 'Stay Updated! Subscribe to Our Newsletter',
-  'newsletter.emailLabel': 'Email Address',
-  'newsletter.emailPlaceholder': 'Enter your email',
-  'newsletter.subscribeButton': 'Subscribe Now',
-  'newsletter.privacyText': 'Your privacy matters to us.',
-  'newsletter.privacyLink': 'Read Privacy Policy',
   
   // FAQ
   'faq.title': 'Do You Have a Question?',
@@ -88,6 +85,14 @@ export default {
   'faq.answer7': 'To become a Nesbah partner, simply send us an email and tell us about yourselves. Our team will then contact you to discuss potential opportunities and next steps.',
   'faq.question8': 'Are there any fees associated with partnering with Nesbah?',
   'faq.answer8': 'Fee structure can vary based on services and level of customization required. We recommend discussing this in detail during our initial consultations.',
+  
+  // POS Financing FAQ (New)
+  'faq.posFinancing.title': 'What is POS Financing?',
+  'faq.posFinancing.content': 'POS Financing allows merchants to obtain financing for POS terminal equipment and related services through competitive offers from multiple banks.',
+  'faq.howItWorks.title': 'How does the process work?',
+  'faq.howItWorks.content': 'Submit your application, receive competitive offers from banks within 48 hours, and choose the best financing option for your business.',
+  'faq.requirements.title': 'What are the requirements?',
+  'faq.requirements.content': 'You need a valid CR number, business information, and supporting documents. Our system will automatically fetch your business details.',
   
   // Leads
   'leads.incoming': 'Incoming Requests',
@@ -297,4 +302,10 @@ export default {
   'language.arabic': 'العربية',
   'language.english': 'English',
   'language.switch': 'Switch Language',
+  
+  // Newsletter
+  'newsletter.title': 'Stay Updated',
+  'newsletter.description': 'Get the latest updates on financing options and market insights.',
+  'newsletter.placeholder': 'Enter your email',
+  'newsletter.subscribe': 'Subscribe',
 }

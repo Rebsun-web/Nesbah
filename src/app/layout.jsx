@@ -1,5 +1,12 @@
-import '@/styles/tailwind.css'
+import { Inter } from 'next/font/google'
+import '../styles/tailwind.css'
 import { LanguageProvider } from '@/contexts/LanguageContext'
+import HydrationHandler from '@/components/HydrationHandler'
+
+// Background tasks are now started manually via API endpoint
+// This prevents server startup delays
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: {
@@ -15,12 +22,6 @@ export default function RootLayout({ children }) {
         <link
           rel="stylesheet"
           href="https://api.fontshare.com/css?f%5B%5D=switzer@400,500,600,700&amp;display=swap"
-        />
-        <link
-          rel="alternate"
-          type="application/rss+xml"
-          title="The Radiant Blog"
-          href="/blog/feed.xml"
         />
         <style
           dangerouslySetInnerHTML={{
@@ -41,6 +42,8 @@ export default function RootLayout({ children }) {
         <LanguageProvider>
           {children}
         </LanguageProvider>
+        
+        <HydrationHandler />
       </body>
     </html>
   )

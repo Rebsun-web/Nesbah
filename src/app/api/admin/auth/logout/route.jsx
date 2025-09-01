@@ -5,18 +5,19 @@ export async function POST(req) {
         // Create response
         const response = NextResponse.json({
             success: true,
-            message: 'Logout successful'
+            message: 'Admin logged out successfully'
         })
 
-        // Clear the admin token cookie
+        // Clear admin token cookie
         response.cookies.set('admin_token', '', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 0, // Expire immediately
+            expires: new Date(0), // Expire immediately
             path: '/'
         })
 
+        console.log('🔧 Admin logout: JWT cookie cleared')
         return response
 
     } catch (error) {

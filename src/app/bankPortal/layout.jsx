@@ -18,14 +18,14 @@ function AuthCheck({ children }) {
                 if (storedUser) {
                     const userData = JSON.parse(storedUser)
                     
-                    // Validate user type - bankPortal is for bank users
-                    if (userData.user_type === 'bank_user') {
+                    // Validate user type - bankPortal is for bank users and bank employees
+                    if (userData.user_type === 'bank_user' || userData.user_type === 'bank_employee') {
                         setUser(userData)
                         setIsAuthenticated(true)
                         setIsChecking(false)
                         return
                     } else {
-                        console.log(`❌ User type mismatch. Expected: bank_user, Got: ${userData.user_type}`)
+                        console.log(`❌ User type mismatch. Expected: bank_user or bank_employee, Got: ${userData.user_type}`)
                         localStorage.removeItem('user')
                     }
                 }
@@ -70,7 +70,7 @@ function AuthCheck({ children }) {
                             </svg>
                         </div>
                         <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-                        <p className="text-gray-600 mb-6">You need to be logged in as a bank user to access this page.</p>
+                        <p className="text-gray-600 mb-6">You need to be logged in as a bank user or bank employee to access this page.</p>
                         <div className="space-y-3">
                             <button
                                 onClick={() => router.push('/login')}

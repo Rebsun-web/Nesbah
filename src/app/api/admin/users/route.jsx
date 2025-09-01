@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { authenticateAPIRequest } from '@/lib/auth/api-auth';
 import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function GET(req) {
     try {
-        // Authenticate the request
-        const authResult = await authenticateAPIRequest(req, 'admin_user');
-        if (!authResult.success) {
-            return NextResponse.json(
-                { success: false, error: authResult.error },
-                { status: authResult.status || 401 }
-            );
+        // Verify admin authentication
+        const adminToken = req.cookies.get('admin_token')?.value
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
         }
 
         const { searchParams } = new URL(req.url);
@@ -37,21 +43,20 @@ export async function GET(req) {
                         bu.user_id,
                         u.email,
                         bu.trade_name as entity_name,
-                        bu.registration_status,
+                        COALESCE(bu.cr_number, bu.cr_national_number) as cr_number,
+                        bu.address as city,
                         u.created_at,
                         u.updated_at,
                         'business' as user_type,
-                        CASE WHEN COUNT(pa.application_id) > 0 THEN true ELSE false END as has_sent_application,
-                        MAX(pa.submitted_at) as last_application_date,
+                        false as has_sent_application,
+                        NULL::timestamp as last_application_date,
                         false as has_sent_offer,
                         0::bigint as total_offers_sent,
                         NULL::timestamp as last_offer_date,
                         NULL as logo_url
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
-                    LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
                     WHERE 1=1
-                    GROUP BY bu.user_id, u.email, bu.trade_name, bu.registration_status, u.created_at, u.updated_at
                 `;
             } else if (user_type === 'individual') {
                 query = `
@@ -59,7 +64,6 @@ export async function GET(req) {
                         u.user_id,
                         u.email,
                         u.entity_name,
-                        u.account_status as registration_status,
                         u.created_at,
                         u.updated_at,
                         'individual' as user_type,
@@ -78,7 +82,6 @@ export async function GET(req) {
                         u.user_id,
                         u.email,
                         u.entity_name,
-                        u.account_status as registration_status,
                         u.created_at,
                         u.updated_at,
                         'bank' as user_type,
@@ -87,12 +90,14 @@ export async function GET(req) {
                         CASE WHEN COUNT(ao.offer_id) > 0 THEN true ELSE false END as has_sent_offer,
                         COUNT(ao.offer_id)::bigint as total_offers_sent,
                         MAX(ao.submitted_at) as last_offer_date,
-                        bu.logo_url
+                        bu.logo_url,
+                        bu.sama_license_number,
+                        bu.bank_type
                     FROM users u
                     LEFT JOIN bank_users bu ON u.user_id = bu.user_id
                     LEFT JOIN application_offers ao ON u.user_id = ao.bank_user_id
                     WHERE u.user_type = 'bank_user'
-                    GROUP BY u.user_id, u.email, u.entity_name, u.account_status, u.created_at, u.updated_at, bu.logo_url
+                    GROUP BY u.user_id, u.email, u.entity_name, u.created_at, u.updated_at, bu.logo_url, bu.sama_license_number, bu.bank_type
                 `;
                 
                 // Add offer status filter for bank users
@@ -110,7 +115,8 @@ export async function GET(req) {
                         bu.user_id,
                         u.email,
                         bu.trade_name as entity_name,
-                        bu.registration_status,
+                        COALESCE(bu.cr_number, bu.cr_national_number) as cr_number,
+                        bu.address as city,
                         u.created_at,
                         u.updated_at,
                         'business' as user_type,
@@ -123,7 +129,7 @@ export async function GET(req) {
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
                     LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
-                    GROUP BY bu.user_id, u.email, bu.trade_name, bu.registration_status, u.created_at, u.updated_at
+                    GROUP BY bu.user_id, u.email, bu.trade_name, bu.address, u.created_at, u.updated_at
                     
                     UNION ALL
                     
@@ -131,7 +137,6 @@ export async function GET(req) {
                         u.user_id,
                         u.email,
                         u.entity_name,
-                        u.account_status as registration_status,
                         u.created_at,
                         u.updated_at,
                         'individual' as user_type,
@@ -150,7 +155,6 @@ export async function GET(req) {
                         u.user_id,
                         u.email,
                         u.entity_name,
-                        u.account_status as registration_status,
                         u.created_at,
                         u.updated_at,
                         'bank' as user_type,
@@ -159,31 +163,19 @@ export async function GET(req) {
                         CASE WHEN COUNT(ao.offer_id) > 0 THEN true ELSE false END as has_sent_offer,
                         COUNT(ao.offer_id)::bigint as total_offers_sent,
                         MAX(ao.submitted_at) as last_offer_date,
-                        bu.logo_url
+                        bu.logo_url,
+                        bu.sama_license_number,
+                        bu.bank_type
                     FROM users u
                     LEFT JOIN bank_users bu ON u.user_id = bu.user_id
                     LEFT JOIN application_offers ao ON u.user_id = ao.bank_user_id
                     WHERE u.user_type = 'bank_user'
-                    GROUP BY u.user_id, u.email, u.entity_name, u.account_status, u.created_at, u.updated_at, bu.logo_url
+                    GROUP BY u.user_id, u.email, u.entity_name, u.created_at, u.updated_at, bu.logo_url, bu.sama_license_number, bu.bank_type
                 `;
             }
 
             // Add filters
-            if (registration_status) {
-                paramCount++;
-                if (user_type === 'business') {
-                    query += ` AND bu.registration_status = $${paramCount}`;
-                } else if (user_type === 'individual') {
-                    query += ` AND u.account_status = $${paramCount}`;
-                } else if (user_type === 'bank') {
-                    query += ` AND u.account_status = $${paramCount}`;
-                } else {
-                    // For all users, we need to handle this differently since we're using UNION
-                    // This is a simplified approach - in production you might want to use a more sophisticated filter
-                    query += ` AND registration_status = $${paramCount}`;
-                }
-                queryParams.push(registration_status);
-            }
+            // Note: Status filters removed as status fields are no longer included
 
             if (search) {
                 paramCount++;
@@ -227,16 +219,10 @@ export async function GET(req) {
                 `;
             }
 
-            if (registration_status && user_type) {
-                if (user_type === 'business') {
-                    countQuery += ` AND bu.registration_status = $1`;
-                } else if (user_type === 'individual' || user_type === 'bank') {
-                    countQuery += ` AND u.account_status = $1`;
-                }
-            }
+            // Note: Status filters removed from count queries as status fields are no longer included
 
             if (search && user_type) {
-                const searchParam = user_type === 'business' ? 2 : 2;
+                const searchParam = 1;
                 if (user_type === 'business') {
                     countQuery += ` AND (bu.trade_name ILIKE $${searchParam} OR u.email ILIKE $${searchParam} OR bu.cr_number ILIKE $${searchParam})`;
                 } else if (user_type === 'individual') {

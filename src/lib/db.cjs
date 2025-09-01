@@ -20,12 +20,12 @@ const poolConfig = process.env.DATABASE_URL ? {
 
 const pool = new Pool({
   ...poolConfig,
-  // Maximum connection pool limits for high-concurrency admin dashboard
-  max: 100, // Increased to match main db.js file
-  min: 20, // Increased to match main db.js file
-  idleTimeoutMillis: 120000, // Keep connections alive longer (2 minutes)
-  connectionTimeoutMillis: 30000, // Increased timeout for better reliability
-  maxUses: 300, // Reduced to prevent long-running connections
+  // Reduced connection pool limits to prevent exhaustion
+  max: 20, // Reduced from 100 to 20 connections
+  min: 5,  // Reduced from 20 to 5 minimum connections
+  idleTimeoutMillis: 60000, // Reduced to 1 minute
+  connectionTimeoutMillis: 15000, // Reduced timeout to 15 seconds
+  maxUses: 100, // Reduced to prevent long-running connections
   allowExitOnIdle: true, // Allow the pool to exit when idle
   // Add connection retry logic
   retryDelay: 1000,
@@ -35,7 +35,7 @@ const pool = new Pool({
 // Built-in monitoring system
 let monitoringInterval;
 let lastWarningTime = 0;
-const WARNING_COOLDOWN = 30000; // 30 seconds between warnings
+const WARNING_COOLDOWN = 60000; // 60 seconds between warnings (increased from 30)
 
 function startMonitoring() {
   if (monitoringInterval) {
@@ -55,19 +55,19 @@ function startMonitoring() {
       }
     }
     
-    if (status.totalCount >= status.max * 0.9) {
+    if (status.totalCount >= status.max * 0.8) {
       if (now - lastWarningTime > WARNING_COOLDOWN) {
-        console.error(`🚨 DATABASE CRITICAL: Pool at ${Math.round((status.totalCount / status.max) * 100)}% capacity`);
-        console.error(`   Pool status: ${status.totalCount}/${status.max} connections used`);
+        console.warn(`⚠️  DATABASE WARNING: Pool at ${Math.round((status.totalCount / status.max) * 100)}% capacity`);
+        console.warn(`   Pool status: ${status.totalCount}/${status.max} connections used`);
         lastWarningTime = now;
       }
     }
     
-    // Log pool status every 5 minutes in development
-    if (process.env.NODE_ENV === 'development' && now % 300000 < 5000) {
+    // Log pool status every 10 minutes in development (reduced frequency)
+    if (process.env.NODE_ENV === 'development' && now % 600000 < 5000) {
       console.log(`📊 Database pool status: ${status.totalCount}/${status.idleCount}/${status.waitingCount} (total/idle/waiting) - ${Math.round((status.totalCount / status.max) * 100)}% utilization`);
     }
-  }, 10000); // Check every 10 seconds
+  }, 30000); // Check every 30 seconds (increased from 10)
 }
 
 // Enhanced error handling and monitoring

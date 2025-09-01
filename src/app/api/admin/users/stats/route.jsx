@@ -1,9 +1,29 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { withAdminSession, getAdminUserFromRequest } from '@/lib/auth/admin-session-middleware';
+import AdminAuth from '@/lib/auth/admin-auth';
 
-export const GET = withAdminSession(async (req) => {
+export async function GET(req) {
     try {
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json(
+                { success: false, error: 'No admin token found' },
+                { status: 401 }
+            );
+        }
+
+        // Validate admin session using JWT
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
         const client = await pool.connectWithRetry();
         
         try {
@@ -111,4 +131,4 @@ export const GET = withAdminSession(async (req) => {
             { status: 500 }
         );
     }
-});
+}

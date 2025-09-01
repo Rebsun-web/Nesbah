@@ -5,7 +5,7 @@ import { useAdminAuth } from '@/contexts/AdminAuthContext'
 import { AdminUrlCache } from '@/components/admin/AdminNavigationCache'
 
 export default function DebugCachePage() {
-    const { getCachedUrl, lastUrl, isAuthenticated, loading } = useAdminAuth()
+    const { getCachedUrl, lastUrl, loading } = useAdminAuth()
     const [mounted, setMounted] = useState(false)
     const [cacheInfo, setCacheInfo] = useState({
         contextUrl: '',
@@ -32,9 +32,8 @@ export default function DebugCachePage() {
     useEffect(() => {
         updateCacheInfo()
         console.log('🔧 DebugCachePage: Component mounted')
-        console.log('🔧 DebugCachePage: isAuthenticated:', isAuthenticated)
         console.log('🔧 DebugCachePage: loading:', loading)
-    }, [isAuthenticated, loading])
+    }, [loading])
 
     const testSaveUrl = (url) => {
         console.log('🔧 DebugCachePage: Testing save URL:', url)
@@ -63,7 +62,6 @@ export default function DebugCachePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-blue-50 p-4 rounded">
                             <h3 className="font-medium text-blue-900">AdminAuthContext</h3>
-                            <p className="text-blue-700">Authenticated: {isAuthenticated ? 'Yes' : 'No'}</p>
                             <p className="text-blue-700">Loading: {loading ? 'Yes' : 'No'}</p>
                             <p className="text-blue-700">Last URL State: {lastUrl || 'None'}</p>
                         </div>

@@ -1,116 +1,31 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 const AdminAuthContext = createContext()
 
 export function AdminAuthProvider({ children }) {
-    const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [adminUser, setAdminUser] = useState(null)
     const [loading, setLoading] = useState(false)
-    const [isInitialized, setIsInitialized] = useState(false)
     const router = useRouter()
 
-    // Verify JWT token without database query
-    const verifyJWTToken = useCallback(async () => {
-        try {
-            const response = await fetch('/api/admin/auth/me', {
-                credentials: 'include',
-                headers: {
-                    'Cache-Control': 'no-cache'
-                }
-            })
-
-            if (response.ok) {
-                const data = await response.json()
-                if (data.success && data.adminUser) {
-                    return { valid: true, adminUser: data.adminUser }
-                }
-            }
-            return { valid: false }
-        } catch (error) {
-            console.error('JWT verification error:', error)
-            return { valid: false }
-        }
-    }, [])
-
-    // Save session to localStorage and state
-    const saveSession = useCallback((user) => {
-        console.log('🔧 AdminAuthContext: Saving session for user:', user.email)
-        localStorage.setItem('adminUser', JSON.stringify(user))
+    // Save admin user to state
+    const saveAdminUser = useCallback((user) => {
         setAdminUser(user)
-        setIsAuthenticated(true)
     }, [])
 
-    // Clear session from localStorage and state
-    const clearSession = useCallback(() => {
-        console.log('🔧 AdminAuthContext: Clearing session')
-        localStorage.removeItem('adminUser')
+    // Clear admin user from state
+    const clearAdminUser = useCallback(() => {
         setAdminUser(null)
-        setIsAuthenticated(false)
     }, [])
-
-    // Initialize authentication state (JWT-only, no database)
-    const initializeAuth = useCallback(async () => {
-        console.log('🔧 AdminAuthContext: Initializing JWT-only authentication...')
-        
-        // First check localStorage for quick initialization
-        const storedUser = localStorage.getItem('adminUser')
-        if (storedUser) {
-            try {
-                const user = JSON.parse(storedUser)
-                console.log('🔧 AdminAuthContext: Found stored user:', user.email)
-                
-                // Check if we have a recent token (less than 30 minutes old) to avoid unnecessary API calls
-                const tokenAge = Date.now() - (user.iat * 1000 || 0)
-                const isTokenRecent = tokenAge < 1800000 // 30 minutes
-                
-                if (isTokenRecent) {
-                    console.log('🔧 AdminAuthContext: Token is recent, setting user without API call')
-                    setAdminUser(user)
-                    setIsAuthenticated(true)
-                } else {
-                    console.log('🔧 AdminAuthContext: Token may be stale, verifying with API...')
-                    // Verify JWT token without database query
-                    const jwtResult = await verifyJWTToken()
-                    if (jwtResult.valid) {
-                        setAdminUser(jwtResult.adminUser)
-                        setIsAuthenticated(true)
-                        console.log('✅ AdminAuthContext: JWT verification successful')
-                    } else {
-                        console.log('❌ AdminAuthContext: JWT verification failed, clearing session')
-                        clearSession()
-                    }
-                }
-            } catch (error) {
-                console.error('❌ AdminAuthContext: Error during JWT verification:', error)
-                clearSession()
-            }
-        } else {
-            console.log('🔧 AdminAuthContext: No stored user found, skipping initialization')
-            setIsAuthenticated(false)
-        }
-        
-        setIsInitialized(true)
-    }, [verifyJWTToken, clearSession])
-
-    // Initialize on mount (JWT-only)
-    useEffect(() => {
-        if (!isInitialized) {
-            console.log('🔧 AdminAuthContext: Starting initialization...')
-            initializeAuth()
-        }
-    }, [initializeAuth, isInitialized])
 
     // Login function
     const login = async (credentials) => {
         try {
             setLoading(true)
-            console.log('🔧 AdminAuthContext: Starting login with credentials:', { email: credentials.email })
             
-            // Use the unified login endpoint
-            const response = await fetch('/api/users/login', {
+            const response = await fetch('/api/admin/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -120,24 +35,16 @@ export function AdminAuthProvider({ children }) {
             })
 
             const data = await response.json()
-            console.log('🔧 AdminAuthContext: Login response:', data)
 
-            if (data.success && data.user && data.user.user_type === 'admin_user') {
-                console.log('🔧 AdminAuthContext: Admin login successful, saving session...')
-                saveSession(data.user)
-                
-                // Redirect to admin dashboard
-                console.log('🔧 AdminAuthContext: Redirecting to /admin')
-                setTimeout(() => {
-                    router.push('/admin')
-                }, 100)
+            if (data.success && data.adminUser) {
+                saveAdminUser(data.adminUser)
+                router.push('/admin')
                 return { success: true }
             } else {
-                console.log('❌ AdminAuthContext: Login failed:', data.error)
                 return { success: false, error: data.error || 'Login failed' }
             }
         } catch (error) {
-            console.error('❌ AdminAuthContext: Login error:', error)
+            console.error('Login error:', error)
             return { success: false, error: 'Network error' }
         } finally {
             setLoading(false)
@@ -147,53 +54,79 @@ export function AdminAuthProvider({ children }) {
     // Logout function
     const logout = async () => {
         try {
-            // Call logout API
+            // Call logout API to clear server-side cookie
             await fetch('/api/admin/auth/logout', {
                 method: 'POST',
                 credentials: 'include'
             })
+            
+            // Clear state
+            clearAdminUser()
+            
+            // Redirect to login
+            router.push('/login')
         } catch (error) {
-            console.error('Logout API error:', error)
-        } finally {
-            // Always clear local session
-            clearSession()
+            console.error('Logout error:', error)
+            // Force redirect even on error
             router.push('/login')
         }
     }
 
-    // Check if user has specific permission (from JWT payload)
-    const hasPermission = (permission) => {
-        if (!adminUser || !adminUser.permissions) return false
-        return adminUser.permissions.includes(permission)
-    }
+    // Check if admin has permission
+    const hasPermission = useCallback((permission) => {
+        if (!adminUser || !adminUser.permissions) {
+            return false
+        }
+        
+        // Check for all permissions
+        if (adminUser.permissions.all_permissions === true) {
+            return true
+        }
+        
+        // Check specific permission
+        return adminUser.permissions[permission] === true
+    }, [adminUser])
 
-    // Check if user has specific role (from JWT payload)
-    const hasRole = (role) => {
-        if (!adminUser) return false
-        return adminUser.role === role
-    }
+    // Check if admin has any of the specified permissions
+    const hasAnyPermission = useCallback((permissions) => {
+        if (!adminUser || !adminUser.permissions) {
+            return false
+        }
+        
+        // Check for all permissions
+        if (adminUser.permissions.all_permissions === true) {
+            return true
+        }
+        
+        // Check if admin has any of the specified permissions
+        return permissions.some(permission => adminUser.permissions[permission] === true)
+    }, [adminUser])
 
-    // Update admin user data
-    const updateAdminUser = (userData) => {
-        setAdminUser(userData)
-        saveSession(userData)
-    }
-
-    const value = {
-        isAuthenticated,
-        adminUser,
-        loading,
-        isInitialized,
-        login,
-        logout,
-        verifyJWTToken,
-        hasPermission,
-        hasRole,
-        updateAdminUser
-    }
+    // Check if admin has all of the specified permissions
+    const hasAllPermissions = useCallback((permissions) => {
+        if (!adminUser || !adminUser.permissions) {
+            return false
+        }
+        
+        // Check for all permissions
+        if (adminUser.permissions.all_permissions === true) {
+            return true
+        }
+        
+        // Check if admin has all of the specified permissions
+        return permissions.every(permission => adminUser.permissions[permission] === true)
+    }, [adminUser])
 
     return (
-        <AdminAuthContext.Provider value={value}>
+        <AdminAuthContext.Provider value={{
+            adminUser,
+            loading,
+            login,
+            logout,
+            hasPermission,
+            hasAnyPermission,
+            hasAllPermissions
+        }}>
             {children}
         </AdminAuthContext.Provider>
     )

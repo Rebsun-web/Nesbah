@@ -58,6 +58,7 @@ export function logout() {
     window.location.href = '/login'
 }
 
+
 export async function makeAuthenticatedRequest(url, options = {}) {
     try {
         console.log('🔧 ClientAuth: Making request to:', url);

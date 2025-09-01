@@ -55,6 +55,16 @@ class WathiqAPIService {
      */
     processWathiqData(rawData) {
         console.log('🔄 Processing Wathiq data...');
+        console.log('🔍 Raw Wathiq data structure:', {
+            hasCapital: !!rawData.capital,
+            capitalKeys: rawData.capital ? Object.keys(rawData.capital) : null,
+            hasECommerce: !!rawData.eCommerce,
+            eCommerceKeys: rawData.eCommerce ? Object.keys(rawData.eCommerce) : null,
+            hasManagement: !!rawData.management,
+            managementKeys: rawData.management ? Object.keys(rawData.management) : null,
+            hasContactInfo: !!rawData.contactInfo,
+            contactInfoKeys: rawData.contactInfo ? Object.keys(rawData.contactInfo) : null
+        });
         
         const processedData = {
             // Basic Information
@@ -192,15 +202,51 @@ class WathiqAPIService {
      * Extract cash capital
      */
     extractCashCapital(capital) {
-        if (!capital || !capital.stockCapital) return null;
+        console.log('🔍 extractCashCapital - Raw capital data:', capital);
         
-        const cashCapital = capital.stockCapital.cashCapital;
-        if (typeof cashCapital === 'number') return cashCapital;
-        if (typeof cashCapital === 'string') {
-            const parsed = parseFloat(cashCapital.replace(/[^\d.]/g, ''));
-            return isNaN(parsed) ? null : parsed;
+        if (!capital) {
+            console.log('❌ extractCashCapital - No capital data found');
+            return null;
         }
         
+        // Try multiple possible paths for cash capital
+        const possiblePaths = [
+            'contributionCapital.cashCapital',
+            'stockCapital.cashCapital',
+            'cashCapital',
+            'paidCapital',
+            'subscribedCapital',
+            'issuedCapital'
+        ];
+        
+        for (const path of possiblePaths) {
+            const keys = path.split('.');
+            let value = capital;
+            
+            for (const key of keys) {
+                if (value && typeof value === 'object' && key in value) {
+                    value = value[key];
+                } else {
+                    value = null;
+                    break;
+                }
+            }
+            
+            if (value !== null && value !== undefined) {
+                console.log(`✅ extractCashCapital - Found value at path '${path}':`, value);
+                
+                if (typeof value === 'number') {
+                    return value;
+                }
+                
+                if (typeof value === 'string') {
+                    const parsed = parseFloat(value.replace(/[^\d.]/g, ''));
+                    return isNaN(parsed) ? null : parsed;
+                }
+            }
+        }
+        
+        console.log('❌ extractCashCapital - No valid cash capital found in any path');
         return null;
     }
 
@@ -208,9 +254,9 @@ class WathiqAPIService {
      * Extract in-kind capital
      */
     extractInKindCapital(capital) {
-        if (!capital || !capital.stockCapital) return null;
+        if (!capital || !capital.contributionCapital) return null;
         
-        const inKindCapital = capital.stockCapital.inKindCapital;
+        const inKindCapital = capital.contributionCapital.inKindCapital;
         if (typeof inKindCapital === 'number') return inKindCapital.toString();
         if (typeof inKindCapital === 'string') return inKindCapital;
         
@@ -221,7 +267,7 @@ class WathiqAPIService {
      * Calculate average capital
      */
     calculateAverageCapital(capital) {
-        if (!capital || !capital.stockCapital) return null;
+        if (!capital || !capital.contributionCapital) return null;
         
         const cashCapital = this.extractCashCapital(capital);
         const inKindCapital = this.extractInKindCapital(capital);
@@ -256,10 +302,22 @@ class WathiqAPIService {
      * Extract store URL
      */
     extractStoreUrl(eCommerce) {
-        if (!eCommerce || !eCommerce.eStore || !Array.isArray(eCommerce.eStore)) return null;
+        console.log('🔍 extractStoreUrl - Raw eCommerce data:', eCommerce);
+        
+        if (!eCommerce || !eCommerce.eStore || !Array.isArray(eCommerce.eStore)) {
+            console.log('❌ extractStoreUrl - No eCommerce or eStore array found');
+            return null;
+        }
+        
+        console.log('🔍 extractStoreUrl - eStore array found:', eCommerce.eStore);
         
         const store = eCommerce.eStore[0];
-        return store?.storeUrl || store?.url || null;
+        console.log('🔍 extractStoreUrl - First store:', store);
+        
+        const storeUrl = store?.storeUrl || store?.url || null;
+        console.log('✅ extractStoreUrl - Extracted store URL:', storeUrl);
+        
+        return storeUrl;
     }
 
     /**
@@ -268,31 +326,115 @@ class WathiqAPIService {
     extractManagementStructure(management) {
         if (!management) return null;
         
-        return management.structureName || management.structure || management.type || null;
+        // Try multiple possible paths for management structure
+        const structure = management.structureName || 
+                         management.structure || 
+                         management.type || 
+                         management.structureType ||
+                         management.managementType ||
+                         management.form ||
+                         management.category;
+        
+        if (structure) {
+            const lowerStructure = structure.toLowerCase();
+            
+            // Map common short values to more descriptive ones
+            const structureMap = {
+                'manger': 'Manager',
+                'manager': 'Manager',
+                'owner': 'Owner',
+                'board': 'Board of Directors',
+                'directors': 'Board of Directors',
+                'assembly': 'General Assembly',
+                'partnership': 'Partnership',
+                'corporation': 'Corporation',
+                'establishment': 'Establishment',
+                'company': 'Company'
+            };
+            
+            const mappedStructure = structureMap[lowerStructure];
+            if (mappedStructure) {
+                return mappedStructure;
+            }
+            
+            // If it's a short value, try to capitalize it properly
+            if (structure.length <= 10) {
+                return structure.charAt(0).toUpperCase() + structure.slice(1).toLowerCase();
+            }
+            
+            return structure;
+        }
+        
+        return null;
     }
 
     /**
      * Extract management managers
      */
     extractManagementManagers(management) {
-        if (!management || !management.managers || !Array.isArray(management.managers)) return [];
+        if (!management) return [];
         
-        return management.managers.map(manager => {
+        // Try multiple possible paths for managers
+        const managers = management.managers || 
+                        management.managersList || 
+                        management.managementTeam ||
+                        management.team ||
+                        management.directors ||
+                        management.owners ||
+                        management.partners;
+        
+        if (!Array.isArray(managers)) {
+            // If it's not an array, try to handle single manager cases
+            if (typeof managers === 'string') {
+                return [managers];
+            }
+            
+            if (managers && typeof managers === 'object') {
+                // If it's a single manager object
+                const managerName = managers.name || managers.fullName || managers.managerName || managers.directorName;
+                if (managerName) {
+                    return [managerName];
+                }
+            }
+            
+            return [];
+        }
+        
+        return managers.map(manager => {
             if (typeof manager === 'string') return manager;
-            return manager.name || manager.fullName || manager.managerName;
+            
+            if (typeof manager === 'object' && manager !== null) {
+                // Try multiple possible name fields
+                return manager.name || 
+                       manager.fullName || 
+                       manager.managerName || 
+                       manager.directorName ||
+                       manager.ownerName ||
+                       manager.partnerName ||
+                       manager.arabicName ||
+                       manager.englishName;
+            }
+            
+            return null;
         }).filter(Boolean);
     }
 
     /**
      * Extract contact information
+     * @param {Object} contactInfo - Contact info from Wathiq API
+     * @returns {Object} - Processed contact information
      */
     extractContactInfo(contactInfo) {
         if (!contactInfo) return null;
         
         const processed = {};
         
-        if (contactInfo.phone) processed.phone = contactInfo.phone;
+        // Required contact fields as per specification
         if (contactInfo.email) processed.email = contactInfo.email;
+        if (contactInfo.mobile) processed.mobile = contactInfo.mobile;
+        if (contactInfo.phone) processed.phone = contactInfo.phone;
+        
+        // Additional contact fields that might be available
         if (contactInfo.website) processed.website = contactInfo.website;
         if (contactInfo.fax) processed.fax = contactInfo.fax;
         if (contactInfo.address) processed.address = contactInfo.address;

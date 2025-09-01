@@ -30,7 +30,13 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
         number_of_pos_devices: '',
         city_of_operation: '',
         own_pos_system: false,
-        notes: ''
+        notes: '',
+        // New POS application fields
+        pos_provider_name: '',
+        pos_age_duration_months: '',
+        avg_monthly_pos_sales: '',
+        requested_financing_amount: '',
+        preferred_repayment_period_months: ''
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -170,7 +176,13 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
                     city_of_operation: '',
                     own_pos_system: false,
                     notes: '',
-                    assigned_user_id: ''
+                    assigned_user_id: '',
+                    // Reset new POS application fields
+                    pos_provider_name: '',
+                    pos_age_duration_months: '',
+                    avg_monthly_pos_sales: '',
+                    requested_financing_amount: '',
+                    preferred_repayment_period_months: ''
                 })
             } else {
                 setError(data.error || 'Failed to create application')
@@ -517,6 +529,58 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
                                 />
                             </div>
                         )}
+                    </div>
+
+                    {/* New POS Application Fields */}
+                    <div>
+                        <h4 className="text-md font-medium text-gray-900 mb-4">New POS Application Details</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">POS Provider Name</label>
+                                <input
+                                    type="text"
+                                    value={formData.pos_provider_name}
+                                    onChange={(e) => handleInputChange('pos_provider_name', e.target.value)}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">POS Age Duration (Months)</label>
+                                <input
+                                    type="number"
+                                    value={formData.pos_age_duration_months}
+                                    onChange={(e) => handleInputChange('pos_age_duration_months', e.target.value)}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Average Monthly POS Sales (SAR)</label>
+                                <input
+                                    type="number"
+                                    value={formData.avg_monthly_pos_sales}
+                                    onChange={(e) => handleInputChange('avg_monthly_pos_sales', e.target.value)}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Requested Financing Amount (SAR)</label>
+                                <input
+                                    type="number"
+                                    value={formData.requested_financing_amount}
+                                    onChange={(e) => handleInputChange('requested_financing_amount', e.target.value)}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Preferred Repayment Period (Months)</label>
+                                <input
+                                    type="number"
+                                    value={formData.preferred_repayment_period_months}
+                                    onChange={(e) => handleInputChange('preferred_repayment_period_months', e.target.value)}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Additional Information */}

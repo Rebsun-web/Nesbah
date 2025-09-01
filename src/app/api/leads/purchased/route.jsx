@@ -12,12 +12,29 @@ export async function GET(req) {
         );
     }
     
-    const bankUserId = authResult.user.user_id;
+    let bankUserId = authResult.user.user_id;
+    
+    // If this is a bank employee, get the main bank user ID
+    if (authResult.user.user_type === 'bank_employee') {
+        try {
+            const bankEmployeeResult = await pool.query(
+                'SELECT bank_user_id FROM bank_employees WHERE user_id = $1',
+                [authResult.user.user_id]
+            );
+            
+            if (bankEmployeeResult.rows.length > 0) {
+                bankUserId = bankEmployeeResult.rows[0].bank_user_id;
+            }
+        } catch (error) {
+            console.error('Error getting bank user ID for employee:', error);
+            return NextResponse.json({ success: false, error: 'Failed to get bank information' }, { status: 500 });
+        }
+    }
 
     try {
-        // UPDATED: Query using pos_application table with new structure
-        const result = await pool.query(
-            `SELECT 
+        // First, get all the leads
+        const leadsResult = await pool.query(
+            `SELECT DISTINCT
                 pa.application_id,
                 COALESCE(pa.current_application_status, pa.status) as status,
                 pa.submitted_at,
@@ -49,31 +66,66 @@ export async function GET(req) {
                 pa.city_of_operation,
                 pa.own_pos_system,
                 pa.uploaded_filename,
+                pa.pos_provider_name,
+                pa.pos_age_duration_months,
+                pa.avg_monthly_pos_sales,
+                pa.requested_financing_amount,
+                pa.preferred_repayment_period_months,
                 
                 -- Business Owner Personal Details (NOT from Wathiq API)
                 pa.contact_person,
                 pa.contact_person_number,
                 u.email as business_contact_email,
                 
-                -- Offer Information (from application_offers)
-                ao.submitted_at as offer_submitted_at,
-                ao.offer_device_setup_fee,
-                ao.offer_transaction_fee_mada,
-                ao.offer_transaction_fee_visa_mc,
-                ao.offer_settlement_time_mada,
-                ao.offer_comment,
-                ao.status as offer_status
+                -- Lead Status Information
+                CASE 
+                    WHEN $1 = ANY(pa.purchased_by) THEN 'purchased'
+                    WHEN EXISTS (SELECT 1 FROM application_offers WHERE submitted_application_id = pa.application_id AND submitted_by_user_id = $1) THEN 'offer_submitted'
+                    ELSE 'unknown'
+                END as lead_status
                 
              FROM pos_application pa
              JOIN business_users bu ON pa.user_id = bu.user_id
              JOIN users u ON bu.user_id = u.user_id
-             LEFT JOIN application_offers ao ON ao.submitted_application_id = pa.application_id AND ao.submitted_by_user_id = $1
-             WHERE $1 = ANY(pa.purchased_by)
+             WHERE $1 = ANY(pa.purchased_by) 
+                OR EXISTS (SELECT 1 FROM application_offers WHERE submitted_application_id = pa.application_id AND submitted_by_user_id = $1)
              ORDER BY pa.submitted_at DESC`,
             [bankUserId]
         );
 
-        return NextResponse.json({ success: true, data: result.rows });
+        // Now get offers for each lead
+        const leads = leadsResult.rows;
+        const leadsWithOffers = [];
+
+        for (const lead of leads) {
+            // Get offers for this lead
+            const offersResult = await pool.query(
+                `SELECT 
+                    ao.offer_id as id,
+                    ao.submitted_at,
+                    ao.approved_financing_amount as approved_amount,
+                    ao.proposed_repayment_period_months as repayment_period_months,
+                    ao.interest_rate,
+                    ao.monthly_installment_amount as monthly_installment,
+                    ao.grace_period_months,
+                    ao.offer_comment,
+                    ao.status,
+                    ao.uploaded_filename,
+                    bu.entity_name as submitted_by_bank_name
+                FROM application_offers ao
+                LEFT JOIN users bu ON ao.submitted_by_user_id = bu.user_id
+                WHERE ao.submitted_application_id = $1 AND ao.submitted_by_user_id = $2
+                ORDER BY ao.submitted_at DESC`,
+                [lead.application_id, bankUserId]
+            );
+
+            leadsWithOffers.push({
+                ...lead,
+                offers: offersResult.rows
+            });
+        }
+
+        return NextResponse.json({ success: true, data: leadsWithOffers });
     } catch (err) {
         console.error('Failed to fetch purchased leads:', err);
         return NextResponse.json({ success: false, error: 'Failed to fetch purchased leads' }, { status: 500 });

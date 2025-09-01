@@ -50,6 +50,7 @@ function LeadPageContent({ params }) {
     const res = await fetch(`/api/leads/${params.id}`, {
       headers: {
         'x-user-id': bankUser.user_id,
+        'x-user-type': bankUser.user_type,
       },
     })
 
@@ -289,19 +290,50 @@ function LeadPageContent({ params }) {
         <Subheading>Application Details</Subheading>
         <Divider className="mt-4" />
         <DescriptionList>
+          <DescriptionTerm>POS Provider</DescriptionTerm>
+          <DescriptionDetails>
+            {application.pos_provider_name || 'N/A'}
+          </DescriptionDetails>
+
+          <DescriptionTerm>POS Age</DescriptionTerm>
+          <DescriptionDetails>
+            {application.pos_age_duration_months ? `${application.pos_age_duration_months} months` : 'N/A'}
+          </DescriptionDetails>
+
+          <DescriptionTerm>Monthly Sales</DescriptionTerm>
+          <DescriptionDetails>
+            {application.avg_monthly_pos_sales ? `SAR ${application.avg_monthly_pos_sales.toLocaleString()}` : 'N/A'}
+          </DescriptionDetails>
+
+          <DescriptionTerm>Financing Amount</DescriptionTerm>
+          <DescriptionDetails>
+            {application.requested_financing_amount ? `SAR ${application.requested_financing_amount.toLocaleString()}` : 'N/A'}
+          </DescriptionDetails>
+
+          <DescriptionTerm>Repayment Period</DescriptionTerm>
+          <DescriptionDetails>
+            {application.preferred_repayment_period_months ? `${application.preferred_repayment_period_months} months` : 'N/A'}
+          </DescriptionDetails>
+
           <DescriptionTerm>Own POS System</DescriptionTerm>
           <DescriptionDetails>
             {application.own_pos_system ? 'Yes' : 'No'}
           </DescriptionDetails>
 
           <DescriptionTerm>Number of POS Devices</DescriptionTerm>
-          <DescriptionDetails>{application.number_of_pos_devices}</DescriptionDetails>
+          <DescriptionDetails>{application.number_of_pos_devices || 'N/A'}</DescriptionDetails>
 
           <DescriptionTerm>City of Operations</DescriptionTerm>
-          <DescriptionDetails>{application.city_of_operation}</DescriptionDetails>
+          <DescriptionDetails>{application.city_of_operation || 'N/A'}</DescriptionDetails>
+
+          <DescriptionTerm>Has E-commerce</DescriptionTerm>
+          <DescriptionDetails>
+            {application.has_ecommerce ? 'Yes' : 'No'}
+            {application.store_url && ` (${application.store_url})`}
+          </DescriptionDetails>
 
           <DescriptionTerm>Notes</DescriptionTerm>
-          <DescriptionDetails>{application.notes}</DescriptionDetails>
+          <DescriptionDetails>{application.notes || 'N/A'}</DescriptionDetails>
 
           <DescriptionTerm>Uploaded Document</DescriptionTerm>
           <DescriptionDetails>
@@ -309,8 +341,10 @@ function LeadPageContent({ params }) {
               <a
                 href={`/api/leads/${application.application_id}/document`}
                 className="text-indigo-600 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                {application.uploaded_filename || 'Download file'}
+                📎 {application.uploaded_filename || 'Download file'}
               </a>
             ) : (
               'N/A'
@@ -419,22 +453,103 @@ function LeadPageContent({ params }) {
             <DescriptionDetails>{submittedOffer.offer_transaction_fee_visa_mc || 'Not Provided'}</DescriptionDetails>
             <DescriptionTerm>Settlement Time MADA</DescriptionTerm>
             <DescriptionDetails>{submittedOffer.offer_settlement_time_mada || 'Not Provided'}</DescriptionDetails>
+            <DescriptionTerm>Settlement Time Visa/MC</DescriptionTerm>
+            <DescriptionDetails>{submittedOffer.offer_settlement_time_visa_mc || 'Not Provided'}</DescriptionDetails>
             <DescriptionTerm>Comment</DescriptionTerm>
             <DescriptionDetails>{submittedOffer.offer_comment || 'Not Provided'}</DescriptionDetails>
+            <DescriptionTerm>Terms</DescriptionTerm>
+            <DescriptionDetails>{submittedOffer.offer_terms || 'Not Provided'}</DescriptionDetails>
+            <DescriptionTerm>Status</DescriptionTerm>
+            <DescriptionDetails>
+              <Badge color={submittedOffer.status === 'submitted' ? 'blue' : 'green'}>
+                {submittedOffer.status}
+              </Badge>
+            </DescriptionDetails>
+            <DescriptionTerm>Submitted At</DescriptionTerm>
+            <DescriptionDetails>
+              {new Date(submittedOffer.submitted_at).toLocaleString()}
+            </DescriptionDetails>
+            <DescriptionTerm>Expires At</DescriptionTerm>
+            <DescriptionDetails>
+              {submittedOffer.expires_at ? new Date(submittedOffer.expires_at).toLocaleString() : 'Not Set'}
+            </DescriptionDetails>
             <DescriptionTerm>Uploaded File</DescriptionTerm>
             <DescriptionDetails>
               {submittedOffer.uploaded_filename ? (
                 <a
                   href={`/api/leads/${application.application_id}/offer-file`}
                   className="text-indigo-600 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  {submittedOffer.uploaded_filename}
+                  📎 {submittedOffer.uploaded_filename}
                 </a>
               ) : (
                 'Not Provided'
               )}
             </DescriptionDetails>
           </DescriptionList>
+        </div>
+      )}
+
+      {/* All Offers Section */}
+      {application.offers && application.offers.length > 0 && (
+        <div className="mt-12">
+          <Subheading>All Offers ({application.offers.length})</Subheading>
+          <Divider className="mt-4" />
+          <div className="space-y-6">
+            {application.offers.map((offer, index) => (
+              <div key={offer.offer_id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-lg font-semibold text-gray-900">
+                    Offer #{offer.offer_id} by {offer.bank_name}
+                  </h4>
+                  <Badge color={offer.status === 'submitted' ? 'blue' : 'green'}>
+                    {offer.status}
+                  </Badge>
+                </div>
+                <DescriptionList>
+                  <DescriptionTerm>Device Setup Fee</DescriptionTerm>
+                  <DescriptionDetails>{offer.setup_fee || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionTerm>Transaction Fee MADA</DescriptionTerm>
+                  <DescriptionDetails>{offer.transaction_fee_mada || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionTerm>Transaction Fee Visa/MC</DescriptionTerm>
+                  <DescriptionDetails>{offer.transaction_fee_visa_mc || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionTerm>Settlement Time MADA</DescriptionTerm>
+                  <DescriptionDetails>{offer.offer_settlement_time_mada || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionTerm>Settlement Time Visa/MC</DescriptionTerm>
+                  <DescriptionDetails>{offer.offer_settlement_time_visa_mc || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionTerm>Comment</DescriptionTerm>
+                  <DescriptionDetails>{offer.offer_comment || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionTerm>Terms</DescriptionTerm>
+                  <DescriptionDetails>{offer.offer_terms || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionTerm>Submitted At</DescriptionTerm>
+                  <DescriptionDetails>
+                    {new Date(offer.submitted_at).toLocaleString()}
+                  </DescriptionDetails>
+                  <DescriptionTerm>Expires At</DescriptionTerm>
+                  <DescriptionDetails>
+                    {offer.expires_at ? new Date(offer.expires_at).toLocaleString() : 'Not Set'}
+                  </DescriptionDetails>
+                  <DescriptionTerm>Uploaded File</DescriptionTerm>
+                  <DescriptionDetails>
+                    {offer.uploaded_filename ? (
+                      <a
+                        href={`/api/leads/${application.application_id}/offer-file/${offer.offer_id}`}
+                        className="text-indigo-600 hover:underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        📎 {offer.uploaded_filename}
+                      </a>
+                    ) : (
+                      'Not Provided'
+                    )}
+                  </DescriptionDetails>
+                </DescriptionList>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

@@ -39,6 +39,7 @@ export default function StackedCard({ userId }) {
                 const res = await axios.get('/api/leads', {
                     headers: {
                         'x-user-id': userId,
+                        'x-user-type': 'bank_user', // Default to bank_user for this component
                     },
                 });
 

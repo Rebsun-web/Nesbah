@@ -11,7 +11,7 @@ export default function AdminNavbar({ onMenuClick, adminUser, onLogout }) {
     const [userMenuOpen, setUserMenuOpen] = useState(false)
 
     return (
-        <nav className="bg-white shadow-lg border-b border-gray-200 rounded-2xl mb-6 mx-4 mt-4">
+        <nav className="bg-white shadow-lg border-b border-gray-200 rounded-2xl mb-6 ml-14 mr-24 mt-0">
             <div className="flex justify-between items-center h-16 px-8">
                 {/* Left side - Logo and menu button */}
                 <div className="flex items-center space-x-4">
@@ -24,8 +24,12 @@ export default function AdminNavbar({ onMenuClick, adminUser, onLogout }) {
                     
                     {/* Logo and brand */}
                     <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl flex items-center justify-center shadow-lg">
-                            <span className="text-white font-bold text-lg">N</span>
+                        <div className="flex items-center justify-center">
+                            <img
+                                src="/logo/NewNesbahLogo.png"
+                                alt="Nesbah Logo"
+                                className="h-10 w-auto object-contain"
+                            />
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xl font-bold text-gray-900 leading-tight">Nesbah Admin</span>

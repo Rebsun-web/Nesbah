@@ -8,8 +8,7 @@ import BoughtLeadsDisplay from '@/components/BoughtLeadsDisplay'
 import { useEffect, useState } from 'react'
 import ContactCard from '@/components/contactCard'
 import {Heading} from "@/components/text"
-import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
+
 
 function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
@@ -28,9 +27,14 @@ function BankHistoryPage (){
                 const bankUser = JSON.parse(storedUser);
                 setUserInfo(bankUser);
                 try {
-                    // Use authenticated request instead of direct fetch
-                    const res = await makeAuthenticatedRequest(`/api/leads/history?user_id=${bankUser.user_id}`);
-                    if (res) {
+                    const res = await fetch(`/api/leads/history?user_id=${bankUser.user_id}`, {
+                        credentials: 'include',
+                        headers: {
+                            'x-user-token': JSON.stringify(bankUser)
+                        }
+                    });
+                    
+                    if (res.ok) {
                         const result = await res.json();
                         if (result.success) {
                             setLeads(result.data);
@@ -74,14 +78,12 @@ function BankHistoryPage (){
 
 export default function BusinessDashboardPage() {
     return (
-        <ProtectedRoute userType="bank_user" redirectTo="/login">
-            <div>
-                <main className="pb-32">
-                    <BankNavbar/>
-                    <BankHistoryPage/>
-                </main>
-                <NewFooter/>
-            </div>
-        </ProtectedRoute>
+        <div>
+            <main className="pb-32">
+                <BankNavbar/>
+                <BankHistoryPage/>
+            </main>
+            <NewFooter/>
+        </div>
     )
 }

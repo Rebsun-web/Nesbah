@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { Container } from '@/components/container'
 import AdminNavbar from '@/components/admin/AdminNavbar'
 import AdminSidebar from '@/components/admin/AdminSidebar'
-import ProtectedRoute from '@/components/admin/ProtectedRoute'
 import { useAdminAuth } from '@/contexts/AdminAuthContext'
 import { 
     ChartBarIcon,
@@ -345,7 +344,7 @@ export default function AnalyticsDashboard() {
     }
 
     return (
-        <ProtectedRoute>
+
             <div className="min-h-screen bg-gray-50">
                 <AdminNavbar onMenuClick={() => setSidebarOpen(true)} adminUser={adminUser} onLogout={logout} />
                 <div className="flex">
@@ -365,6 +364,6 @@ export default function AnalyticsDashboard() {
                     </div>
                 </div>
             </div>
-        </ProtectedRoute>
+
     )
 }

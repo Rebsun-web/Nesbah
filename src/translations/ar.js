@@ -52,6 +52,14 @@ export default {
   'services.easyApplication': 'قدم طلبك إلكترونيًا بسهولة',
   'services.applyEasily': 'تقدم بطلبك بكل سهولة',
   
+  // POS Financing (New MVP Service)
+  'services.posFinancing': 'تمويل نقاط البيع للتجار',
+  'services.posFinancingDescription': 'احصل على تمويل تنافسي لاحتياجاتك من أجهزة نقاط البيع. تواصل مع البنوك والمؤسسات المالية الموثوقة للحصول على أفضل الأسعار والشروط.',
+  'services.applyForPosFinancing': 'تقدم بطلب تمويل نقاط البيع',
+  'services.transparentComparison': 'مقارنة شفافة',
+  'services.saveTime': 'وفر الوقت والجهد',
+  'services.directCommunication': 'تواصل مباشر مع البنوك',
+  
   // Calculator
   'calculator.title': 'حاسبة نسبة',
   'calculator.discoverTitle': 'اكتشف خياراتك المالية',
@@ -61,14 +69,6 @@ export default {
   'calculator.feature1': 'تحقق فورًا من أهليتك، قارن بين عدة عروض مخصصة، واختر الحل التمويلي الأنسب لاحتياجاتك المالية بكل سهولة وشفافية.',
   'calculator.feature2': 'تعرّف فورًا على الأقساط المتوقعة، نسب الربح، وحدود التمويل حسب بياناتك الشخصية.',
   'calculator.calculateNow': 'احسب الآن',
-  
-  // Newsletter
-  'newsletter.title': 'ابقَ على اطلاع ! اشترك في نشرتنا البريدية',
-  'newsletter.emailLabel': 'البريد الإلكتروني',
-  'newsletter.emailPlaceholder': 'أدخل بريدك الإلكتروني',
-  'newsletter.subscribeButton': 'اشترك الآن',
-  'newsletter.privacyText': 'خصوصيتك تهمنا.',
-  'newsletter.privacyLink': 'اقرأ سياسة الخصوصية',
   
   // FAQ
   'faq.title': 'هل لديك سؤال ؟',
@@ -88,6 +88,14 @@ export default {
   'faq.answer7': 'لتصبحوا شركاء لنسبة، ما عليكم سوى إرسال بريدًا إلكترونيًا وإخبارنا عن أنفسكم. سيتواصل فريقنا بعد ذلك لمناقشة الفرص المحتملة والخطوات التالية.',
   'faq.question8': 'هل هناك أي رسوم مرتبطة بالشراكة مع نسبة؟',
   'faq.answer8': 'يمكن أن تختلف هيكلة الرسوم بناءً على الخدمات ومستوى التخصيص المطلوب. نوصي بمناقشة هذا بتفصيل خلال استشاراتنا الأولية.',
+  
+  // POS Financing FAQ (New)
+  'faq.posFinancing.title': 'ما هو تمويل نقاط البيع؟',
+  'faq.posFinancing.content': 'يتيح تمويل نقاط البيع للتجار الحصول على تمويل لمعدات نقاط البيع والخدمات ذات الصلة من خلال عروض تنافسية من عدة بنوك.',
+  'faq.howItWorks.title': 'كيف تعمل العملية؟',
+  'faq.howItWorks.content': 'قدم طلبك، واحصل على عروض تنافسية من البنوك خلال 48 ساعة، واختر أفضل خيار تمويل لعملك.',
+  'faq.requirements.title': 'ما هي المتطلبات؟',
+  'faq.requirements.content': 'تحتاج إلى رقم سجل تجاري صحيح، ومعلومات العمل، ومستندات داعمة. سيقوم نظامنا بجلب تفاصيل عملك تلقائياً.',
   
   // Leads
   'leads.incoming': 'الطلبات الواردة',
@@ -297,4 +305,10 @@ export default {
   'language.arabic': 'العربية',
   'language.english': 'English',
   'language.switch': 'تغيير اللغة',
+  
+  // Newsletter
+  'newsletter.title': 'ابق على اطلاع',
+  'newsletter.description': 'احصل على أحدث التحديثات حول خيارات التمويل ورؤى السوق.',
+  'newsletter.placeholder': 'أدخل بريدك الإلكتروني',
+  'newsletter.subscribe': 'اشترك',
 }

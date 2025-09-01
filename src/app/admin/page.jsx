@@ -7,75 +7,60 @@ import AdminSidebar from '@/components/admin/AdminSidebar'
 import DashboardOverview from '@/components/admin/DashboardOverview'
 import ApplicationsTable from '@/components/admin/ApplicationsTable'
 import UserManagement from '@/components/admin/UserManagement'
-import UserStats from '@/components/admin/UserStats'
-import OfferAnalytics from '@/components/admin/OfferAnalytics'
 import OfferManagement from '@/components/admin/OfferManagement'
 import EnhancedAnalytics from '@/components/admin/EnhancedAnalytics'
-import { ChartBarIcon } from '@heroicons/react/24/outline'
-import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
+import UserStats from '@/components/admin/UserStats'
 
 
-export default function AdminDashboard() {
-    const [adminUser, setAdminUser] = useState(null)
+export default function AdminDashboard({ adminUser }) {
     const [activeTab, setActiveTab] = useState('overview')
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [dashboardData, setDashboardData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
-    // Get admin user from localStorage
-    useEffect(() => {
-        const storedUser = localStorage.getItem('adminUser')
-        if (storedUser) {
-            try {
-                const userData = JSON.parse(storedUser)
-                if (userData.user_type === 'admin_user') {
-                    setAdminUser(userData)
-                }
-            } catch (error) {
-                console.error('Error parsing admin user:', error)
-            }
-        }
-    }, [])
+    // adminUser is now passed as a prop from the layout
+    // No need to manage it locally
 
     // Logout function
-    const logout = () => {
-        localStorage.removeItem('adminUser')
-        window.location.href = '/login'
+    const logout = async () => {
+        try {
+            await fetch('/api/admin/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            })
+        } catch (error) {
+            console.error('Logout error:', error)
+        }
+        
+        // Always redirect to login
+        window.location.replace('/login')
     }
 
     // Fetch dashboard data
     const fetchDashboardData = async () => {
         try {
             setLoading(true)
-            console.log('🔧 AdminDashboard: Fetching dashboard data...')
             
-            const response = await makeAuthenticatedRequest('/api/admin/applications/status-dashboard', {
+            const response = await fetch('/api/admin/applications/status-dashboard', {
                 method: 'GET',
                 credentials: 'include',
             })
-            
-            console.log('🔧 AdminDashboard: Response status:', response.status)
-            
-            if (!response) {
-                throw new Error('Authentication failed')
-            }
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
             
             const data = await response.json()
-            console.log('🔧 AdminDashboard: Response data:', data)
             
             if (data.success) {
                 setDashboardData(data.data)
-                setError(null) // Clear any previous errors
+                setError(null)
             } else {
                 setError(data.error || 'Failed to fetch dashboard data')
             }
         } catch (err) {
-            console.error('🔧 AdminDashboard: Fetch error:', err)
+            console.error('Dashboard fetch error:', err)
             setError(`Network error while fetching dashboard data: ${err.message}`)
         } finally {
             setLoading(false)
@@ -85,8 +70,8 @@ export default function AdminDashboard() {
     useEffect(() => {
         fetchDashboardData()
         
-        // Optimized polling: only refresh every 2 minutes to reduce server load
-        const interval = setInterval(fetchDashboardData, 120000) // Changed from 30s to 120s
+        // Refresh every 2 minutes
+        const interval = setInterval(fetchDashboardData, 120000)
         return () => clearInterval(interval)
     }, [])
 
@@ -149,7 +134,7 @@ export default function AdminDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100">
+        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 pt-5">
             <AdminNavbar 
                 adminUser={adminUser} 
                 onLogout={logout}
@@ -164,7 +149,7 @@ export default function AdminDashboard() {
                     onClose={() => setSidebarOpen(false)}
                 />
                 
-                <main className="flex-1 p-8">
+                <main className="flex-1 pt-2 px-8 pb-8">
                     <div className="px-8 lg:px-12">
                         <div className="mx-auto max-w-7xl">
                             <div className="bg-white rounded-lg shadow-lg p-8">
@@ -179,7 +164,7 @@ export default function AdminDashboard() {
                                     <p className="text-gray-600 mt-2">
                                         {activeTab === 'overview' && 'Monitor your platform performance and key metrics'}
                                         {activeTab === 'applications' && 'Manage and track all business applications'}
-                                        {activeTab === 'users' && 'Manage business and bank users'}
+                                        {activeTab === 'users' && 'Manage business, bank, and employee users'}
                                         {activeTab === 'offers' && 'Monitor and manage bank offers'}
                                         {activeTab === 'analytics' && 'Advanced analytics and insights'}
                                     </p>

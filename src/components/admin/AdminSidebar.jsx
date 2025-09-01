@@ -39,7 +39,7 @@ export default function AdminSidebar({ activeTab, onTabChange, isOpen, onClose }
             id: 'users', 
             name: 'Users', 
             icon: UsersIcon, 
-            description: 'Manage business and bank users' 
+            description: 'Manage business, bank, and employee users' 
         },
     ]
 
@@ -55,7 +55,7 @@ export default function AdminSidebar({ activeTab, onTabChange, isOpen, onClose }
 
             {/* Sidebar */}
             <div className={`
-                fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-2xl rounded-r-2xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:rounded-2xl lg:shadow-2xl lg:h-fit lg:max-h-[33rem] lg:top-6 lg:ml-4 lg:mt-4
+                fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-2xl rounded-r-2xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:rounded-2xl lg:shadow-2xl lg:h-fit lg:max-h-[33rem] lg:top-6 lg:ml-14 lg:mt-2
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
                 <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-purple-700 rounded-t-2xl mb-6">
