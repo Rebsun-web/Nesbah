@@ -1,4 +1,4 @@
-export default {
+const translations = {
   // Navigation
   'nav.home': 'Home',
   'nav.partners': 'Partners',
@@ -308,4 +308,20 @@ export default {
   'newsletter.description': 'Get the latest updates on financing options and market insights.',
   'newsletter.placeholder': 'Enter your email',
   'newsletter.subscribe': 'Subscribe',
+  
+  // Additional missing keys
+  'faq.posFinancing.title': 'What is POS Financing?',
+  'faq.posFinancing.content': 'POS Financing allows merchants to obtain financing for POS terminal equipment and related services through competitive offers from multiple banks.',
+  'faq.howItWorks.title': 'How does the process work?',
+  'faq.howItWorks.content': 'Submit your application, receive competitive offers from banks within 48 hours, and choose the best financing option for your business.',
+  'faq.requirements.title': 'What are the requirements?',
+  'faq.requirements.content': 'You need a valid CR number, business information, and supporting documents. Our system will automatically fetch your business details.',
+  
+  // Additional services keys
+  'services.transparentComparison': 'Transparent Comparison',
+  'services.saveTime': 'Save Time & Effort',
+  'services.directCommunication': 'Direct Bank Communication',
+  'services.applyForPosFinancing': 'Apply for POS Financing'
 }
+
+export default translations

@@ -29,7 +29,7 @@ export async function GET(req) {
         const end_date = searchParams.get('end_date');
         const status = searchParams.get('status');
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_revenue_collection-status_route.jsx_route');
         
         try {
             // Real-time revenue dashboard

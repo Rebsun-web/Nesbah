@@ -8,13 +8,10 @@ export async function GET(req) {
         const adminToken = req.cookies.get('admin_token')?.value;
         
         if (!adminToken) {
-            return NextResponse.json(
-                { success: false, error: 'No admin token found' },
-                { status: 401 }
-            );
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Validate admin session using JWT
+        // Validate admin session using session manager
         const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
         
         if (!sessionValidation.valid) {
@@ -24,106 +21,87 @@ export async function GET(req) {
             }, { status: 401 });
         }
 
-        const client = await pool.connectWithRetry();
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
+
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_stats_route.jsx_route');
         
         try {
-            // Get user counts by type (business and bank only)
-            const userTypeStats = await client.query(`
+            // Get user statistics
+            const userStatsQuery = `
                 SELECT 
-                    'business' as user_type,
+                    user_type,
                     COUNT(*) as count,
-                    COUNT(CASE WHEN bu.registration_status = 'active' THEN 1 END) as active_count,
-                    COUNT(CASE WHEN bu.registration_status = 'suspended' THEN 1 END) as suspended_count,
-                    COUNT(CASE WHEN bu.registration_status = 'inactive' THEN 1 END) as inactive_count
-                FROM business_users bu
-                
-                UNION ALL
-                
+                    COUNT(CASE WHEN account_status = 'active' THEN 1 END) as active_count,
+                    COUNT(CASE WHEN account_status = 'inactive' THEN 1 END) as inactive_count,
+                    COUNT(CASE WHEN account_status = 'suspended' THEN 1 END) as suspended_count
+                FROM users 
+                WHERE user_type IN ('business_user', 'individual_user', 'bank_user', 'admin_user')
+                GROUP BY user_type
+                ORDER BY user_type
+            `;
+            
+            const userStatsResult = await client.query(userStatsQuery);
+            
+            // Get registration trends
+            const registrationTrendsQuery = `
                 SELECT 
-                    'bank' as user_type,
-                    COUNT(*) as count,
-                    COUNT(CASE WHEN u.account_status = 'active' THEN 1 END) as active_count,
-                    COUNT(CASE WHEN u.account_status = 'suspended' THEN 1 END) as suspended_count,
-                    COUNT(CASE WHEN u.account_status = 'inactive' THEN 1 END) as inactive_count
-                FROM bank_users bu
-                JOIN users u ON bu.user_id = u.user_id
-            `);
-
-            // Get recent user registrations (last 30 days) - business and bank only
-            const recentRegistrations = await client.query(`
-                SELECT 
-                    'business' as user_type,
+                    DATE_TRUNC('month', created_at) as month,
+                    user_type,
                     COUNT(*) as count
-                FROM business_users bu
-                JOIN users u ON bu.user_id = u.user_id
-                WHERE u.created_at >= NOW() - INTERVAL '30 days'
-                
-                UNION ALL
-                
+                FROM users 
+                WHERE user_type IN ('business_user', 'individual_user', 'bank_user')
+                AND created_at >= NOW() - INTERVAL '12 months'
+                GROUP BY DATE_TRUNC('month', created_at), user_type
+                ORDER BY month DESC, user_type
+            `;
+            
+            const registrationTrendsResult = await client.query(registrationTrendsQuery);
+            
+            // Get business user verification stats
+            const businessVerificationQuery = `
                 SELECT 
-                    'bank' as user_type,
-                    COUNT(*) as count
-                FROM bank_users bu
-                JOIN users u ON bu.user_id = u.user_id
-                WHERE u.created_at >= NOW() - INTERVAL '30 days'
-            `);
-
-            // Get users with sent applications
-            const topUsers = await client.query(`
+                    COUNT(*) as total_business_users,
+                    COUNT(CASE WHEN is_verified = true THEN 1 END) as verified_count,
+                    COUNT(CASE WHEN is_verified = false THEN 1 END) as unverified_count,
+                    ROUND(
+                        CASE 
+                            WHEN COUNT(*) > 0 
+                            THEN (COUNT(CASE WHEN is_verified = true THEN 1 END)::DECIMAL / COUNT(*)) * 100 
+                            ELSE 0 
+                        END, 2
+                    ) as verification_rate
+                FROM business_users
+            `;
+            
+            const businessVerificationResult = await client.query(businessVerificationQuery);
+            
+            // Get bank user stats
+            const bankUserQuery = `
                 SELECT 
-                    bu.trade_name as entity_name,
-                    u.email,
-                    'business' as user_type,
-                    CASE WHEN COUNT(pa.application_id) > 0 THEN true ELSE false END as has_sent_application
-                FROM business_users bu
-                JOIN users u ON bu.user_id = u.user_id
-                LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
-                GROUP BY bu.user_id, bu.trade_name, u.email
-                HAVING COUNT(pa.application_id) > 0
-                ORDER BY bu.trade_name
-                LIMIT 10
-            `);
-
-            // Get registration trends (last 12 months) - business and bank only
-            const registrationTrends = await client.query(`
-                SELECT 
-                    DATE_TRUNC('month', all_users.created_at) as month,
-                    COUNT(*) as count
-                FROM (
-                    SELECT bu.user_id::text as user_id, u.created_at FROM business_users bu JOIN users u ON bu.user_id = u.user_id
-                    UNION ALL
-                    SELECT bu.user_id::text as user_id, u.created_at FROM bank_users bu JOIN users u ON bu.user_id = u.user_id
-                ) all_users
-                WHERE all_users.created_at >= NOW() - INTERVAL '12 months'
-                GROUP BY DATE_TRUNC('month', all_users.created_at)
-                ORDER BY month
-            `);
-
-            // Calculate totals
-            const totalUsers = userTypeStats.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
-            const totalActiveUsers = userTypeStats.rows.reduce((sum, row) => sum + parseInt(row.active_count), 0);
-            const totalRecentRegistrations = recentRegistrations.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
-
+                    COUNT(*) as total_bank_users,
+                    COUNT(CASE WHEN u.account_status = 'active' THEN 1 END) as active_banks,
+                    COUNT(CASE WHEN u.account_status = 'inactive' THEN 1 END) as inactive_banks
+                FROM users u
+                WHERE u.user_type = 'bank_user'
+            `;
+            
+            const bankUserResult = await client.query(bankUserQuery);
+            
             return NextResponse.json({
                 success: true,
                 data: {
-                    summary: {
-                        total_users: totalUsers,
-                        total_active_users: totalActiveUsers,
-                        total_recent_registrations: totalRecentRegistrations,
-                        active_percentage: totalUsers > 0 ? Math.round((totalActiveUsers / totalUsers) * 100) : 0
-                    },
-                    by_type: userTypeStats.rows,
-                    recent_registrations: recentRegistrations.rows,
-                    top_users: topUsers.rows,
-                    registration_trends: registrationTrends.rows
+                    user_stats: userStatsResult.rows,
+                    registration_trends: registrationTrendsResult.rows,
+                    business_verification: businessVerificationResult.rows[0] || {},
+                    bank_users: bankUserResult.rows[0] || {}
                 }
             });
-
+            
         } finally {
             client.release();
         }
-
+        
     } catch (error) {
         console.error('User stats error:', error);
         return NextResponse.json(

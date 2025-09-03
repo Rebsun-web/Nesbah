@@ -14,11 +14,8 @@ export const LANGUAGES = {
 // Default language
 const DEFAULT_LANGUAGE = LANGUAGES.AR
 
-// Language direction mapping
-export const LANGUAGE_DIRECTIONS = {
-  [LANGUAGES.AR]: 'rtl',
-  [LANGUAGES.EN]: 'ltr'
-}
+// Use standard LTR layout for all languages
+const STANDARD_LTR_DIRECTION = 'ltr'
 
 // Lazy load translations
 const loadTranslations = async (language) => {
@@ -39,7 +36,6 @@ const loadTranslations = async (language) => {
 export function LanguageProvider({ children }) {
   // Initialize with the same defaults as the server to prevent hydration mismatch
   const [currentLanguage, setCurrentLanguage] = useState(DEFAULT_LANGUAGE)
-  const [direction, setDirection] = useState(LANGUAGE_DIRECTIONS[DEFAULT_LANGUAGE])
   const [translations, setTranslations] = useState({})
   const [isLoading, setIsLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
@@ -58,12 +54,11 @@ export function LanguageProvider({ children }) {
     // Only update if different from default to prevent hydration mismatch
     if (initialLanguage !== DEFAULT_LANGUAGE) {
       setCurrentLanguage(initialLanguage)
-      setDirection(LANGUAGE_DIRECTIONS[initialLanguage])
       
-      // Update document attributes
+      // Update document attributes - use standard LTR layout
       if (document.documentElement) {
         document.documentElement.lang = initialLanguage
-        document.documentElement.dir = LANGUAGE_DIRECTIONS[initialLanguage]
+        document.documentElement.dir = STANDARD_LTR_DIRECTION
       }
     }
     
@@ -89,24 +84,23 @@ export function LanguageProvider({ children }) {
     loadLanguageTranslations()
   }, [currentLanguage])
 
-  // Update document direction when language changes (only on client)
+  // Update document attributes when language changes (only on client)
   useEffect(() => {
-    if (mounted && direction && currentLanguage) {
-      // Only update if different from current to prevent unnecessary changes
-      if (document.documentElement.dir !== direction) {
-        document.documentElement.dir = direction
+    if (mounted && currentLanguage) {
+      // Use standard LTR layout for all languages
+      if (document.documentElement.dir !== STANDARD_LTR_DIRECTION) {
+        document.documentElement.dir = STANDARD_LTR_DIRECTION
       }
       if (document.documentElement.lang !== currentLanguage) {
         document.documentElement.lang = currentLanguage
       }
     }
-  }, [direction, currentLanguage, mounted])
+  }, [currentLanguage, mounted])
 
   // Change language function
   const changeLanguage = (newLanguage) => {
     if (Object.values(LANGUAGES).includes(newLanguage)) {
       setCurrentLanguage(newLanguage)
-      setDirection(LANGUAGE_DIRECTIONS[newLanguage])
       if (mounted) {
         localStorage.setItem('language', newLanguage)
       }
@@ -128,15 +122,15 @@ export function LanguageProvider({ children }) {
   const getCurrentLanguageInfo = () => {
     return {
       code: currentLanguage,
-      direction,
-      isRTL: direction === 'rtl',
-      isLTR: direction === 'ltr'
+      direction: STANDARD_LTR_DIRECTION,
+      isRTL: false, // Always false to prevent RTL layout
+      isLTR: true   // Always true to maintain LTR layout
     }
   }
 
   const value = {
     currentLanguage,
-    direction,
+    direction: STANDARD_LTR_DIRECTION,
     changeLanguage,
     t,
     getCurrentLanguageInfo,

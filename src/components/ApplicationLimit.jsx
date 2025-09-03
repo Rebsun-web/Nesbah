@@ -6,6 +6,7 @@ export function ApplicationLimit() {
         <div className="flex items-center justify-center">
           <img
             src="/characters/ApplicationLimit.png"
+            alt="Application limit illustration"
             className="w-full max-w-sm object-contain"
           />
         </div>

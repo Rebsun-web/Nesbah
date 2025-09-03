@@ -25,11 +25,11 @@ export async function GET(req, { params }) {
         // Get admin user from session (no database query needed)
         const adminUser = sessionValidation.adminUser;
 
-        const { id } = params;
+        const { id } = await params;
         const { searchParams } = new URL(req.url);
         const user_type = searchParams.get('user_type') || 'business';
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_[id]_route.jsx_route');
         
         try {
             let query;
@@ -183,7 +183,7 @@ export async function PUT(req, { params }) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_[id]_route.jsx_route');
         
         try {
             await client.query('BEGIN');
@@ -263,7 +263,78 @@ export async function PUT(req, { params }) {
                 `;
             } else if (user_type === 'bank') {
                 const allowedFields = [
-                    'entity_name', 'registration_status', 'contact_person', 'contact_person_number'
+                    'contact_person', 'contact_person_number', 'logo_url'
+                ];
+                
+                const setClauses = [];
+                for (const [key, value] of Object.entries(updateData)) {
+                    if (allowedFields.includes(key) && value !== undefined && value !== '') {
+                        paramCount++;
+                        setClauses.push(`${key} = $${paramCount}`);
+                        updateParams.push(value);
+                    }
+                }
+
+                // Handle entity_name update in users table if present
+                let entityNameUpdate = null;
+                if (updateData.entity_name !== undefined && updateData.entity_name !== '') {
+                    entityNameUpdate = updateData.entity_name;
+                }
+
+                if (setClauses.length === 0 && !entityNameUpdate) {
+                    await client.query('ROLLBACK');
+                    return NextResponse.json(
+                        { success: false, error: 'No valid fields to update' },
+                        { status: 400 }
+                    );
+                }
+
+                updateParams.push(id);
+
+                // Update bank_users table
+                if (setClauses.length > 0) {
+                    updateQuery = `
+                        UPDATE bank_users 
+                        SET ${setClauses.join(', ')}
+                        WHERE user_id = $${paramCount + 1}
+                        RETURNING user_id, email, credit_limit
+                    `;
+                } else {
+                    // If no bank_users fields to update, set a minimal query to get user info
+                    updateQuery = `
+                        SELECT user_id, email, credit_limit FROM bank_users WHERE user_id = $1
+                    `;
+                    updateParams = [id];
+                }
+
+                // Update users table for entity_name if needed
+                if (entityNameUpdate) {
+                    await client.query(
+                        'UPDATE users SET entity_name = $1 WHERE user_id = $2',
+                        [entityNameUpdate, id]
+                    );
+                }
+            } else if (user_type === 'employee') {
+                console.log('🔧 Processing employee update for user_id:', id);
+                console.log('🔧 Update data:', updateData);
+                
+                // First check if the employee exists
+                const employeeCheck = await client.query(
+                    'SELECT employee_id, user_id, first_name, last_name FROM bank_employees WHERE user_id = $1',
+                    [id]
+                );
+                console.log('🔧 Employee check result:', { rowCount: employeeCheck.rowCount, rows: employeeCheck.rows });
+                
+                if (employeeCheck.rowCount === 0) {
+                    await client.query('ROLLBACK');
+                    return NextResponse.json(
+                        { success: false, error: 'Employee not found for this user ID' },
+                        { status: 404 }
+                    );
+                }
+                
+                const allowedFields = [
+                    'first_name', 'last_name', 'position', 'phone'
                 ];
                 
                 const setClauses = [];
@@ -286,11 +357,14 @@ export async function PUT(req, { params }) {
                 updateParams.push(id);
 
                 updateQuery = `
-                    UPDATE bank_users 
+                    UPDATE bank_employees 
                     SET ${setClauses.join(', ')}
                     WHERE user_id = $${paramCount + 1}
-                    RETURNING user_id, email, credit_limit
+                    RETURNING user_id, first_name, last_name
                 `;
+                
+                console.log('🔧 Employee update query:', updateQuery);
+                console.log('🔧 Employee update params:', updateParams);
             } else {
                 await client.query('ROLLBACK');
                 return NextResponse.json(
@@ -300,9 +374,11 @@ export async function PUT(req, { params }) {
             }
 
             const result = await client.query(updateQuery, updateParams);
+            console.log('🔧 Query result:', { rowCount: result.rowCount, rows: result.rows });
 
             if (result.rows.length === 0) {
                 await client.query('ROLLBACK');
+                console.log('🔧 No rows returned, user not found');
                 return NextResponse.json(
                     { success: false, error: 'User not found' },
                     { status: 404 }
@@ -360,7 +436,7 @@ export async function DELETE(req, { params }) {
         const { searchParams } = new URL(req.url);
         const user_type = searchParams.get('user_type') || 'business';
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_[id]_route.jsx_route');
         
         try {
             await client.query('BEGIN');

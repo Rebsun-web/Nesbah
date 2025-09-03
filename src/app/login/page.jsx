@@ -58,8 +58,37 @@ export default function Login() {
         
         if (user.user_type === 'admin_user') {
           // Admin login successful
-          console.log('✅ Admin login successful, redirecting to admin dashboard...');
-          router.push('/admin');
+          console.log('✅ Admin login successful, storing JWT token and user data...');
+          console.log('🔍 Login: Storing admin user data:', user);
+          
+          try {
+            // Test localStorage functionality
+            localStorage.setItem('test', 'test')
+            localStorage.removeItem('test')
+            console.log('✅ Login: localStorage is working')
+            
+            // Store admin user data
+            localStorage.setItem('adminUser', JSON.stringify(user));
+            
+            // Store JWT token (this should be in the response from the backend)
+            if (data.token) {
+              localStorage.setItem('adminJWT', data.token);
+              console.log('✅ Login: JWT token stored')
+            } else {
+              console.warn('⚠️ Login: No JWT token in response')
+            }
+            
+            console.log('🔍 Login: adminUser stored in localStorage:', localStorage.getItem('adminUser'));
+            
+            // Small delay to ensure localStorage is set before navigation
+            setTimeout(() => {
+              router.push('/admin');
+            }, 100);
+          } catch (error) {
+            console.error('❌ Login: Error with localStorage:', error)
+            setModalMessage('Error storing authentication data. Please try again.');
+            setIsModalOpen(true);
+          }
         } else if (user.user_type === 'bank_employee') {
           // Bank employee login successful
           console.log('✅ Bank employee login successful, storing in localStorage');

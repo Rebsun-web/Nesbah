@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import JWTUtils from '@/lib/auth/jwt-utils';
+import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function GET(req) {
     try {
@@ -11,30 +11,20 @@ export async function GET(req) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Verify JWT token directly
-        const jwtResult = JWTUtils.verifyToken(adminToken);
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
         
-        if (!jwtResult.valid || !jwtResult.payload || jwtResult.payload.user_type !== 'admin_user') {
-            console.log('🔧 Applications analytics: JWT verification failed:', jwtResult);
+        if (!sessionValidation.valid) {
             return NextResponse.json({ 
                 success: false, 
-                error: 'Invalid admin token' 
+                error: sessionValidation.error || 'Invalid admin session' 
             }, { status: 401 });
         }
 
-        const decoded = jwtResult.payload;
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
-        // Get admin user from JWT payload
-        const adminUser = {
-            admin_id: decoded.admin_id,
-            email: decoded.email,
-            full_name: decoded.full_name,
-            role: decoded.role,
-            permissions: decoded.permissions,
-            is_active: true
-        };
-
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_analytics_route.jsx_route');
         
         try {
             // OPTIMIZED: Single comprehensive query for all application analytics using pos_application
@@ -60,17 +50,16 @@ export async function GET(req) {
                 ),
                 sector_stats AS (
                     SELECT 
-                        COALESCE(bu.sector, 'Unknown') as sector,
+                        pa.sector,
                         COUNT(DISTINCT pa.application_id) as total_applications,
                         COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' THEN pa.application_id END) as completed_applications,
                         COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'ignored' THEN pa.application_id END) as ignored_applications,
                         COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' THEN pa.application_id END) as live_auction_applications
                     FROM pos_application pa
-                    JOIN business_users bu ON pa.business_user_id = bu.user_id
                     WHERE COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'ignored', 'completed')
-                    GROUP BY bu.sector
+                    GROUP BY pa.sector
                 ),
-                trends AS (
+                monthly_trends AS (
                     SELECT 
                         DATE_TRUNC('month', pa.submitted_at) as month,
                         COUNT(DISTINCT pa.application_id) as total_applications,
@@ -78,170 +67,65 @@ export async function GET(req) {
                         COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'ignored' THEN pa.application_id END) as ignored_applications,
                         COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' THEN pa.application_id END) as live_auction_applications
                     FROM pos_application pa
-                    WHERE pa.submitted_at >= NOW() - INTERVAL '12 months'
-                    AND COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'ignored', 'completed')
+                    WHERE COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'ignored', 'completed')
                     GROUP BY DATE_TRUNC('month', pa.submitted_at)
+                    ORDER BY month DESC
+                    LIMIT 12
                 ),
-                processing_time AS (
+                offer_stats AS (
                     SELECT 
-                        ROUND(AVG(EXTRACT(EPOCH FROM (pa.offer_selection_end_time - pa.submitted_at)) / 86400), 2) as avg_processing_days,
-                        ROUND(MIN(EXTRACT(EPOCH FROM (pa.offer_selection_end_time - pa.submitted_at)) / 86400), 2) as min_processing_days,
-                        ROUND(MAX(EXTRACT(EPOCH FROM (pa.offer_selection_end_time - pa.submitted_at)) / 86400), 2) as max_processing_days,
-                        COUNT(*) as total_completed_applications
-                    FROM pos_application pa
-                    WHERE COALESCE(pa.current_application_status, pa.status) = 'completed'
-                    AND pa.submitted_at IS NOT NULL
-                    AND pa.offer_selection_end_time IS NOT NULL
-                ),
-                recent_activity AS (
-                    SELECT DISTINCT
-                        pa.application_id,
-                        COALESCE(pa.current_application_status, pa.status) as status,
-                        pa.submitted_at,
-                        pa.trade_name as business_name,
-                        pa.city,
-                        bu.sector,
-                        pa.offers_count,
-                        pa.revenue_collected
-                    FROM pos_application pa
-                    JOIN business_users bu ON pa.business_user_id = bu.user_id
-                    WHERE pa.submitted_at >= NOW() - INTERVAL '7 days'
-                    AND COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'ignored', 'completed')
-                    ORDER BY pa.submitted_at DESC
-                    LIMIT 20
-                ),
-                bank_performance AS (
-                    SELECT 
-                        u.entity_name as bank_name,
-                        u.email as bank_email,
-                        COUNT(DISTINCT pa.application_id) as total_applications,
-                        COUNT(DISTINCT bos.application_id) as applications_with_offers,
-                        ROUND(
-                            CASE 
-                                WHEN COUNT(DISTINCT pa.application_id) > 0 
-                                THEN (COUNT(DISTINCT bos.application_id)::DECIMAL / COUNT(DISTINCT pa.application_id)) * 100 
-                                ELSE 0 
-                            END, 2
-                        ) as conversion_rate,
-                        ROUND(
-                            AVG(EXTRACT(EPOCH FROM (bav.viewed_at - pa.submitted_at))/3600), 2
-                        ) as avg_response_time_hours,
-                        ROUND(
-                            AVG(EXTRACT(EPOCH FROM (bos.submitted_at - bav.viewed_at))/3600), 2
-                        ) as avg_offer_submission_time_hours
-                    FROM pos_application pa
-                    CROSS JOIN LATERAL unnest(pa.opened_by) AS opened_bank_id
-                    JOIN bank_users bu ON opened_bank_id = bu.user_id
-                    JOIN users u ON bu.user_id = u.user_id
-                    LEFT JOIN bank_application_views bav ON pa.application_id = bav.application_id AND bu.user_id = bav.bank_user_id
-                    LEFT JOIN bank_offer_submissions bos ON pa.application_id = bos.application_id AND bu.user_id = bos.bank_user_id
-                    WHERE u.user_type = 'bank_user'
-                    GROUP BY u.entity_name, u.email, bu.user_id
+                        COUNT(DISTINCT ao.offer_id) as total_offers,
+                        COUNT(DISTINCT ao.submitted_application_id) as applications_with_offers,
+                        AVG(ao.approved_financing_amount) as avg_financing_amount,
+                        SUM(ao.approved_financing_amount) as total_financing_amount
+                    FROM application_offers ao
+                    JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+                    WHERE COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'completed')
                 )
                 SELECT 
-                    'application_stats' as data_type,
-                    json_agg(application_stats.*) as data
-                FROM application_stats
-                
-                UNION ALL
-                
-                SELECT 
-                    'city_stats' as data_type,
-                    json_agg(city_stats.* ORDER BY total_applications DESC) as data
-                FROM (
-                    SELECT * FROM city_stats ORDER BY total_applications DESC LIMIT 10
-                ) city_stats
-                
-                UNION ALL
-                
-                SELECT 
-                    'sector_stats' as data_type,
-                    json_agg(sector_stats.* ORDER BY total_applications DESC) as data
-                FROM (
-                    SELECT * FROM sector_stats ORDER BY total_applications DESC LIMIT 10
-                ) sector_stats
-                
-                UNION ALL
-                
-                SELECT 
-                    'trends' as data_type,
-                    json_agg(trends.* ORDER BY month) as data
-                FROM trends
-                
-                UNION ALL
-                
-                SELECT 
-                    'processing_time' as data_type,
-                    json_agg(processing_time.*) as data
-                FROM processing_time
-                
-                UNION ALL
-                
-                SELECT 
-                    'recent_activity' as data_type,
-                    json_agg(recent_activity.*) as data
-                FROM recent_activity
-                
-                UNION ALL
-                
-                SELECT 
-                    'bank_performance' as data_type,
-                    json_agg(bank_performance.* ORDER BY conversion_rate DESC) as data
-                FROM (
-                    SELECT * FROM bank_performance ORDER BY conversion_rate DESC LIMIT 10
-                ) bank_performance
+                    (SELECT json_agg(application_stats.*) FROM application_stats) as status_counts,
+                    (SELECT json_agg(city_stats.*) FROM city_stats) as city_stats,
+                    (SELECT json_agg(sector_stats.*) FROM sector_stats) as sector_stats,
+                    (SELECT json_agg(monthly_trends.*) FROM monthly_trends) as monthly_trends,
+                    (SELECT json_agg(offer_stats.*) FROM offer_stats) as offer_stats
             `;
-
+            
             const result = await client.query(comprehensiveQuery);
             
-            // Parse the results
-            const data = {};
-            result.rows.forEach(row => {
-                data[row.data_type] = row.data;
-            });
-
-            // Calculate summary statistics
-            const applicationStats = data.application_stats || [];
-            const totalApplications = applicationStats.reduce((sum, row) => sum + parseInt(row.count), 0);
-            const totalCompletedApplications = applicationStats.find(row => row.status === 'completed')?.count || 0;
-            const totalIgnoredApplications = applicationStats.find(row => row.status === 'ignored')?.count || 0;
-            const totalLiveAuctions = applicationStats.find(row => row.status === 'live_auction')?.count || 0;
-            const overallCompletionRate = totalApplications > 0 ? Math.round((totalCompletedApplications / totalApplications) * 100) : 0;
+            if (result.rows.length === 0) {
+                return NextResponse.json({
+                    success: true,
+                    data: {
+                        status_counts: [],
+                        city_stats: [],
+                        sector_stats: [],
+                        monthly_trends: [],
+                        offer_stats: []
+                    }
+                });
+            }
             
-            // Get total offers count
-            const totalOffersResult = await client.query('SELECT COUNT(*) as total_offers FROM bank_offer_submissions');
-            const totalOffers = parseInt(totalOffersResult.rows[0].total_offers);
-
+            const analyticsData = result.rows[0];
+            
             return NextResponse.json({
                 success: true,
                 data: {
-                    summary: {
-                        total_applications: totalApplications,
-                        total_completed_applications: totalCompletedApplications,
-                        total_ignored_applications: totalIgnoredApplications,
-                        total_live_auctions: totalLiveAuctions,
-                        overall_completion_rate: overallCompletionRate,
-                        total_offers_submitted: totalOffers,
-                        recent_applications: applicationStats.reduce((sum, row) => sum + parseInt(row.count), 0)
-                    },
-                    by_status: data.application_stats || [],
-                    by_city: data.city_stats || [],
-                    by_sector: data.sector_stats || [],
-                    trends: data.trends || [],
-                    processing_time: data.processing_time?.[0] || {},
-                    recent_activity: data.recent_activity || [],
-                    bank_performance: data.bank_performance || []
+                    status_counts: analyticsData.status_counts || [],
+                    city_stats: analyticsData.city_stats || [],
+                    sector_stats: analyticsData.sector_stats || [],
+                    monthly_trends: analyticsData.monthly_trends || [],
+                    offer_stats: analyticsData.offer_stats || []
                 }
             });
-
+            
         } finally {
             client.release();
         }
-
+        
     } catch (error) {
-        console.error('Application analytics error:', error);
+        console.error('Applications analytics error:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to fetch application analytics' },
+            { success: false, error: 'Failed to fetch applications analytics' },
             { status: 500 }
         );
     }

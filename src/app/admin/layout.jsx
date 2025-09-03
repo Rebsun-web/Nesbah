@@ -1,50 +1,95 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import React from 'react'
+import { useRouter } from 'next/navigation'
 
-export default function AdminLayout({ children }) {
+// Authentication check component for admin portal
+function AuthCheck({ children }) {
+    const [isChecking, setIsChecking] = useState(true)
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [adminUser, setAdminUser] = useState(null)
-    const [loading, setLoading] = useState(true)
+    const router = useRouter()
 
     useEffect(() => {
-        const checkAuth = async () => {
+        const checkAuth = () => {
             try {
-                // Simple JWT check - just try to get admin user info
-                const response = await fetch('/api/admin/auth/me', {
-                    credentials: 'include'
-                })
+                // Check if localStorage is available
+                if (typeof localStorage === 'undefined') {
+                    console.error('❌ Admin layout: localStorage is not available')
+                    setIsAuthenticated(false)
+                    setIsChecking(false)
+                    return
+                }
 
-                if (response.ok) {
-                    const data = await response.json()
-                    if (data.success && data.adminUser) {
-                        setAdminUser(data.adminUser)
+                // Test localStorage functionality
+                try {
+                    localStorage.setItem('test', 'test')
+                    localStorage.removeItem('test')
+                    console.log('✅ Admin layout: localStorage is working')
+                } catch (localStorageError) {
+                    console.error('❌ Admin layout: localStorage test failed:', localStorageError)
+                    setIsAuthenticated(false)
+                    setIsChecking(false)
+                    return
+                }
+
+                // Check for admin user
+                const storedUser = localStorage.getItem('adminUser')
+                console.log('🔍 Admin layout: Checking localStorage for adminUser:', storedUser)
+                
+                if (storedUser) {
+                    const userData = JSON.parse(storedUser)
+                    console.log('🔍 Admin layout: Parsed user data:', userData)
+                    
+                    // Validate user type - admin portal is for admin users
+                    if (userData.user_type === 'admin_user') {
+                        console.log('✅ Admin layout: Valid admin user found, setting authenticated')
+                        setAdminUser(userData)
+                        setIsAuthenticated(true)
+                        setIsChecking(false)
+                        return
+                    } else {
+                        console.log(`❌ Admin layout: User type mismatch. Expected: admin_user, Got: ${userData.user_type}`)
+                        localStorage.removeItem('adminUser')
                     }
                 }
+
+                // No valid user found
+                console.log('❌ Admin layout: No authenticated admin user found')
+                setIsAuthenticated(false)
+                setIsChecking(false)
+                
             } catch (error) {
-                console.log('Admin auth check failed:', error)
-            } finally {
-                setLoading(false)
+                console.error('❌ Admin layout: Error checking authentication:', error)
+                localStorage.removeItem('adminUser')
+                setIsAuthenticated(false)
+                setIsChecking(false)
             }
+        }
+
+        // Add a retry mechanism for localStorage issues
+        const retryAuth = () => {
+            console.log('🔄 Admin layout: Retrying authentication check...')
+            setTimeout(checkAuth, 500)
         }
 
         checkAuth()
     }, [])
 
     // Show loading while checking
-    if (loading) {
+    if (isChecking) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading admin panel...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Checking authentication...</p>
                 </div>
             </div>
         )
     }
 
-    // Show access denied if no admin user
-    if (!adminUser) {
+    // Show access denied if not authenticated
+    if (!isAuthenticated) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
@@ -55,18 +100,16 @@ export default function AdminLayout({ children }) {
                             </svg>
                         </div>
                         <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-                        <p className="text-gray-600 mb-6">
-                            You need to be logged in as an admin user to access this page.
-                        </p>
+                        <p className="text-gray-600 mb-6">You need to be logged in as an admin user to access this page.</p>
                         <div className="space-y-3">
                             <button
-                                onClick={() => window.location.href = '/login'}
+                                onClick={() => router.push('/login')}
                                 className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium"
                             >
                                 Go to Login
                             </button>
                             <button
-                                onClick={() => window.location.href = '/'}
+                                onClick={() => router.push('/')}
                                 className="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors font-medium"
                             >
                                 Return to Home
@@ -78,7 +121,14 @@ export default function AdminLayout({ children }) {
         )
     }
 
-    // Render children if admin user is available
-    return React.cloneElement(children, { adminUser })
+    // Render children if authenticated
+    return children
+}
+export default function AdminLayout({ children }) {
+    return (
+        <AuthCheck>
+            {children}
+        </AuthCheck>
+    )
 }
 

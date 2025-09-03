@@ -28,12 +28,15 @@ export default class JWTUtils {
     static generateAdminToken(adminData) {
         try {
             const payload = {
-                admin_id: adminData.admin_id,
+                user_id: adminData.user_id || adminData.admin_id, // Support both old and new structure
+                admin_id: adminData.user_id || adminData.admin_id, // For backward compatibility
                 email: adminData.email,
-                full_name: adminData.full_name,
+                full_name: adminData.entity_name || adminData.full_name, // Support both entity_name and full_name
+                entity_name: adminData.entity_name || adminData.full_name, // Add entity_name for consistency
                 role: adminData.role || 'admin',
-                permissions: adminData.permissions || [],
-                user_type: 'admin_user', // Add this field for admin token verification
+                permissions: adminData.permissions || {},
+                user_type: 'admin_user',
+                account_status: adminData.account_status || 'active',
                 iat: Math.floor(Date.now() / 1000)
             };
             

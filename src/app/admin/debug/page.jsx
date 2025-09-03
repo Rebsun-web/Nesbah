@@ -43,7 +43,7 @@ export default function AdminDebug() {
 
     const forceLogin = async () => {
         try {
-            const response = await fetch('/api/admin/auth/login', {
+            const response = await fetch('/api/auth/unified-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

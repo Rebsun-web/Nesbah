@@ -16,9 +16,9 @@ import { useLanguage } from '@/contexts/LanguageContext'
 
 const links = [
   { href: '/', labelKey: 'nav.home' },
-  { href: '/contact', labelKey: 'nav.partners' },
-  { href: '/about', labelKey: 'nav.about' },
-  { href: '/calculator', labelKey: 'nav.calculator' },
+  // { href: '/contact', labelKey: 'nav.partners' },
+  // { href: '/about', labelKey: 'nav.about' },
+  // { href: '/calculator', labelKey: 'nav.calculator' },
   { href: 'https://news.nesbah.com.sa/', labelKey: 'nav.news' },
 ]
 

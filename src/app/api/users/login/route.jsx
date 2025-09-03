@@ -8,10 +8,10 @@ export async function POST(req) {
         const { email, password } = await req.json();
         console.log('🔐 Login attempt for:', email);
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_users_login_route.jsx_route');
         
         try {
-            // REGULAR USER LOGIN ONLY - Admin users are handled by /api/admin/auth/login
+            // REGULAR USER LOGIN ONLY - Admin users are handled by /api/auth/unified-login
             const userQuery = await client.query(
                 `SELECT 
                     u.user_id,
@@ -39,7 +39,7 @@ export async function POST(req) {
                     const token = JWTUtils.generateUserToken(user);
 
                     let redirect = '/portal';
-                    // Remove admin user handling - admin users should use /api/admin/auth/login
+                    // Remove admin user handling - admin users should use /api/auth/unified-login
                     if (user.user_type === 'bank_user') {
                         redirect = '/bankPortal';
                     }

@@ -24,7 +24,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_bank_application-view_route.jsx_route');
         
         try {
             // Verify the application exists and is accessible to this bank
@@ -123,7 +123,7 @@ export async function GET(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_bank_application-view_route.jsx_route');
         
         try {
             // Get view history for this application

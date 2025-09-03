@@ -38,13 +38,16 @@ export async function POST(req) {
             }, { status: 401 });
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_create-bank-employee_route.jsx_route');
         try {
+            console.log('🔧 Starting bank employee creation transaction...');
             await client.query('BEGIN');
 
-            // 1. Verify the bank entity exists
+            // 1. Verify the bank entity exists and get its information
             const bankCheck = await client.query(
-                `SELECT u.user_id, u.entity_name FROM users u WHERE u.user_id = $1 AND u.user_type = 'bank_user'`,
+                `SELECT u.user_id, u.entity_name, bu.logo_url FROM users u 
+                 LEFT JOIN bank_users bu ON u.user_id = bu.user_id 
+                 WHERE u.user_id = $1 AND u.user_type = 'bank_user'`,
                 [bank_user_id]
             );
 
@@ -86,6 +89,15 @@ export async function POST(req) {
             const user_id = userRes.rows[0].user_id;
 
             // 5. Create bank employee record
+            console.log('🔧 Creating bank employee record with data:', {
+                bank_user_id,
+                user_id,
+                first_name,
+                last_name,
+                position: position || null,
+                phone: phone || null
+            });
+            
             const employeeRes = await client.query(
                 `INSERT INTO bank_employees (
                     bank_user_id, 
@@ -94,11 +106,9 @@ export async function POST(req) {
                     last_name, 
                     position, 
                     phone, 
-                    is_active, 
-                    created_at, 
-                    updated_at
+                    created_at
                 )
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+                 VALUES ($1, $2, $3, $4, $5, $6, NOW())
                  RETURNING employee_id`,
                 [
                     bank_user_id,
@@ -106,8 +116,7 @@ export async function POST(req) {
                     first_name,
                     last_name,
                     position || null,
-                    phone || null,
-                    true
+                    phone || null
                 ]
             );
 
@@ -132,6 +141,7 @@ export async function POST(req) {
             );
 
             await client.query('COMMIT');
+            console.log('🔧 Bank employee created successfully:', { employee_id, user_id, email });
 
             return NextResponse.json({
                 success: true,
@@ -146,6 +156,7 @@ export async function POST(req) {
                     phone,
                     bank_user_id,
                     bank_entity_name: bankEntity.entity_name,
+                    bank_logo_url: bankEntity.logo_url,
                     created_at: new Date().toISOString()
                 }
             });

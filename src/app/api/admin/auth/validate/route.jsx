@@ -35,7 +35,17 @@ export async function GET(req) {
         console.log('✅ Validation endpoint: Session valid, returning admin user')
         return NextResponse.json({
             success: true,
-            adminUser: sessionValidation.adminUser
+            adminUser: {
+                user_id: sessionValidation.adminUser.user_id,
+                admin_id: sessionValidation.adminUser.user_id, // For backward compatibility
+                email: sessionValidation.adminUser.email,
+                full_name: sessionValidation.adminUser.full_name,
+                entity_name: sessionValidation.adminUser.entity_name,
+                role: sessionValidation.adminUser.role,
+                permissions: sessionValidation.adminUser.permissions,
+                is_active: sessionValidation.adminUser.is_active,
+                user_type: 'admin_user'
+            }
         })
         
     } catch (error) {

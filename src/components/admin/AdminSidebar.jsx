@@ -2,26 +2,19 @@
 
 import { 
     XMarkIcon,
-    HomeIcon,
-    DocumentTextIcon,
-    UsersIcon,
     ChartBarIcon,
-    BuildingOfficeIcon
+    DocumentTextIcon,
+    BuildingOfficeIcon,
+    UsersIcon
 } from '@heroicons/react/24/outline'
 
 export default function AdminSidebar({ activeTab, onTabChange, isOpen, onClose }) {
     const navigation = [
         { 
-            id: 'overview', 
-            name: 'Dashboard', 
-            icon: HomeIcon, 
-            description: 'System overview and key metrics' 
-        },
-        { 
             id: 'analytics', 
             name: 'Analytics', 
             icon: ChartBarIcon, 
-            description: 'Applications and Offers insights' 
+            description: 'Enhanced analytics and detailed metrics' 
         },
         { 
             id: 'applications', 

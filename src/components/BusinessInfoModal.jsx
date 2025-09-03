@@ -104,13 +104,13 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                                             <h4 className="text-sm font-medium text-red-800 mb-2">🔍 Debug - Raw Data Received:</h4>
                                             <div className="text-xs text-red-700 space-y-1">
-                                                <div>pos_provider_name: "{businessData.pos_provider_name || 'undefined'}"</div>
-                                                <div>pos_age_duration_months: "{businessData.pos_age_duration_months || 'undefined'}"</div>
-                                                <div>avg_monthly_pos_sales: "{businessData.avg_monthly_pos_sales || 'undefined'}"</div>
-                                                <div>requested_financing_amount: "{businessData.requested_financing_amount || 'undefined'}"</div>
-                                                <div>preferred_repayment_period_months: "{businessData.preferred_repayment_period_months || 'undefined'}"</div>
-                                                <div>city_of_operation: "{businessData.city_of_operation || 'undefined'}"</div>
-                                                <div>notes: "{businessData.notes || 'undefined'}"</div>
+                                                <div>pos_provider_name: &quot;{businessData.pos_provider_name || 'undefined'}&quot;</div>
+                                                <div>pos_age_duration_months: &quot;{businessData.pos_age_duration_months || 'undefined'}&quot;</div>
+                                                <div>avg_monthly_pos_sales: &quot;{businessData.avg_monthly_pos_sales || 'undefined'}&quot;</div>
+                                                <div>requested_financing_amount: &quot;{businessData.requested_financing_amount || 'undefined'}&quot;</div>
+                                                <div>preferred_repayment_period_months: &quot;{businessData.preferred_repayment_period_months || 'undefined'}&quot;</div>
+                                                <div>city_of_operation: &quot;{businessData.city_of_operation || 'undefined'}&quot;</div>
+                                                <div>notes: &quot;{businessData.notes || 'undefined'}&quot;</div>
                                                 <div>All keys: {Object.keys(businessData).join(', ')}</div>
                                             </div>
                                         </div>

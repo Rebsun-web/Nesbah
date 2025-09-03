@@ -1,0 +1,145 @@
+/* Bank Performance Summary Table - Fixed Layout */
+.bank-performance-table {
+  table-layout: fixed !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+.bank-performance-table th,
+.bank-performance-table td {
+  /* Force horizontal layout */
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  text-align: left !important;
+  vertical-align: middle !important;
+  /* Prevent any CSS overrides */
+  display: table-cell !important;
+  /* Ensure proper spacing */
+  padding: 1rem 1.5rem !important;
+  /* Force horizontal text flow */
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Column widths */
+.bank-performance-table th:nth-child(1),
+.bank-performance-table td:nth-child(1) {
+  width: 30% !important;
+  min-width: 200px !important;
+}
+
+.bank-performance-table th:nth-child(2),
+.bank-performance-table td:nth-child(2) {
+  width: 25% !important;
+  min-width: 150px !important;
+}
+
+.bank-performance-table th:nth-child(3),
+.bank-performance-table td:nth-child(3) {
+  width: 25% !important;
+  min-width: 150px !important;
+}
+
+.bank-performance-table th:nth-child(4),
+.bank-performance-table td:nth-child(4) {
+  width: 20% !important;
+  min-width: 120px !important;
+}
+
+/* Header styling */
+.bank-performance-table thead th {
+  background-color: #f9fafb !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #4b5563 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  cursor: pointer !important;
+}
+
+/* Row styling */
+.bank-performance-table tbody tr {
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.bank-performance-table tbody tr:hover {
+  background-color: #f9fafb !important;
+}
+
+/* Cell content alignment */
+.bank-performance-table td:nth-child(1) {
+  text-align: left !important;
+}
+
+.bank-performance-table td:nth-child(2),
+.bank-performance-table td:nth-child(3),
+.bank-performance-table td:nth-child(4) {
+  text-align: center !important;
+}
+
+/* Force horizontal layout for all content */
+.bank-performance-table * {
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  text-orientation: mixed !important;
+  unicode-bidi: normal !important;
+}
+
+/* Override any inherited CSS that might break the layout */
+.bank-performance-table th div,
+.bank-performance-table td div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  /* Force horizontal flow */
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+}
+
+/* Specific alignment for different columns */
+.bank-performance-table th:nth-child(2) div,
+.bank-performance-table th:nth-child(3) div,
+.bank-performance-table th:nth-child(4) div {
+  justify-content: center !important;
+}
+
+.bank-performance-table td:nth-child(2) div,
+.bank-performance-table td:nth-child(3) div,
+.bank-performance-table td:nth-child(4) div {
+  justify-content: center !important;
+}
+
+/* Ensure icons are properly positioned */
+.bank-performance-table svg {
+  transform: none !important;
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+}
+
+/* Force table to maintain structure */
+.bank-performance-table,
+.bank-performance-table tbody,
+.bank-performance-table thead,
+.bank-performance-table tr {
+  display: table !important;
+  width: 100% !important;
+}
+
+.bank-performance-table thead {
+  display: table-header-group !important;
+}
+
+.bank-performance-table tbody {
+  display: table-row-group !important;
+}
+
+.bank-performance-table tr {
+  display: table-row !important;
+}
+
+.bank-performance-table th,
+.bank-performance-table td {
+  display: table-cell !important;
+}

@@ -6,7 +6,7 @@ export async function GET(req, { params }) {
   let client = null;
 
   try {
-    client = await pool.connectWithRetry();
+    client = await pool.connectWithRetry(2, 1000, 'app_api_posApplication_[user_id]_response_route.jsx_route');
 
     // Get business user's application ID directly from pos_application
     const { rows: applicationRows } = await client.query(

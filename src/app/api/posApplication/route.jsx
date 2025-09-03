@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { sendNewLeadEmail } from '@/lib/email/sendNewLeadEmail';
+import { 
+    sendApplicationSubmissionEmail, 
+    sendNewApplicationNotificationToBanks 
+} from '@/lib/email/emailNotifications';
 
 export async function POST(req) {
     try {
@@ -26,7 +29,7 @@ export async function POST(req) {
         const submitted_at = new Date(); // capture submit time
         const auction_end_time = new Date(submitted_at.getTime() + 48 * 60 * 60 * 1000); // 48 hours from submission time
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_posApplication_route.jsx_route');
         
         try {
             await client.query('BEGIN');
@@ -34,12 +37,13 @@ export async function POST(req) {
             // OPTIMIZED: Single query to get business info and validate user exists
             const businessResult = await client.query(
                 `SELECT 
-                    trade_name, cr_number, cr_national_number, legal_form, 
-                    registration_status, issue_date_gregorian, city, 
-                    has_ecommerce, store_url, cr_capital, 
-                    cash_capital, management_structure
-                 FROM business_users 
-                 WHERE user_id = $1`,
+                    bu.trade_name, bu.cr_number, bu.cr_national_number, bu.legal_form, 
+                    bu.registration_status, bu.issue_date_gregorian, bu.city, 
+                    bu.has_ecommerce, bu.store_url, bu.cr_capital, 
+                    bu.cash_capital, bu.management_structure, u.email
+                 FROM business_users bu
+                 JOIN users u ON bu.user_id = u.user_id
+                 WHERE bu.user_id = $1`,
                 [user_id]
             );
 
@@ -89,16 +93,51 @@ export async function POST(req) {
 
             const application_id = posAppResult.rows[0].application_id;
 
-            // UPDATED: No need to insert into submitted_applications table anymore
-            // All tracking is now handled directly in pos_application table
-
-            // OPTIMIZED: Get bank users for email notification (only if needed)
-            const bankUsers = await client.query(
+            // Get bank users for email notification
+            const bankUsersResult = await client.query(
                 'SELECT email FROM users WHERE user_type = $1 AND account_status = $2',
                 ['bank_user', 'active']
             );
 
             await client.query('COMMIT');
+
+            // Prepare application data for emails
+            const applicationData = {
+                application_id,
+                trade_name: business.trade_name,
+                cr_number: business.cr_number,
+                city: business.city,
+                legal_form: business.legal_form,
+                submitted_at,
+                auction_end_time,
+                city_of_operation,
+                number_of_pos_devices,
+                requested_financing_amount,
+                preferred_repayment_period_months
+            };
+
+            // Send confirmation email to business user
+            if (business.email) {
+                try {
+                    await sendApplicationSubmissionEmail(business.email, applicationData);
+                    console.log(`✅ Application submission confirmation sent to business: ${business.email}`);
+                } catch (emailError) {
+                    console.error(`❌ Failed to send business confirmation email:`, emailError);
+                    // Don't fail the application submission if email fails
+                }
+            }
+
+            // Send notifications to banks about new application
+            const bankEmails = bankUsersResult.rows.map(row => row.email).filter(Boolean);
+            if (bankEmails.length > 0) {
+                try {
+                    await sendNewApplicationNotificationToBanks(bankEmails, applicationData);
+                    console.log(`✅ New application notifications sent to ${bankEmails.length} banks`);
+                } catch (emailError) {
+                    console.error(`❌ Failed to send bank notifications:`, emailError);
+                    // Don't fail the application submission if email fails
+                }
+            }
 
             return NextResponse.json({
                 success: true,

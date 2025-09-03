@@ -23,7 +23,7 @@ export async function PUT(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_users_update-bank-logo_route.jsx_route');
         
         try {
             // Update the logo_url in the bank_users table

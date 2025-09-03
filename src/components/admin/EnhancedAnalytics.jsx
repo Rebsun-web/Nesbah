@@ -37,22 +37,16 @@ export default function EnhancedAnalytics() {
             setLoading(true)
             setError(null)
             
-            // First, check if we have a valid token
-            console.log('🔍 EnhancedAnalytics: Checking token before API calls...')
-            const tokenCheck = await fetch('/api/admin/debug/token', { credentials: 'include' })
-            const tokenData = await tokenCheck.json()
-            console.log('🔍 EnhancedAnalytics: Token check result:', tokenData)
-            
-            if (!tokenData.success) {
-                console.error('❌ EnhancedAnalytics: No valid token found')
-                setError('Authentication token not found. Please log in again.')
-                return
-            }
-            
             const [applicationsResponse, offersResponse, timeMetricsResponse] = await Promise.all([
-                fetch('/api/admin/applications/analytics', { credentials: 'include' }),
-                fetch('/api/admin/offers/analytics', { credentials: 'include' }),
-                fetch(`/api/admin/time-metrics?date=${selectedDate}`, { credentials: 'include' })
+                fetch('/api/admin/applications/analytics', { 
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('adminJWT')}` }
+                }),
+                fetch('/api/admin/offers/analytics', { 
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('adminJWT')}` }
+                }),
+                fetch(`/api/admin/time-metrics?date=${selectedDate}`, { 
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('adminJWT')}` }
+                })
             ])
             
             const applicationsResult = await applicationsResponse.json()

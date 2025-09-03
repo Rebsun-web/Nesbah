@@ -67,36 +67,59 @@ export async function POST(req) {
             );
         }
 
-        // Return comprehensive verified data
+        // Return comprehensive verified data with all required Wathiq API fields
         const verifiedData = {
+            // 1.1 Required Data Fields from Wathiq API
             cr_national_number: wathiqData.cr_national_number,
             cr_number: wathiqData.cr_number,
             trade_name: wathiqData.trade_name,
-            registration_status: wathiqData.registration_status,
-            address: wathiqData.address,
-            city: wathiqData.city,
-            sector: wathiqData.sector,
-            activities: wathiqData.activities,
-            cr_capital: wathiqData.cr_capital,
-            cash_capital: wathiqData.cash_capital,
-            in_kind_capital: wathiqData.in_kind_capital,
-            avg_capital: wathiqData.avg_capital,
             legal_form: wathiqData.legal_form,
+            registration_status: wathiqData.registration_status,
+            headquarter_city_name: wathiqData.headquarter_city_name,
             issue_date_gregorian: wathiqData.issue_date_gregorian,
             confirmation_date_gregorian: wathiqData.confirmation_date_gregorian,
+            contact_info: wathiqData.contact_info,
+            activities: wathiqData.activities,
             has_ecommerce: wathiqData.has_ecommerce,
+            store_url: wathiqData.store_url,
+            cr_capital: wathiqData.cr_capital,
+            cash_capital: wathiqData.cash_capital,
             management_structure: wathiqData.management_structure,
             management_managers: wathiqData.management_managers,
-            contact_info: wathiqData.contact_info,
-            store_url: wathiqData.store_url,
+            
+            // Additional fields for completeness
+            address: wathiqData.address,
+            sector: wathiqData.sector,
+            in_kind_capital: wathiqData.in_kind_capital,
+            avg_capital: wathiqData.avg_capital,
+            headquarter_district_name: wathiqData.headquarter_district_name,
+            headquarter_street_name: wathiqData.headquarter_street_name,
+            headquarter_building_number: wathiqData.headquarter_building_number,
+            city: wathiqData.city,
+            
+            // Verification information
             is_verified: wathiqData.is_verified,
             verification_date: wathiqData.verification_date,
             admin_notes: wathiqData.admin_notes,
+            
+            // Raw data for debugging
+            raw_wathiq_data: wathiqData.raw_wathiq_data
         };
+
+        console.log('✅ Returning verified data with all required Wathiq API fields:', {
+            cr_national_number: verifiedData.cr_national_number,
+            trade_name: verifiedData.trade_name,
+            legal_form: verifiedData.legal_form,
+            registration_status: verifiedData.registration_status,
+            activities_count: verifiedData.activities?.length || 0,
+            has_ecommerce: verifiedData.has_ecommerce,
+            cr_capital: verifiedData.cr_capital,
+            management_managers_count: verifiedData.management_managers?.length || 0
+        });
 
         return NextResponse.json({
             success: true,
-            message: 'Business verification successful',
+            message: 'Business verification successful with comprehensive Wathiq API data',
             data: verifiedData
         });
 

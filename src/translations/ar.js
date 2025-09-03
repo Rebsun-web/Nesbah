@@ -1,4 +1,4 @@
-export default {
+const translations = {
   // Navigation
   'nav.home': 'الصفحة رئيسية',
   'nav.partners': 'شركائنا',
@@ -312,3 +312,5 @@ export default {
   'newsletter.placeholder': 'أدخل بريدك الإلكتروني',
   'newsletter.subscribe': 'اشترك',
 }
+
+export default translations

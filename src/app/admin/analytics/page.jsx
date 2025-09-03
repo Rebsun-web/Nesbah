@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Container } from '@/components/container'
 import AdminNavbar from '@/components/admin/AdminNavbar'
 import AdminSidebar from '@/components/admin/AdminSidebar'
+import ProtectedRoute from '@/components/admin/ProtectedRoute'
 import { useAdminAuth } from '@/contexts/AdminAuthContext'
 import ApplicationsAnalytics from '@/components/admin/analytics/ApplicationsAnalytics'
 import OffersAnalytics from '@/components/admin/analytics/OffersAnalytics'
@@ -45,7 +46,7 @@ export default function AnalyticsDashboard() {
     }
 
     return (
-
+        <ProtectedRoute>
             <div className="min-h-screen bg-gray-50">
                 <AdminNavbar onMenuClick={() => setSidebarOpen(true)} adminUser={adminUser} onLogout={logout} />
                 
@@ -119,6 +120,6 @@ export default function AnalyticsDashboard() {
                     </main>
                 </div>
             </div>
-
+        </ProtectedRoute>
     )
 }

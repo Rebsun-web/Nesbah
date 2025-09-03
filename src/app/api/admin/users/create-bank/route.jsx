@@ -5,26 +5,6 @@ import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function POST(req) {
     try {
-        // Get admin token from cookies
-        const adminToken = req.cookies.get('admin_token')?.value;
-        
-        if (!adminToken) {
-            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
-        }
-
-        // Validate admin session using session manager
-        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
-        
-        if (!sessionValidation.valid) {
-            return NextResponse.json({ 
-                success: false, 
-                error: sessionValidation.error || 'Invalid admin session' 
-            }, { status: 401 });
-        }
-
-        // Get admin user from session (no database query needed)
-        const adminUser = sessionValidation.adminUser;
-
         const body = await req.json();
         const { 
             email, 
@@ -32,20 +12,49 @@ export async function POST(req) {
             entity_name,
             credit_limit = 10000.00,
             contact_person,
-            contact_person_number
+            contact_person_number,
+            logo_url
         } = body;
 
         // Validate required fields
         if (!email || !password || !entity_name) {
             return NextResponse.json(
-                { success: false, error: 'email, password, and entity_name are required' },
+                { success: false, error: 'Email, password, and entity name are required' },
                 { status: 400 }
             );
         }
 
-        const client = await pool.connectWithRetry();
+        // Validate admin authentication
+        const adminToken = req.cookies.get('admin_token')?.value;
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_create-bank_route.jsx_route');
         try {
             await client.query('BEGIN');
+
+            // Check if user already exists
+            const existingUser = await client.query(
+                `SELECT user_id FROM users WHERE email = $1`,
+                [email]
+            );
+
+            if (existingUser.rowCount > 0) {
+                await client.query('ROLLBACK');
+                return NextResponse.json(
+                    { success: false, error: 'User with this email already exists' },
+                    { status: 409 }
+                );
+            }
 
             // Hash the password
             const saltRounds = 10;
@@ -60,16 +69,17 @@ export async function POST(req) {
             );
             const user_id = userRes.rows[0].user_id;
 
-            // Create bank user record with simplified structure
+            // Create bank user record with MVP fields only
             await client.query(
-                `INSERT INTO bank_users (user_id, email, credit_limit, contact_person, contact_person_number)
-                 VALUES ($1, $2, $3, $4, $5)`,
+                `INSERT INTO bank_users (user_id, email, credit_limit, contact_person, contact_person_number, logo_url)
+                 VALUES ($1, $2, $3, $4, $5, $6)`,
                 [
                     user_id,
                     email,
                     credit_limit,
                     contact_person || null,
-                    contact_person_number || null
+                    contact_person_number || null,
+                    logo_url || null
                 ]
             );
 
@@ -85,6 +95,7 @@ export async function POST(req) {
                     credit_limit,
                     contact_person,
                     contact_person_number,
+                    logo_url,
                     created_at: new Date().toISOString()
                 }
             });

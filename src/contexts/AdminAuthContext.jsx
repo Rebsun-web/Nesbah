@@ -25,7 +25,7 @@ export function AdminAuthProvider({ children }) {
         try {
             setLoading(true)
             
-            const response = await fetch('/api/admin/auth/login', {
+            const response = await fetch('/api/auth/unified-login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

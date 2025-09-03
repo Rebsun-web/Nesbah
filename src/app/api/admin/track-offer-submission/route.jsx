@@ -34,7 +34,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_track-offer-submission_route.jsx_route');
 
         try {
             // Check if this bank has already submitted an offer for this application

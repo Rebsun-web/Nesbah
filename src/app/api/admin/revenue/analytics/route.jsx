@@ -29,7 +29,7 @@ export async function GET(req) {
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_revenue_analytics_route.jsx_route');
         
         try {
             // Calculate date range based on timeRange parameter

@@ -32,7 +32,7 @@ export async function GET(req) {
         
         const offset = (page - 1) * limit;
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_banks_approved-leads_route.jsx_route');
         
         try {
             // Build WHERE clause

@@ -34,7 +34,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_track-application-view_route.jsx_route');
 
         try {
             // Check if this bank has already viewed this application

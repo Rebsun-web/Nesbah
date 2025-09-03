@@ -36,7 +36,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_bulk_route.jsx_route');
         
         try {
             await client.query('BEGIN');
@@ -111,7 +111,7 @@ export async function POST(req) {
                                     userData.confirmation_date_gregorian || null,
                                     userData.has_ecommerce || false,
                                     userData.management_structure || null,
-                                    userData.management_managers ? JSON.stringify(userData.management_managers) : null,
+                                    userData.management_managers ? JSON.stringify(Array.isArray(userData.management_managers) ? userData.management_managers : userData.management_managers.split(',').map(item => item.trim()).filter(item => item.length > 0)) : null,
                                     userData.cr_capital || null,
                                     userData.city || null,
                                     userData.contact_person || null,

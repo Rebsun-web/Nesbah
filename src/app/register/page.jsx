@@ -405,7 +405,7 @@ export default function Register() {
 
                             {/* Business Information Display */}
                             <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                                <h3 className="text-md font-semibold mb-4 text-gray-900">Business Information</h3>
+                                <h3 className="text-md font-semibold mb-4 text-gray-900">Business Information from Wathiq</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">Company Name</label>
@@ -413,15 +413,31 @@ export default function Register() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">CR Number</label>
-                                        <p className="text-sm text-gray-900">{verifiedData.cr_number}</p>
+                                        <p className="text-sm text-gray-900">{verifiedData.cr_number || verifiedData.cr_national_number}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Legal Form</label>
+                                        <p className="text-sm text-gray-900">{verifiedData.legal_form || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">Status</label>
-                                        <p className="text-sm text-green-600 font-medium">Active</p>
+                                        <p className="text-sm text-green-600 font-medium">{verifiedData.registration_status || 'Active'}</p>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Capital</label>
-                                        <p className="text-sm text-gray-900">SAR {verifiedData.cr_capital?.toLocaleString()}</p>
+                                        <label className="block text-sm font-medium text-gray-700">City</label>
+                                        <p className="text-sm text-gray-900">{verifiedData.city || verifiedData.headquarter_city_name || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">CR Capital</label>
+                                        <p className="text-sm text-gray-900">SAR {verifiedData.cr_capital?.toLocaleString() || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Issue Date</label>
+                                        <p className="text-sm text-gray-900">{verifiedData.issue_date_gregorian || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">E-commerce</label>
+                                        <p className="text-sm text-gray-900">{verifiedData.has_ecommerce ? 'Yes' : 'No'}</p>
                                     </div>
                                 </div>
                             </div>

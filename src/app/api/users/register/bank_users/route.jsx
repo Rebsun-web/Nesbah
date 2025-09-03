@@ -32,7 +32,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_users_register_bank_users_route.jsx_route');
         try {
             await client.query('BEGIN');
 

@@ -30,7 +30,7 @@ export async function POST(req) {
             }, { status: 400 });
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_force-status-update_route.jsx_route');
 
         try {
             await client.query('BEGIN');

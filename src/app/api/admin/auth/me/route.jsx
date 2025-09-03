@@ -45,22 +45,21 @@ export async function GET(req) {
             );
         }
 
-        // Extract admin user data from JWT payload (no database query needed)
-        const adminUser = {
-            admin_id: decodedToken.admin_id,
-            email: decodedToken.email,
-            full_name: decodedToken.full_name || 'Admin User',
-            role: decodedToken.role,
-            permissions: decodedToken.permissions || [],
-            is_active: true
-        };
-
-        console.log('✅ Admin /me route: JWT verification successful for:', adminUser.email);
-
+        // Return admin user data from JWT payload (no database query needed)
         return NextResponse.json({
             success: true,
-            adminUser
-        })
+            adminUser: {
+                user_id: decodedToken.user_id,
+                admin_id: decodedToken.user_id, // For backward compatibility
+                email: decodedToken.email,
+                full_name: decodedToken.full_name,
+                entity_name: decodedToken.entity_name,
+                role: decodedToken.role,
+                permissions: decodedToken.permissions,
+                is_active: decodedToken.account_status === 'active',
+                user_type: decodedToken.user_type
+            }
+        });
 
     } catch (error) {
         console.error('Admin profile error:', error)

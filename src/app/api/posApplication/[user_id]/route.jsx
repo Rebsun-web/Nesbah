@@ -44,28 +44,28 @@ export async function GET(req, { params }) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_posApplication_[user_id]_route.jsx_route');
     
-    try {
-        const result = await client.query(
-            'SELECT * FROM pos_application WHERE user_id = $1 ORDER BY submitted_at DESC',
-            [user_id]
-        );
+        try {
+            const result = await client.query(
+                'SELECT * FROM pos_application WHERE user_id = $1 ORDER BY submitted_at DESC',
+                [user_id]
+            );
 
-        const applications = result.rows.map(app => ({
-            ...app,
-            uploaded_document: app.uploaded_document
-                ? `data:application/octet-stream;base64,${app.uploaded_document.toString('base64')}`
-                : null,
-        }));
+            const applications = result.rows.map(app => ({
+                ...app,
+                uploaded_document: app.uploaded_document
+                    ? `data:application/octet-stream;base64,${app.uploaded_document.toString('base64')}`
+                    : null,
+            }));
 
-        return NextResponse.json({ success: true, data: applications });
-    } catch (error) {
-        console.error('Error fetching POS applications:', error);
-        return NextResponse.json({ success: false, error: 'Failed to fetch applications' }, { status: 500 });
-    } finally {
-        client.release();
-    }
+            return NextResponse.json({ success: true, data: applications });
+        } catch (error) {
+            console.error('Error fetching POS applications:', error);
+            return NextResponse.json({ success: false, error: 'Failed to fetch applications' }, { status: 500 });
+        } finally {
+            client.release();
+        }
     } catch (error) {
         console.error('🔍 API: JWT verification error:', error);
         return NextResponse.json(

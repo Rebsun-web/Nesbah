@@ -21,7 +21,10 @@ export async function GET(req) {
             }, { status: 401 });
         }
 
-        const client = await pool.connectWithRetry();
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
+
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_status-dashboard_route.jsx_route');
         
         try {
             // Get status counts for the 3 main statuses only

@@ -213,9 +213,11 @@ export async function authenticateAPIRequest(req, requiredUserType = null) {
                 return { 
                     success: true, 
                     user: { 
-                        admin_id: decoded.admin_id,
+                        user_id: decoded.user_id,
+                        admin_id: decoded.user_id, // For backward compatibility
                         email: decoded.email,
                         full_name: decoded.full_name,
+                        entity_name: decoded.entity_name,
                         role: decoded.role,
                         permissions: decoded.permissions,
                         user_type: 'admin_user'

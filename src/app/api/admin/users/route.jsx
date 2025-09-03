@@ -4,10 +4,11 @@ import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function GET(req) {
     try {
-        // Verify admin authentication
-        const adminToken = req.cookies.get('admin_token')?.value
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
         if (!adminToken) {
-            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
         // Validate admin session using session manager
@@ -20,6 +21,10 @@ export async function GET(req) {
             }, { status: 401 });
         }
 
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
+        console.log('🔧 Admin users API: Authentication successful for admin:', adminUser.email);
+
         const { searchParams } = new URL(req.url);
         const user_type = searchParams.get('user_type'); // 'business', 'individual', 'bank'
         const registration_status = searchParams.get('registration_status');
@@ -28,9 +33,22 @@ export async function GET(req) {
         const limit = parseInt(searchParams.get('limit')) || 50;
         const offset = parseInt(searchParams.get('offset')) || 0;
 
-        let client;
-        try {
-            client = await pool.connectWithRetry();
+                    let client;
+            try {
+                client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_route.jsx_route');
+                
+                // Debug: Check if there are any business users at all
+                if (user_type === 'business') {
+                    const debugQuery = 'SELECT COUNT(*) as total FROM business_users';
+                    const debugResult = await client.query(debugQuery);
+                    console.log('🔍 Total business users in database:', debugResult.rows[0].total);
+                    
+                    if (parseInt(debugResult.rows[0].total) > 0) {
+                        const sampleQuery = 'SELECT * FROM business_users LIMIT 1';
+                        const sampleResult = await client.query(sampleQuery);
+                        console.log('🔍 Sample business user:', sampleResult.rows[0]);
+                    }
+                }
             
             let query = '';
             const queryParams = [];
@@ -43,20 +61,23 @@ export async function GET(req) {
                         bu.user_id,
                         u.email,
                         bu.trade_name as entity_name,
-                        COALESCE(bu.cr_number, bu.cr_national_number) as cr_number,
-                        bu.address as city,
+                        bu.cr_number,
+                        bu.city,
+                        bu.registration_status,
                         u.created_at,
                         u.updated_at,
                         'business' as user_type,
-                        false as has_sent_application,
-                        NULL::timestamp as last_application_date,
+                        CASE WHEN COUNT(pa.application_id) > 0 THEN true ELSE false END as has_sent_application,
+                        MAX(pa.submitted_at) as last_application_date,
                         false as has_sent_offer,
                         0::bigint as total_offers_sent,
                         NULL::timestamp as last_offer_date,
                         NULL as logo_url
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
+                    LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
                     WHERE 1=1
+                    GROUP BY bu.user_id, u.email, bu.trade_name, bu.cr_number, bu.city, bu.registration_status, u.created_at, u.updated_at
                 `;
             } else if (user_type === 'individual') {
                 query = `
@@ -64,6 +85,7 @@ export async function GET(req) {
                         u.user_id,
                         u.email,
                         u.entity_name,
+                        u.account_status as registration_status,
                         u.created_at,
                         u.updated_at,
                         'individual' as user_type,
@@ -82,6 +104,7 @@ export async function GET(req) {
                         u.user_id,
                         u.email,
                         u.entity_name,
+                        u.account_status as registration_status,
                         u.created_at,
                         u.updated_at,
                         'bank' as user_type,
@@ -90,14 +113,12 @@ export async function GET(req) {
                         CASE WHEN COUNT(ao.offer_id) > 0 THEN true ELSE false END as has_sent_offer,
                         COUNT(ao.offer_id)::bigint as total_offers_sent,
                         MAX(ao.submitted_at) as last_offer_date,
-                        bu.logo_url,
-                        bu.sama_license_number,
-                        bu.bank_type
+                        bu.logo_url
                     FROM users u
                     LEFT JOIN bank_users bu ON u.user_id = bu.user_id
                     LEFT JOIN application_offers ao ON u.user_id = ao.bank_user_id
                     WHERE u.user_type = 'bank_user'
-                    GROUP BY u.user_id, u.email, u.entity_name, u.created_at, u.updated_at, bu.logo_url, bu.sama_license_number, bu.bank_type
+                    GROUP BY u.user_id, u.email, u.entity_name, u.account_status, u.created_at, u.updated_at, bu.logo_url
                 `;
                 
                 // Add offer status filter for bank users
@@ -115,8 +136,9 @@ export async function GET(req) {
                         bu.user_id,
                         u.email,
                         bu.trade_name as entity_name,
-                        COALESCE(bu.cr_number, bu.cr_national_number) as cr_number,
-                        bu.address as city,
+                        bu.cr_number,
+                        bu.city,
+                        bu.registration_status,
                         u.created_at,
                         u.updated_at,
                         'business' as user_type,
@@ -129,7 +151,7 @@ export async function GET(req) {
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
                     LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
-                    GROUP BY bu.user_id, u.email, bu.trade_name, bu.address, u.created_at, u.updated_at
+                    GROUP BY bu.user_id, u.email, bu.trade_name, bu.cr_number, bu.city, bu.registration_status, u.created_at, u.updated_at
                     
                     UNION ALL
                     
@@ -137,6 +159,7 @@ export async function GET(req) {
                         u.user_id,
                         u.email,
                         u.entity_name,
+                        u.account_status as registration_status,
                         u.created_at,
                         u.updated_at,
                         'individual' as user_type,
@@ -155,6 +178,7 @@ export async function GET(req) {
                         u.user_id,
                         u.email,
                         u.entity_name,
+                        u.account_status as registration_status,
                         u.created_at,
                         u.updated_at,
                         'bank' as user_type,
@@ -163,19 +187,31 @@ export async function GET(req) {
                         CASE WHEN COUNT(ao.offer_id) > 0 THEN true ELSE false END as has_sent_offer,
                         COUNT(ao.offer_id)::bigint as total_offers_sent,
                         MAX(ao.submitted_at) as last_offer_date,
-                        bu.logo_url,
-                        bu.sama_license_number,
-                        bu.bank_type
+                        bu.logo_url
                     FROM users u
                     LEFT JOIN bank_users bu ON u.user_id = bu.user_id
                     LEFT JOIN application_offers ao ON u.user_id = ao.bank_user_id
                     WHERE u.user_type = 'bank_user'
-                    GROUP BY u.user_id, u.email, u.entity_name, u.created_at, u.updated_at, bu.logo_url, bu.sama_license_number, bu.bank_type
+                    GROUP BY u.user_id, u.email, u.entity_name, u.account_status, u.created_at, u.updated_at, bu.logo_url
                 `;
             }
 
             // Add filters
-            // Note: Status filters removed as status fields are no longer included
+            if (registration_status) {
+                paramCount++;
+                if (user_type === 'business') {
+                    query += ` AND bu.registration_status = $${paramCount}`;
+                } else if (user_type === 'individual') {
+                    query += ` AND u.account_status = $${paramCount}`;
+                } else if (user_type === 'bank') {
+                    query += ` AND u.account_status = $${paramCount}`;
+                } else {
+                    // For all users, we need to handle this differently since we're using UNION
+                    // This is a simplified approach - in production you might want to use a more sophisticated filter
+                    query += ` AND registration_status = $${paramCount}`;
+                }
+                queryParams.push(registration_status);
+            }
 
             if (search) {
                 paramCount++;
@@ -199,7 +235,11 @@ export async function GET(req) {
             query += ` ORDER BY created_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
             queryParams.push(limit, offset);
 
+            console.log('🔍 Admin users query:', query);
+            console.log('🔍 Admin users query params:', queryParams);
+            
             const result = await client.query(query, queryParams);
+            console.log('🔍 Admin users query result:', result.rows);
 
             // Get total count for pagination
             let countQuery = '';
@@ -219,10 +259,16 @@ export async function GET(req) {
                 `;
             }
 
-            // Note: Status filters removed from count queries as status fields are no longer included
+            if (registration_status && user_type) {
+                if (user_type === 'business') {
+                    countQuery += ` AND bu.registration_status = $1`;
+                } else if (user_type === 'individual' || user_type === 'bank') {
+                    countQuery += ` AND u.account_status = $1`;
+                }
+            }
 
             if (search && user_type) {
-                const searchParam = 1;
+                const searchParam = user_type === 'business' ? 2 : 2;
                 if (user_type === 'business') {
                     countQuery += ` AND (bu.trade_name ILIKE $${searchParam} OR u.email ILIKE $${searchParam} OR bu.cr_number ILIKE $${searchParam})`;
                 } else if (user_type === 'individual') {
@@ -321,7 +367,7 @@ export async function POST(req) {
 
         let client;
         try {
-            client = await pool.connectWithRetry();
+            client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_route.jsx_route');
             
             await client.query('BEGIN');
 

@@ -67,56 +67,84 @@ class WathiqAPIService {
         });
         
         const processedData = {
-            // Basic Information
-            cr_national_number: rawData.crNationalNumber || null,
-            cr_number: rawData.crNumber || null,
-            trade_name: rawData.name || null,
+            // 1.1 Required Data Fields from Wathiq API (as per specification)
             
-            // Registration Status
-            registration_status: this.extractRegistrationStatus(rawData.status),
+            // Basic CR Information
+            cr_number: rawData.crNumber || null,                                    // Commercial Registration Number
+            cr_national_number: rawData.crNationalNumber || null,                   // CR National Number
+            trade_name: rawData.name || null,                                       // Business Name
             
-            // Address Information
-            address: this.extractAddress(rawData),
-            city: rawData.headquarterCityName || null,
-            
-            // Business Activities
-            sector: this.extractSector(rawData.activities),
-            activities: this.extractActivities(rawData.activities),
-            
-            // Capital Information
-            cr_capital: this.extractCapital(rawData.crCapital),
-            cash_capital: this.extractCashCapital(rawData.capital),
-            in_kind_capital: this.extractInKindCapital(rawData.capital),
-            avg_capital: this.calculateAverageCapital(rawData.capital),
-            
-            // Legal Information
-            legal_form: this.extractLegalForm(rawData.entityType),
-            issue_date_gregorian: rawData.issueDateGregorian || null,
-            confirmation_date_gregorian: this.extractConfirmationDate(rawData.status),
-            
-            // E-commerce Information
-            has_ecommerce: rawData.hasEcommerce || false,
-            store_url: this.extractStoreUrl(rawData.eCommerce),
-            
-            // Management Information
-            management_structure: this.extractManagementStructure(rawData.management),
-            management_managers: this.extractManagementManagers(rawData.management),
+            // Legal and Status Information
+            legal_form: this.extractLegalForm(rawData.entityType),                 // entityType.formName - Legal Form
+            registration_status: this.extractRegistrationStatus(rawData.status),    // status.name - CR Status
+            city: rawData.headquarterCityName || null,                              // headquarterCityName - City
+            issue_date_gregorian: rawData.issueDateGregorian || null,              // issueDateGregorian - CR Issue Date
+            confirmation_date_gregorian: this.extractConfirmationDate(rawData.status), // confirmationDate.gregorian - Confirmation Date
             
             // Contact Information
-            contact_info: this.extractContactInfo(rawData.contactInfo),
+            contact_info: this.extractContactInfo(rawData.contactInfo),            // contactInfo (email, mobile, phone)
+            
+            // Business Activities
+            activities: this.extractActivities(rawData.activities),                 // activities[] - Business Activities Array
+            
+            // E-commerce Information
+            has_ecommerce: rawData.hasEcommerce || false,                          // hasEcommerce - E-commerce Flag
+            store_url: this.extractStoreUrl(rawData.eCommerce),                    // eCommerce.eStore[0].storeUrl - Store URL
+            
+            // Capital Information
+            cr_capital: this.extractCapital(rawData.crCapital),                    // crCapital - CR Capital
+            cash_capital: this.extractCashCapital(rawData.capital),                // capital.contributionCapital.cashCapital - Cash Capital
+            
+            // Management Information
+            management_structure: this.extractManagementStructure(rawData.management), // management.structureName - Management Structure
+            management_managers: this.extractManagementManagers(rawData.management),  // management.managers[].name - Manager Names
+            
+            // Additional Information (for completeness)
+            address: this.extractAddress(rawData),                                  // Address (computed from multiple fields)
+            sector: this.extractSector(rawData.activities),                         // Sector (computed from activities)
+            in_kind_capital: this.extractInKindCapital(rawData.capital),           // In-kind capital
+            avg_capital: this.calculateAverageCapital(rawData.capital),            // Average capital
             
             // Verification Information
-            is_verified: true, // Data from Wathiq is verified
-            verification_date: new Date().toISOString(),
+            is_verified: true,                                                     // Data from Wathiq is verified
+            verification_date: new Date().toISOString(),                           // Current timestamp
             
             // Additional Information
-            admin_notes: this.generateAdminNotes(rawData),
+            admin_notes: this.generateAdminNotes(rawData),                         // Generated admin notes
             
             // Raw data for debugging
             raw_wathiq_data: rawData
         };
 
-        console.log('✅ Processed Wathiq data:', processedData);
+        // Log the extracted data according to 1.1 Required Data Fields specification
+        console.log('✅ Processed Wathiq data (1.1 Required Data Fields):');
+        console.log('  📋 CR Information:', {
+            cr_number: processedData.cr_number,
+            cr_national_number: processedData.cr_national_number,
+            trade_name: processedData.trade_name
+        });
+        console.log('  🏛️ Legal & Status:', {
+            legal_form: processedData.legal_form,
+            registration_status: processedData.registration_status,
+            city: processedData.city,
+            issue_date_gregorian: processedData.issue_date_gregorian,
+            confirmation_date_gregorian: processedData.confirmation_date_gregorian
+        });
+        console.log('  📞 Contact Info:', processedData.contact_info);
+        console.log('  🏢 Activities:', processedData.activities);
+        console.log('  🛒 E-commerce:', {
+            has_ecommerce: processedData.has_ecommerce,
+            store_url: processedData.store_url
+        });
+        console.log('  💰 Capital:', {
+            cr_capital: processedData.cr_capital,
+            cash_capital: processedData.cash_capital
+        });
+        console.log('  👥 Management:', {
+            structure: processedData.management_structure,
+            managers: processedData.management_managers
+        });
+        
         return processedData;
     }
 
@@ -171,15 +199,21 @@ class WathiqAPIService {
     }
 
     /**
-     * Extract activities as array
+     * Extract activities as array (1.1 Required Data Fields)
      */
     extractActivities(activities) {
         if (!activities || !Array.isArray(activities)) return [];
         
-        return activities.map(activity => {
+        const extractedActivities = activities.map(activity => {
             if (typeof activity === 'string') return activity;
             return activity.name || activity.activityName || activity.sectorName;
         }).filter(Boolean);
+        
+        // Log extracted activities for debugging
+        console.log('🔍 extractActivities - Raw activities:', activities);
+        console.log('✅ extractActivities - Processed activities:', extractedActivities);
+        
+        return extractedActivities;
     }
 
     /**
@@ -209,9 +243,9 @@ class WathiqAPIService {
             return null;
         }
         
-        // Try multiple possible paths for cash capital
+        // Try multiple possible paths for cash capital (prioritizing 1.1 Required Data Fields)
         const possiblePaths = [
-            'contributionCapital.cashCapital',
+            'contributionCapital.cashCapital',  // Primary path as per specification
             'stockCapital.cashCapital',
             'cashCapital',
             'paidCapital',
@@ -299,7 +333,7 @@ class WathiqAPIService {
     }
 
     /**
-     * Extract store URL
+     * Extract store URL (1.1 Required Data Fields)
      */
     extractStoreUrl(eCommerce) {
         console.log('🔍 extractStoreUrl - Raw eCommerce data:', eCommerce);
@@ -314,7 +348,8 @@ class WathiqAPIService {
         const store = eCommerce.eStore[0];
         console.log('🔍 extractStoreUrl - First store:', store);
         
-        const storeUrl = store?.storeUrl || store?.url || null;
+        // Try multiple possible URL fields as per specification
+        const storeUrl = store?.storeUrl || store?.url || store?.website || store?.store_url || null;
         console.log('✅ extractStoreUrl - Extracted store URL:', storeUrl);
         
         return storeUrl;
@@ -369,7 +404,7 @@ class WathiqAPIService {
     }
 
     /**
-     * Extract management managers
+     * Extract management managers (1.1 Required Data Fields)
      */
     extractManagementManagers(management) {
         if (!management) return [];
@@ -400,7 +435,7 @@ class WathiqAPIService {
             return [];
         }
         
-        return managers.map(manager => {
+        const extractedManagers = managers.map(manager => {
             if (typeof manager === 'string') return manager;
             
             if (typeof manager === 'object' && manager !== null) {
@@ -417,6 +452,12 @@ class WathiqAPIService {
             
             return null;
         }).filter(Boolean);
+        
+        // Log extracted managers for debugging
+        console.log('🔍 extractManagementManagers - Raw management:', management);
+        console.log('✅ extractManagementManagers - Processed managers:', extractedManagers);
+        
+        return extractedManagers;
     }
 
     /**
@@ -429,7 +470,7 @@ class WathiqAPIService {
         
         const processed = {};
         
-        // Required contact fields as per specification
+        // Required contact fields as per specification (1.1 Required Data Fields)
         if (contactInfo.email) processed.email = contactInfo.email;
         if (contactInfo.mobile) processed.mobile = contactInfo.mobile;
         if (contactInfo.phone) processed.phone = contactInfo.phone;
@@ -438,6 +479,10 @@ class WathiqAPIService {
         if (contactInfo.website) processed.website = contactInfo.website;
         if (contactInfo.fax) processed.fax = contactInfo.fax;
         if (contactInfo.address) processed.address = contactInfo.address;
+        
+        // Log extracted contact info for debugging
+        console.log('🔍 extractContactInfo - Raw contactInfo:', contactInfo);
+        console.log('✅ extractContactInfo - Processed contact info:', processed);
         
         return Object.keys(processed).length > 0 ? processed : null;
     }
@@ -503,4 +548,5 @@ class WathiqAPIService {
     }
 }
 
-export default new WathiqAPIService();
+const wathiqAPIService = new WathiqAPIService();
+export default wathiqAPIService;

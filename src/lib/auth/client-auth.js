@@ -5,7 +5,14 @@ export function getAuthHeaders() {
         'Content-Type': 'application/json',
     }
     
-    // Get user data from localStorage for user identification
+    // Check for admin JWT token first
+    const adminJWT = localStorage.getItem('adminJWT')
+    if (adminJWT) {
+        headers['Authorization'] = `Bearer ${adminJWT}`
+        return headers
+    }
+    
+    // Get user data from localStorage for user identification (fallback for non-admin users)
     const user = localStorage.getItem('user')
     if (user) {
         try {
@@ -16,10 +23,6 @@ export function getAuthHeaders() {
             console.error('Error parsing user data:', error)
         }
     }
-    
-    // Note: JWT tokens are handled via HTTP-only cookies
-    // The server will automatically include the user_token cookie
-    // when credentials: 'include' is set in the fetch request
     
     return headers
 }
@@ -55,6 +58,7 @@ export function getUserType() {
 export function logout() {
     localStorage.removeItem('user')
     localStorage.removeItem('adminUser')
+    localStorage.removeItem('adminJWT')
     window.location.href = '/login'
 }
 

@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { 
-    UsersIcon, 
     UserGroupIcon, 
     BuildingOfficeIcon,
     BanknotesIcon,
-    ChartBarIcon,
-    ArrowTrendingUpIcon
+    UserIcon
 } from '@heroicons/react/24/outline'
 
 export default function UserStats() {
@@ -22,7 +20,9 @@ export default function UserStats() {
     const fetchUserStats = async () => {
         try {
             setLoading(true)
-            const response = await fetch('/api/admin/users/stats')
+            const response = await fetch('/api/admin/users/stats', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('adminJWT')}` }
+        })
             const data = await response.json()
             
             if (data.success) {
@@ -42,8 +42,8 @@ export default function UserStats() {
             <div className="bg-white rounded-lg shadow p-6">
                 <div className="animate-pulse">
                     <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        {[...Array(4)].map((_, i) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[...Array(2)].map((_, i) => (
                             <div key={i} className="h-20 bg-gray-200 rounded"></div>
                         ))}
                     </div>
@@ -95,81 +95,6 @@ export default function UserStats() {
 
     return (
         <div className="space-y-8">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <UsersIcon className="h-8 w-8 text-gray-400" />
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt className="text-sm font-medium text-gray-500 truncate">
-                                    Total Users
-                                </dt>
-                                <dd className="text-lg font-medium text-gray-900">
-                                    {stats.summary.total_users}
-                                </dd>
-                            </dl>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <UserGroupIcon className="h-8 w-8 text-green-400" />
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt className="text-sm font-medium text-gray-500 truncate">
-                                    Active Users
-                                </dt>
-                                <dd className="text-lg font-medium text-gray-900">
-                                    {stats.summary.total_active_users}
-                                </dd>
-                            </dl>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <ArrowTrendingUpIcon className="h-8 w-8 text-blue-400" />
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt className="text-sm font-medium text-gray-500 truncate">
-                                    Recent Registrations
-                                </dt>
-                                <dd className="text-lg font-medium text-gray-900">
-                                    {stats.summary.total_recent_registrations}
-                                </dd>
-                            </dl>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <ChartBarIcon className="h-8 w-8 text-purple-400" />
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt className="text-sm font-medium text-gray-500 truncate">
-                                    Active Rate
-                                </dt>
-                                <dd className="text-lg font-medium text-gray-900">
-                                    {stats.summary.active_percentage}%
-                                </dd>
-                            </dl>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {/* User Types Breakdown */}
             <div className="bg-white rounded-lg shadow">
                 <div className="px-8 py-6 border-b border-gray-200">
@@ -196,27 +121,6 @@ export default function UserStats() {
                                             </p>
                                         </div>
                                     </div>
-                                    
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Active:</span>
-                                            <span className="font-medium text-green-600">
-                                                {typeStats.active_count}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Suspended:</span>
-                                            <span className="font-medium text-yellow-600">
-                                                {typeStats.suspended_count}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Inactive:</span>
-                                            <span className="font-medium text-gray-600">
-                                                {typeStats.inactive_count}
-                                            </span>
-                                        </div>
-                                    </div>
                                 </div>
                             )
                         })}
@@ -224,43 +128,43 @@ export default function UserStats() {
                 </div>
             </div>
 
-
-
-            {/* Registration Trends */}
-            {stats.registration_trends.length > 0 && (
-                <div className="bg-white rounded-lg shadow">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <h3 className="text-lg font-medium text-gray-900">Registration Trends (Last 12 Months)</h3>
-                    </div>
-                    <div className="p-6">
-                        <div className="space-y-3">
-                            {stats.registration_trends.map((trend, index) => (
-                                <div key={index} className="flex items-center justify-between">
-                                    <span className="text-sm text-gray-600">
-                                        {new Date(trend.month).toLocaleDateString('en-US', { 
-                                            year: 'numeric', 
-                                            month: 'short' 
-                                        })}
-                                    </span>
-                                    <div className="flex items-center">
-                                        <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
-                                            <div 
-                                                className="bg-blue-600 h-2 rounded-full" 
-                                                style={{ 
-                                                    width: `${Math.min(100, (trend.count / Math.max(...stats.registration_trends.map(t => t.count))) * 100)}%` 
-                                                }}
-                                            ></div>
-                                        </div>
-                                        <span className="text-sm font-medium text-gray-900 w-8 text-right">
-                                            {trend.count}
-                                        </span>
-                                    </div>
+            {/* Bank Employees Section */}
+            <div className="bg-white rounded-lg shadow">
+                <div className="px-8 py-6 border-b border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900">Bank Employees</h3>
+                </div>
+                <div className="p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="flex items-center mb-3">
+                                <div className="p-2 rounded-lg bg-purple-500">
+                                    <UserIcon className="h-6 w-6 text-white" />
                                 </div>
-                            ))}
+                                <div className="ml-3">
+                                    <h4 className="text-lg font-medium text-gray-900">Total Employees</h4>
+                                    <p className="text-sm text-gray-500">
+                                        {stats.summary.total_employees} active employees
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="flex items-center mb-3">
+                                <div className="p-2 rounded-lg bg-indigo-500">
+                                    <BanknotesIcon className="h-6 w-6 text-white" />
+                                </div>
+                                <div className="ml-3">
+                                    <h4 className="text-lg font-medium text-gray-900">Banks with Employees</h4>
+                                    <p className="text-sm text-gray-500">
+                                        {stats.summary.total_banks_with_employees} banks have employees
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     )
 }

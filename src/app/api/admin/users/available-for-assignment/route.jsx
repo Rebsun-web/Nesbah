@@ -24,7 +24,7 @@ export async function GET(req) {
         // Get admin user from session (no database query needed)
         const adminUser = sessionValidation.adminUser;
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_available-for-assignment_route.jsx_route');
         
         try {
             console.log('🔍 Starting available-for-assignment query...');

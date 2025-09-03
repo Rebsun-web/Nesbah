@@ -45,7 +45,7 @@ export async function POST(req) {
         // Validate status transition
         const validTransitions = {
             'live_auction': ['completed', 'ignored'],
-            'completed': [], // Completed is a final state
+            'completed': ['live_auction'], // Allow resetting completed applications back to live auction
             'ignored': ['live_auction'] // Allow reset
         };
 
@@ -56,7 +56,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_force-transition_route.jsx_route');
         
         try {
             await client.query('BEGIN');
@@ -106,7 +106,17 @@ export async function POST(req) {
                     WHERE application_id = $2
                 `, [to_status, application_id]);
                 
-                console.log(`🔄 Application ${application_id} reset to live_auction with new 48-hour deadline`);
+                // If transitioning from completed, clear existing offers
+                if (from_status === 'completed') {
+                    await client.query(`
+                        UPDATE application_offers 
+                        SET status = 'cancelled' 
+                        WHERE submitted_application_id = $1 AND status IN ('submitted', 'deal_lost')
+                    `, [application_id]);
+                    console.log(`🔄 Application ${application_id} reset from completed to live_auction with new 48-hour deadline and cleared offers`);
+                } else {
+                    console.log(`🔄 Application ${application_id} reset to live_auction with new 48-hour deadline`);
+                }
             } else if (to_status === 'completed') {
                 // Transition to completed status
                 await client.query(`

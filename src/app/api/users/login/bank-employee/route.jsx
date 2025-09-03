@@ -8,7 +8,7 @@ export async function POST(req) {
         const { email, password } = await req.json();
         console.log('🏦 Bank employee login attempt for:', email);
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_users_login_bank-employee_route.jsx_route');
         
         try {
             // Get bank employee user with bank information including bank logo
@@ -25,7 +25,6 @@ export async function POST(req) {
                     be.last_name,
                     be.position,
                     be.bank_user_id,
-                    be.is_active as employee_active,
                     u.entity_name as bank_entity_name,
                     bu.logo_url
                  FROM users u
@@ -46,14 +45,7 @@ export async function POST(req) {
             const user = userQuery.rows[0];
             console.log('✅ Bank employee found:', user.email, 'Employee ID:', user.employee_id);
 
-            // Check if employee account is active
-            if (!user.employee_active) {
-                console.log('❌ Bank employee account is inactive:', email);
-                return NextResponse.json(
-                    { success: false, error: 'Account is inactive. Please contact your administrator.' },
-                    { status: 403 }
-                );
-            }
+
 
             // Check if user account is active
             if (user.account_status !== 'active') {

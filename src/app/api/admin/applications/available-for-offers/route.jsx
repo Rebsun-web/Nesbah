@@ -38,7 +38,7 @@ export async function GET(req) {
         let client;
         
         try {
-            client = await pool.connectWithRetry();
+            client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_available-for-offers_route.jsx_route');
             // Build WHERE clause for applications available for offers
             let whereClause = "WHERE COALESCE(pa.current_application_status, pa.status) = 'live_auction'";
             const queryParams = [];

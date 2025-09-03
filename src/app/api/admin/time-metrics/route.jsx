@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import JWTUtils from '@/lib/auth/jwt-utils';
+import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function GET(req) {
     try {
@@ -11,100 +11,99 @@ export async function GET(req) {
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
-        // Verify JWT token directly
-        const jwtResult = JWTUtils.verifyToken(adminToken);
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
         
-        if (!jwtResult.valid || !jwtResult.payload || jwtResult.payload.user_type !== 'admin_user') {
-            console.log('🔧 Time metrics: JWT verification failed:', jwtResult);
+        if (!sessionValidation.valid) {
             return NextResponse.json({ 
                 success: false, 
-                error: 'Invalid admin token' 
+                error: sessionValidation.error || 'Invalid admin session' 
             }, { status: 401 });
         }
 
-        const decoded = jwtResult.payload;
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
 
-        // Get admin user from JWT payload
-        const adminUser = {
-            admin_id: decoded.admin_id,
-            email: decoded.email,
-            full_name: decoded.full_name,
-            role: decoded.role,
-            permissions: decoded.permissions,
-            is_active: true
-        };
-
-        const { searchParams } = new URL(req.url);
-        const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
-
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_time_metrics_route.jsx_route');
         
         try {
-            // Calculate average response time (time from application submission to first bank view)
-            const avgResponseTimeQuery = `
+            // Get time-based metrics for applications
+            const timeMetricsQuery = `
                 SELECT 
-                    AVG(EXTRACT(EPOCH FROM (bav.viewed_at - pa.submitted_at))/3600) as avg_response_time_hours
-                FROM pos_application pa
-                JOIN bank_application_views bav ON pa.application_id = bav.application_id
-                WHERE pa.submitted_at IS NOT NULL AND bav.viewed_at IS NOT NULL
-                AND bav.viewed_at > pa.submitted_at
-            `;
-
-            const avgResponseTime = await client.query(avgResponseTimeQuery);
-
-            // Calculate average offer time (time from first view to offer submission)
-            const avgOfferTimeQuery = `
+                    'avg_processing_time' as metric_name,
+                    ROUND(AVG(EXTRACT(EPOCH FROM (auction_end_time - submitted_at)) / 3600), 2) as value,
+                    'hours' as unit
+                FROM pos_application 
+                WHERE status IN ('completed', 'ignored')
+                AND auction_end_time IS NOT NULL
+                AND submitted_at IS NOT NULL
+                
+                UNION ALL
+                
                 SELECT 
-                    AVG(EXTRACT(EPOCH FROM (bos.submitted_at - bav.viewed_at))/3600) as avg_offer_time_hours
-                FROM pos_application pa
-                JOIN bank_application_views bav ON pa.application_id = bav.application_id
-                JOIN bank_offer_submissions bos ON pa.application_id = bos.application_id 
-                    AND bos.bank_user_id = bav.bank_user_id
-                WHERE bav.viewed_at IS NOT NULL AND bos.submitted_at IS NOT NULL
-                AND bos.submitted_at > bav.viewed_at
+                    'avg_response_time' as metric_name,
+                    ROUND(AVG(EXTRACT(EPOCH FROM (ao.submitted_at - pa.submitted_at)) / 3600), 2) as value,
+                    'hours' as unit
+                FROM application_offers ao
+                JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+                WHERE ao.submitted_at IS NOT NULL
+                AND pa.submitted_at IS NOT NULL
+                
+                UNION ALL
+                
+                SELECT 
+                    'avg_auction_duration' as metric_name,
+                    ROUND(AVG(EXTRACT(EPOCH FROM (auction_end_time - submitted_at)) / 3600), 2) as value,
+                    'hours' as unit
+                FROM pos_application 
+                WHERE auction_end_time IS NOT NULL
+                AND submitted_at IS NOT NULL
             `;
-
-            const avgOfferTime = await client.query(avgOfferTimeQuery);
-
-            // Get total applications
-            const totalApplicationsQuery = `
-                SELECT COUNT(DISTINCT application_id) as total_applications
-                FROM pos_application
+            
+            const timeMetricsResult = await client.query(timeMetricsQuery);
+            
+            // Get daily application submission trends
+            const dailyTrendsQuery = `
+                SELECT 
+                    DATE_TRUNC('day', submitted_at) as date,
+                    COUNT(*) as applications_count,
+                    COUNT(CASE WHEN status = 'live_auction' THEN 1 END) as live_auctions,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
+                    COUNT(CASE WHEN status = 'ignored' THEN 1 END) as ignored
+                FROM pos_application 
+                WHERE submitted_at >= NOW() - INTERVAL '30 days'
+                GROUP BY DATE_TRUNC('day', submitted_at)
+                ORDER BY date DESC
             `;
-
-            const totalApplications = await client.query(totalApplicationsQuery);
-
-            // Get total offers
-            const totalOffersQuery = `
-                SELECT COUNT(*) as total_offers
-                FROM bank_offer_submissions
+            
+            const dailyTrendsResult = await client.query(dailyTrendsQuery);
+            
+            // Get hourly submission patterns
+            const hourlyPatternsQuery = `
+                SELECT 
+                    EXTRACT(HOUR FROM submitted_at) as hour,
+                    COUNT(*) as applications_count
+                FROM pos_application 
+                WHERE submitted_at >= NOW() - INTERVAL '30 days'
+                GROUP BY EXTRACT(HOUR FROM submitted_at)
+                ORDER BY hour
             `;
-
-            const totalOffers = await client.query(totalOffersQuery);
-
-            // Calculate conversion rate
-            const conversionRate = totalApplications.rows[0].total_applications > 0 
-                ? (totalOffers.rows[0].total_offers / totalApplications.rows[0].total_applications) * 100 
-                : 0;
-
+            
+            const hourlyPatternsResult = await client.query(hourlyPatternsQuery);
+            
             return NextResponse.json({
                 success: true,
                 data: {
-                    avg_response_time_hours: parseFloat(avgResponseTime.rows[0]?.avg_response_time_hours || 0),
-                    avg_offer_time_hours: parseFloat(avgOfferTime.rows[0]?.avg_offer_time_hours || 0),
-                    total_applications: parseInt(totalApplications.rows[0]?.total_applications || 0),
-                    total_offers: parseInt(totalOffers.rows[0]?.total_offers || 0),
-                    conversion_rate: parseFloat(conversionRate.toFixed(2)),
-                    date: date,
-                    // Data accuracy note: Now using actual view tracking data for accurate metrics
-                    data_accuracy_note: "Response time calculated from application submission to first bank view. Offer time calculated from first view to offer submission."
+                    time_metrics: timeMetricsResult.rows,
+                    daily_trends: dailyTrendsResult.rows,
+                    hourly_patterns: hourlyPatternsResult.rows
                 }
             });
-
+            
         } finally {
             client.release();
         }
-
+        
     } catch (error) {
         console.error('Time metrics error:', error);
         return NextResponse.json(
@@ -116,25 +115,97 @@ export async function GET(req) {
 
 export async function POST(req) {
     try {
-        const client = await pool.connectWithRetry();
+        // Get admin token from cookies
+        const adminToken = req.cookies.get('admin_token')?.value;
+        
+        if (!adminToken) {
+            return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
+        }
 
+        // Validate admin session using session manager
+        const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
+        
+        if (!sessionValidation.valid) {
+            return NextResponse.json({ 
+                success: false, 
+                error: sessionValidation.error || 'Invalid admin session' 
+            }, { status: 401 });
+        }
+
+        // Get admin user from session (no database query needed)
+        const adminUser = sessionValidation.adminUser;
+
+        const body = await req.json();
+        const { timeRange, metricType } = body;
+
+        if (!timeRange || !metricType) {
+            return NextResponse.json(
+                { success: false, error: 'timeRange and metricType are required' },
+                { status: 400 }
+            );
+        }
+
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_time_metrics_route.jsx_POST');
+        
         try {
-            // Call the database function to calculate metrics
-            await client.query('SELECT calculate_bank_time_metrics()');
+            let query;
+            let params = [];
 
+            switch (metricType) {
+                case 'processing_time':
+                    query = `
+                        SELECT 
+                            DATE_TRUNC('day', submitted_at) as date,
+                            ROUND(AVG(EXTRACT(EPOCH FROM (auction_end_time - submitted_at)) / 3600), 2) as avg_hours
+                        FROM pos_application 
+                        WHERE submitted_at >= NOW() - INTERVAL $1
+                        AND auction_end_time IS NOT NULL
+                        GROUP BY DATE_TRUNC('day', submitted_at)
+                        ORDER BY date DESC
+                    `;
+                    params = [timeRange];
+                    break;
+                    
+                case 'response_time':
+                    query = `
+                        SELECT 
+                            DATE_TRUNC('day', pa.submitted_at) as date,
+                            ROUND(AVG(EXTRACT(EPOCH FROM (ao.submitted_at - pa.submitted_at)) / 3600), 2) as avg_hours
+                        FROM pos_application pa
+                        JOIN application_offers ao ON pa.application_id = ao.submitted_application_id
+                        WHERE pa.submitted_at >= NOW() - INTERVAL $1
+                        GROUP BY DATE_TRUNC('day', pa.submitted_at)
+                        ORDER BY date DESC
+                    `;
+                    params = [timeRange];
+                    break;
+                    
+                default:
+                    return NextResponse.json(
+                        { success: false, error: 'Invalid metric type' },
+                        { status: 400 }
+                    );
+            }
+            
+            const result = await client.query(query, params);
+            
             return NextResponse.json({
                 success: true,
-                message: 'Time metrics calculated successfully'
+                data: {
+                    metric_type: metricType,
+                    time_range: timeRange,
+                    metrics: result.rows
+                }
             });
-
+            
         } finally {
             client.release();
         }
-
+        
     } catch (error) {
-        console.error('Error calculating time metrics:', error);
+        console.error('Time metrics POST error:', error);
         return NextResponse.json(
-            { success: false, error: 'Internal server error' },
+            { success: false, error: 'Failed to fetch time metrics' },
             { status: 500 }
         );
     }

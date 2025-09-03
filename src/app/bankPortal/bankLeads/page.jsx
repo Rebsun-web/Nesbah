@@ -248,25 +248,22 @@ function BankLeadsPage() {
                                 <table className="w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-3 py-3 text-center text-sm font-medium text-gray-500 uppercase tracking-wider w-40">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-40">
                                                 Company & Business Info
                                             </th>
-                                            <th className="px-3 py-3 text-center text-sm font-medium text-gray-500 uppercase tracking-wider w-32">
-                                                Application Details
-                                            </th>
-                                            <th className="px-3 py-3 text-center text-sm font-medium text-gray-500 uppercase tracking-wider w-24">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-24">
                                                 Contact
                                             </th>
-                                            <th className="px-3 py-3 text-center text-sm font-medium text-gray-500 uppercase tracking-wider w-24">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-24">
                                                 Phone
                                             </th>
-                                            <th className="px-3 py-3 text-center text-sm font-medium text-gray-500 uppercase tracking-wider w-24">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-24">
                                                 Email
                                             </th>
-                                            <th className="px-3 py-3 text-center text-sm font-medium text-gray-500 uppercase tracking-wider w-20">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-20">
                                                 Date
                                             </th>
-                                            <th className="px-3 py-3 text-center text-sm font-medium text-gray-500 uppercase tracking-wider w-20">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-20">
                                                 Actions
                                             </th>
                                         </tr>
@@ -276,10 +273,6 @@ function BankLeadsPage() {
                                             <tr key={lead.application_id} className="hover:bg-gray-50">
                                                 <td className="px-3 py-3">
                                                     <div className="text-xs font-medium text-gray-900 truncate" title={lead.trade_name}>{lead.trade_name}</div>
-                                                    <div className="text-xs text-gray-500">ID: {lead.application_id}</div>
-                                                </td>
-                                                <td className="px-3 py-3">
-                                                    <div className="text-xs text-gray-900 truncate" title={lead.trade_name}>{lead.trade_name}</div>
                                                     <div className="text-xs text-gray-500">ID: {lead.application_id}</div>
                                                 </td>
                                                 <td className="px-3 py-3">

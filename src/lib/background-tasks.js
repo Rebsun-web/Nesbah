@@ -7,6 +7,7 @@ class BackgroundTaskManager {
         this.taskIntervals = {
             statusTransitions: 15 * 60 * 1000, // 15 minutes (reduced from 5 minutes)
             auctionMonitor: 30 * 60 * 1000,   // 30 minutes (reduced from 15 minutes)
+            statusConsistency: 10 * 60 * 1000, // 10 minutes - check for status inconsistencies
             healthCheck: 60 * 60 * 1000       // 60 minutes (reduced from 30 minutes)
         }
         this.connectionTimeout = 30000 // 30 seconds max for any database operation
@@ -42,6 +43,15 @@ class BackgroundTaskManager {
             }
         }, this.taskIntervals.auctionMonitor)
 
+        // Start status consistency monitoring
+        this.tasks.statusConsistency = setInterval(async () => {
+            try {
+                await this.executeWithConnectionRetry('statusConsistency', () => this.checkStatusConsistency())
+            } catch (error) {
+                console.error('❌ Error in status consistency task:', error)
+            }
+        }, this.taskIntervals.statusConsistency)
+
         // Start health checks
         this.tasks.healthCheck = setInterval(async () => {
             try {
@@ -55,6 +65,7 @@ class BackgroundTaskManager {
         console.log('📊 Active tasks:')
         console.log('   - Status Transitions: ACTIVE (every 15 minutes)')
         console.log('   - Auction Status: ACTIVE (every 30 minutes)')
+        console.log('   - Status Consistency: ACTIVE (every 10 minutes)')
         console.log('   - Health Checks: ACTIVE (every 60 minutes)')
         console.log('🔧 Connection management: Enhanced with dedicated connection manager')
     }
@@ -80,6 +91,24 @@ class BackgroundTaskManager {
         this.tasks = {}
 
         console.log('✅ Background Task Manager stopped')
+    }
+
+    // Get task status
+    getStatus() {
+        return {
+            isRunning: this.isRunning,
+            tasks: Object.keys(this.tasks).map(taskName => ({
+                name: taskName,
+                isActive: !!this.tasks[taskName],
+                interval: this.taskIntervals[taskName]
+            })),
+            connectionSettings: {
+                maxRetries: this.maxRetries,
+                retryDelay: this.retryDelay,
+                connectionTimeout: this.connectionTimeout
+            },
+            connectionManager: backgroundConnectionManager.getStatus()
+        }
     }
 
     // Execute task with connection retry and proper cleanup using connection manager
@@ -201,6 +230,32 @@ class BackgroundTaskManager {
         } catch (error) {
             console.error('❌ Auction status error:', error)
             throw error // Re-throw to trigger retry logic
+        }
+    }
+
+    // Check and fix status inconsistencies
+    async checkStatusConsistency(client) {
+        try {
+            console.log('🔧 Checking status consistency...')
+            
+            // Use the new validation utility for better consistency
+            console.log('🔄 Using enhanced status validation utility...');
+            
+            // Import the validation utility dynamically to avoid circular imports
+            const { validateAllApplicationStatuses } = await import('./status-validation.js');
+            
+            const summary = await validateAllApplicationStatuses();
+            
+            if (summary.corrected > 0) {
+                console.log(`🔄 Status consistency check completed: ${summary.corrected} statuses corrected`);
+                console.log(`📊 Summary: ${summary.total} total, ${summary.correct} correct, ${summary.corrected} corrected, ${summary.errors} errors`);
+            } else {
+                console.log('✅ All application statuses are consistent');
+            }
+            
+        } catch (error) {
+            console.error('❌ Status consistency check error:', error);
+            // Don't throw error - this is not critical for the main workflow
         }
     }
 

@@ -31,7 +31,7 @@ export async function GET(req) {
         const limit = parseInt(searchParams.get('limit')) || 50;
         const offset = parseInt(searchParams.get('offset')) || 0;
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_system_alerts_route.jsx_route');
         
         try {
             let query = `
@@ -204,7 +204,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_system_alerts_route.jsx_route');
         
         try {
             const result = await client.query(
@@ -282,7 +282,7 @@ export async function PUT(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_system_alerts_route.jsx_route');
         
         try {
             await client.query('BEGIN');

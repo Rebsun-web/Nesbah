@@ -9,7 +9,7 @@ export async function POST(req) {
         const { email, password, mfaToken } = await req.json();
         console.log('🔐 Unified login attempt for:', email);
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_auth_unified-login_route.jsx_route');
         
         try {
             // Step 1: Determine user type with a single query
@@ -81,7 +81,7 @@ async function handleAdminLogin(userData, password, mfaToken) {
     try {
         console.log('🔐 Processing admin login for:', userData.email);
         
-        // Validate admin credentials
+        // Validate admin credentials using the updated AdminAuth class
         const authResult = await AdminAuth.validateCredentials(userData.email, password);
         
         if (!authResult.valid) {
@@ -94,7 +94,7 @@ async function handleAdminLogin(userData, password, mfaToken) {
         const adminUser = authResult.adminUser;
 
         // Update last login timestamp
-        await AdminAuth.updateLastLogin(adminUser.admin_id);
+        await AdminAuth.updateLastLogin(adminUser.user_id);
 
         // Generate JWT token
         const token = JWTUtils.generateAdminToken(adminUser);
@@ -105,14 +105,17 @@ async function handleAdminLogin(userData, password, mfaToken) {
         const response = NextResponse.json({
             success: true,
             user: {
-                admin_id: adminUser.admin_id,
+                user_id: adminUser.user_id,
+                admin_id: adminUser.user_id, // For backward compatibility
                 email: adminUser.email,
-                full_name: adminUser.full_name,
+                full_name: adminUser.entity_name,
+                entity_name: adminUser.entity_name,
                 role: adminUser.role,
                 permissions: adminUser.permissions,
-                is_active: adminUser.is_active,
+                is_active: adminUser.account_status === 'active',
                 user_type: 'admin_user'
             },
+            token: token, // Include JWT token in response body for frontend storage
             redirect: '/admin',
             message: 'Admin login successful'
         });
@@ -150,7 +153,6 @@ async function handleBankEmployeeLogin(client, userData, password) {
                 be.last_name,
                 be.position,
                 be.bank_user_id,
-                be.is_active as employee_active,
                 bu.logo_url
              FROM bank_employees be
              LEFT JOIN bank_users bu ON be.bank_user_id = bu.user_id
@@ -166,14 +168,6 @@ async function handleBankEmployeeLogin(client, userData, password) {
         }
 
         const employeeData = employeeQuery.rows[0];
-
-        // Check if employee account is active
-        if (!employeeData.employee_active) {
-            return NextResponse.json(
-                { success: false, error: 'Employee account is inactive' },
-                { status: 401 }
-            );
-        }
 
         // Verify password
         const passwordMatch = await bcrypt.compare(password, userData.password);

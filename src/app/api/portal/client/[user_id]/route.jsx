@@ -45,7 +45,7 @@ export async function GET(req, { params }) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_portal_client_[user_id]_route.jsx_route');
     
     try {
         // OPTIMIZED: Single query with specific column selection for better performance

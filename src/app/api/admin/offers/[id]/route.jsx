@@ -27,7 +27,7 @@ export async function DELETE(req, { params }) {
         // Get admin user from session (no database query needed)
         const adminUser = sessionValidation.adminUser;
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_offers_[id]_route.jsx_route');
         
         try {
             await client.query('BEGIN');
@@ -117,7 +117,7 @@ export async function PUT(req, { params }) {
         const adminUser = sessionValidation.adminUser;
 
         const body = await req.json();
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_offers_[id]_route.jsx_route');
         
         try {
             // Check if offer exists

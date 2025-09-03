@@ -88,6 +88,8 @@ export async function POST(req) {
         // Use Wathiq data or provided values as fallbacks
         const finalData = wathiqData ? {
             // Use Wathiq data as primary source, with provided values as overrides
+            email: email, // Add email field
+            password: password, // Add password field
             cr_national_number: cr_national_number || wathiqData.cr_national_number,
             cr_number: cr_number || wathiqData.cr_number,
             trade_name: trade_name || wathiqData.trade_name,
@@ -115,6 +117,8 @@ export async function POST(req) {
             contact_person_number: contact_person_number || null,
         } : {
             // Manual data only
+            email: email, // Add email field
+            password: password, // Add password field
             cr_national_number: cr_national_number,
             cr_number: cr_number,
             trade_name: trade_name,
@@ -148,22 +152,48 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        // Log the final data for debugging
+        console.log('🔍 Create Business - Final data:', {
+            email: finalData.email,
+            hasEmail: !!finalData.email,
+            hasPassword: !!finalData.password,
+            cr_national_number: finalData.cr_national_number,
+            trade_name: finalData.trade_name
+        });
+
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_create-business_route.jsx_route');
         try {
             await client.query('BEGIN');
 
-            // Create business user record with comprehensive data
+            // First, create a user record in the users table
+            const userResult = await client.query(
+                `INSERT INTO users (email, password, user_type, entity_name, created_at, updated_at)
+                 VALUES ($1, $2, $3, $4, NOW(), NOW())
+                 RETURNING user_id`,
+                [
+                    finalData.email || `business_${finalData.cr_national_number}@nesbah.com`,
+                    finalData.password || 'default_password_hash', // Use provided password or fallback
+                    'business_user',
+                    finalData.trade_name
+                ]
+            );
+            
+            const user_id = userResult.rows[0].user_id;
+            console.log(`✅ Created user record with ID: ${user_id}`);
+
+            // Then create business user record with comprehensive data
             const businessUserResult = await client.query(
                 `INSERT INTO business_users (
-                    cr_national_number, cr_number, trade_name, address, sector, 
+                    user_id, cr_national_number, cr_number, trade_name, address, sector, 
                     registration_status, cash_capital, in_kind_capital, contact_info, 
                     store_url, legal_form, issue_date_gregorian, confirmation_date_gregorian, 
                     has_ecommerce, management_structure, management_managers, cr_capital,
                     city, contact_person, contact_person_number, avg_capital, activities,
                     is_verified, verification_date, admin_notes
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
                 RETURNING user_id`,
                 [
+                    user_id,
                     finalData.cr_national_number,
                     finalData.cr_number,
                     finalData.trade_name,
@@ -179,20 +209,20 @@ export async function POST(req) {
                     finalData.confirmation_date_gregorian,
                     finalData.has_ecommerce,
                     finalData.management_structure,
-                    finalData.management_managers ? JSON.stringify(finalData.management_managers) : null,
+                    finalData.management_managers ? JSON.stringify(Array.isArray(finalData.management_managers) ? finalData.management_managers : finalData.management_managers.split(',').map(item => item.trim()).filter(item => item.length > 0)) : null,
                     finalData.cr_capital,
                     finalData.city,
                     finalData.contact_person,
                     finalData.contact_person_number,
                     finalData.avg_capital,
-                    finalData.activities ? finalData.activities : null,
+                    finalData.activities ? (Array.isArray(finalData.activities) ? finalData.activities : finalData.activities.split(',').map(item => item.trim()).filter(item => item.length > 0)) : null,
                     finalData.is_verified,
                     finalData.verification_date,
                     finalData.admin_notes
                 ]
             );
             
-            const user_id = businessUserResult.rows[0].user_id;
+            console.log(`✅ Created business user record with ID: ${businessUserResult.rows[0].user_id}`);
 
             await client.query('COMMIT');
 

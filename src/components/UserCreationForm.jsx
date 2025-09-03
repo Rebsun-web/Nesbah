@@ -10,8 +10,7 @@ const UserCreationForm = () => {
         password: '',
         entityName: '',
         firstName: '',
-        lastName: '',
-        registrationStatus: 'active'
+        lastName: ''
     });
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -49,7 +48,7 @@ const UserCreationForm = () => {
                     entity_name: formData.entityName,
                     first_name: formData.firstName,
                     last_name: formData.lastName,
-                    registration_status: formData.registrationStatus
+
                 })
             });
 
@@ -64,8 +63,7 @@ const UserCreationForm = () => {
                     password: '',
                     entityName: '',
                     firstName: '',
-                    lastName: '',
-                    registrationStatus: 'active'
+                    lastName: ''
                 });
             } else {
                 setMessage(`❌ Error: ${result.error}`);
@@ -195,22 +193,7 @@ const UserCreationForm = () => {
                     </div>
                 )}
 
-                {/* Registration Status */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Registration Status
-                    </label>
-                    <select
-                        name="registrationStatus"
-                        value={formData.registrationStatus}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="pending">Pending</option>
-                    </select>
-                </div>
+
 
                 {/* Submit Button */}
                 <div className="flex justify-end">

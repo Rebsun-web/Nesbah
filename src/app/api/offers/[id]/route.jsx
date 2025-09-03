@@ -16,7 +16,7 @@ export async function GET(request, { params }) {
         )
     }
 
-    const client = await pool.connect()
+    const client = await pool.connectWithRetry(2, 1000, 'app_api_offers_[id]_route.jsx_route')
 
     try {
         // Get offer details with all related information

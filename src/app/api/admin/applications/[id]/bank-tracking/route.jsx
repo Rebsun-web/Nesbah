@@ -22,14 +22,14 @@ export async function GET(req, { params }) {
             }, { status: 401 });
         }
 
-        const { id } = params;
+        const { id } = await params;
         const applicationId = parseInt(id);
 
         if (isNaN(applicationId)) {
             return NextResponse.json({ success: false, error: 'Invalid application ID' }, { status: 400 });
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_[id]_bank-tracking_route.jsx_route');
         
         try {
             // Get bank tracking information with bank details
@@ -131,7 +131,7 @@ export async function POST(req, { params }) {
             }, { status: 401 });
         }
 
-        const { id } = params;
+        const { id } = await params;
         const applicationId = parseInt(id);
 
         if (isNaN(applicationId)) {
@@ -149,7 +149,7 @@ export async function POST(req, { params }) {
             return NextResponse.json({ success: false, error: 'Action must be either "view" or "purchase"' }, { status: 400 });
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_[id]_bank-tracking_route.jsx_route');
         
         try {
             // Verify application exists

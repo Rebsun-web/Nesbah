@@ -3,7 +3,7 @@ import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function GET(request) {
-    const client = await pool.connectWithRetry();
+    const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_bank-employees_route.jsx_route');
     
     try {
         // Verify admin authentication
@@ -25,9 +25,11 @@ export async function GET(request) {
         const bankUserId = searchParams.get('bank_user_id');
         const status = searchParams.get('status');
 
+        // Fetch all bank employees
         let query = `
             SELECT 
                 be.employee_id,
+                be.user_id,
                 be.first_name,
                 be.last_name,
                 be.position,
@@ -96,7 +98,7 @@ export async function PUT(request) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_bank-employees_route.jsx_route');
         try {
             await client.query('BEGIN');
 
@@ -111,8 +113,7 @@ export async function PUT(request) {
                          SET first_name = COALESCE($1, first_name), 
                              last_name = COALESCE($2, last_name), 
                              position = COALESCE($3, position), 
-                             phone = COALESCE($4, phone), 
-                             updated_at = NOW() 
+                             phone = COALESCE($4, phone)
                          WHERE employee_id = $5 RETURNING *`,
                         [first_name, last_name, position, phone, employee_id]
                     );

@@ -116,17 +116,14 @@ function BankPortal() {
                                 <Stat
                                     title={t('stats.newLeads')}
                                     value={stats?.incoming_leads ?? '-'}
-                                    change="+0%"
                                 />
                                 <Stat
                                     title={t('stats.submittedOffers')}
                                     value={stats?.purchased_leads ?? '-'}
-                                    change="+0%"
                                 />
                                 <Stat
                                     title={t('stats.ignoredOffers')}
                                     value={stats?.ignored_leads ?? '-'}
-                                    change="+0%"
                                 />
                             </div>
                         </div>

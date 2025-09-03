@@ -58,7 +58,7 @@ export async function POST(req) {
             );
         }
 
-        const client = await pool.connectWithRetry();
+        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_extend-deadline_route.jsx_route');
         
         try {
             await client.query('BEGIN');

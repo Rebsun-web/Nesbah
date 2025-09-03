@@ -2,6 +2,9 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 
+// Check if we're in a build environment
+const isBuildEnvironment = process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build';
+
 // Use DATABASE_URL if available, otherwise use direct connection parameters
 const poolConfig = process.env.DATABASE_URL ? {
   connectionString: process.env.DATABASE_URL,
@@ -23,14 +26,14 @@ const poolConfig = process.env.DATABASE_URL ? {
 
 const pool = new Pool({
   ...poolConfig,
-  // Conservative connection pool configuration to prevent exhaustion
-  max: 5, // Reduced from 10 to 5
-  min: 1, // Reduced from 2 to 1
-  idleTimeoutMillis: 10000, // Reduced from 30000 to 10000 (10 seconds)
-  connectionTimeoutMillis: 5000, // Reduced from 10000 to 5000 (5 seconds)
-  acquireTimeoutMillis: 10000, // Reduced from 15000 to 10000 (10 seconds)
+  // Enhanced connection pool configuration to prevent exhaustion
+  max: 10, // Increased from 5 to 10 for better concurrency
+  min: 2, // Increased from 1 to 2 for better availability
+  idleTimeoutMillis: 30000, // Increased from 10000 to 30000 (30 seconds)
+  connectionTimeoutMillis: 10000, // Increased from 5000 to 10000 (10 seconds)
+  acquireTimeoutMillis: 15000, // Increased from 10000 to 15000 (15 seconds)
   reapIntervalMillis: 1000, // Check for dead connections every second
-  maxUses: 25, // Reduced from 50 to 25 - close connections after fewer queries
+  maxUses: 50, // Increased from 25 to 50 - close connections after more queries
   allowExitOnIdle: true, // Allow the pool to exit when idle
   // Enhanced SSL configuration
   ssl: {
@@ -38,6 +41,36 @@ const pool = new Pool({
     checkServerIdentity: () => undefined, // Skip hostname verification
   }
 });
+
+// Add safeguard to prevent multiple pool.end() calls
+let isPoolEnding = false;
+const originalEnd = pool.end.bind(pool);
+
+pool.end = async function() {
+  // Skip pool.end() calls during build process
+  if (isBuildEnvironment) {
+    console.log('⚠️ Pool.end() skipped during build process');
+    return Promise.resolve();
+  }
+  
+  if (isPoolEnding) {
+    console.log('⚠️ Pool.end() called multiple times, ignoring duplicate call');
+    return Promise.resolve();
+  }
+  
+  isPoolEnding = true;
+  console.log('🔧 Pool.end() called, closing all connections...');
+  
+  try {
+    await originalEnd();
+    console.log('✅ Pool closed successfully');
+  } catch (error) {
+    console.error('❌ Error closing pool:', error.message);
+    // Reset flag on error so future calls can retry
+    isPoolEnding = false;
+    throw error;
+  }
+};
 
 // Enhanced error handling for pool events
 pool.on('error', (err, client) => {
@@ -48,16 +81,11 @@ pool.on('error', (err, client) => {
     timestamp: new Date().toISOString()
   });
   
-  // Attempt to recover from pool errors
+  // Attempt to recover from pool errors without closing the pool
   if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') {
-    console.warn('⚠️ Pool connection error detected, attempting recovery...');
-    setTimeout(() => {
-      pool.end().then(() => {
-        console.log('🔧 Pool recovery completed');
-      }).catch(recoveryError => {
-        console.error('❌ Pool recovery failed:', recoveryError.message);
-      });
-    }, 5000);
+    console.warn('⚠️ Pool connection error detected, attempting recovery without pool closure...');
+    // Don't close the pool, just log the error and let it recover naturally
+    console.log('🔧 Pool will attempt to recover connections naturally');
   }
 });
 
@@ -96,8 +124,99 @@ const poolMetrics = {
   failedConnections: 0,
   slowQueries: 0,
   queryTimeouts: 0,
-  lastHealthCheck: Date.now()
+  lastHealthCheck: Date.now(),
+  connectionLeaks: 0,
+  activeConnections: 0
 };
+
+// Connection leak detection and cleanup
+let connectionTracker = new Map();
+let cleanupInterval;
+
+// Start connection monitoring
+const startConnectionMonitoring = () => {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+  }
+  
+  cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    const maxConnectionAge = 2 * 60 * 1000; // Reduced from 5 minutes to 2 minutes
+    
+    // Check for stale connections
+    for (const [connectionId, connection] of connectionTracker.entries()) {
+      if (now - connection.acquiredAt > maxConnectionAge) {
+        console.warn(`⚠️ Potential connection leak detected: ${connection.taskName} (${connectionId})`);
+        poolMetrics.connectionLeaks++;
+        
+        // Force release the connection
+        try {
+          if (connection.client && typeof connection.client.release === 'function') {
+            connection.client.release();
+          }
+        } catch (error) {
+          console.error('❌ Error force releasing leaked connection:', error.message);
+        }
+        
+        connectionTracker.delete(connectionId);
+      }
+    }
+    
+    // Update metrics
+    poolMetrics.activeConnections = connectionTracker.size;
+    poolMetrics.lastHealthCheck = now;
+    
+    // Log pool status every 2 minutes (reduced from 5)
+    if (now % (2 * 60 * 1000) < 1000) {
+      console.log(`📊 Pool Status: ${pool.totalCount}/${pool.idleCount}/${pool.waitingCount} (Active: ${poolMetrics.activeConnections})`);
+    }
+    
+    // Force cleanup if pool is getting too full
+    if (pool.totalCount > 2) {
+      console.warn(`⚠️ Pool getting full (${pool.totalCount}), forcing cleanup...`);
+      pool.end().then(() => {
+        console.log('🔧 Forced pool cleanup completed');
+      }).catch(error => {
+        console.error('❌ Forced pool cleanup failed:', error.message);
+      });
+    }
+  }, 15000); // Check every 15 seconds (reduced from 30)
+};
+
+// Enhanced connection tracking
+const trackConnection = (client, taskName) => {
+  const connectionId = `${taskName}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  connectionTracker.set(connectionId, {
+    client,
+    taskName,
+    acquiredAt: Date.now()
+  });
+  
+  poolMetrics.totalConnections++;
+  poolMetrics.activeConnections = connectionTracker.size;
+  
+  return connectionId;
+};
+
+const releaseConnection = (connectionId) => {
+  const connection = connectionTracker.get(connectionId);
+  if (connection) {
+    connectionTracker.delete(connectionId);
+    poolMetrics.activeConnections = connectionTracker.size;
+    
+    try {
+      if (connection.client && typeof connection.client.release === 'function') {
+        connection.client.release();
+      }
+    } catch (error) {
+      console.error('❌ Error releasing tracked connection:', error.message);
+    }
+  }
+};
+
+// Start monitoring
+startConnectionMonitoring();
 
 // Monitor pool for potential issues with enhanced logging
 setInterval(() => {
@@ -259,6 +378,12 @@ pool.getMetrics = () => {
 
 // Force cleanup of idle connections
 pool.cleanup = async () => {
+  // Skip cleanup during build process
+  if (isBuildEnvironment) {
+    console.log('⚠️ Database pool cleanup skipped during build process');
+    return;
+  }
+  
   try {
     await pool.end();
     console.log('🔧 Database pool cleanup completed');
@@ -269,6 +394,12 @@ pool.cleanup = async () => {
 
 // Emergency connection reset function
 pool.emergencyReset = async () => {
+  // Skip emergency reset during build process
+  if (isBuildEnvironment) {
+    console.log('⚠️ Emergency database pool reset skipped during build process');
+    return false;
+  }
+  
   try {
     console.log('🚨 Emergency database pool reset initiated...');
     
@@ -327,6 +458,23 @@ const processConnectionQueue = async () => {
       const client = await pool.connect();
       const waitTime = Date.now() - timestamp;
       
+      // Track the connection if taskName is available
+      if (taskName) {
+        const connectionId = trackConnection(client, taskName);
+        
+        // Add a custom release method that also untracks
+        const originalRelease = client.release;
+        let isReleased = false;
+        
+        client.release = () => {
+          if (!isReleased) {
+            isReleased = true;
+            releaseConnection(connectionId);
+            originalRelease.call(client);
+          }
+        };
+      }
+      
       // Update queue metrics
       queueMetrics.totalProcessed++;
       queueMetrics.averageWaitTime = 
@@ -351,17 +499,57 @@ const processConnectionQueue = async () => {
   isProcessingQueue = false;
 };
 
-// Enhanced connection retry wrapper with queue and metrics
-pool.connectWithRetry = async (maxRetries = 2, delay = 1000) => {
+// Enhanced connection retry wrapper with queue, metrics, and tracking
+pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown') => {
+  // Check if pool is still valid first
+  if (pool.totalCount === undefined || pool.idleCount === undefined) {
+    console.error('❌ Database pool has been closed or is invalid');
+    
+    // Try to recover the pool
+    if (pool.recover) {
+      try {
+        await pool.recover();
+        // If recovery successful, continue with connection attempt
+        if (pool.isHealthy()) {
+          console.log('🔧 Pool recovered, attempting connection...');
+        } else {
+          throw new Error('Database pool recovery failed');
+        }
+      } catch (recoveryError) {
+        console.error('❌ Pool recovery failed:', recoveryError);
+        throw new Error('Database pool has been closed and recovery failed');
+      }
+    } else {
+      throw new Error('Database pool has been closed or is invalid');
+    }
+  }
+  
   return new Promise((resolve, reject) => {
     const timestamp = Date.now();
     
     // Try to get a connection immediately first
-    pool.connect().then(resolve).catch((error) => {
+    pool.connect().then((client) => {
+      // Track the connection
+      const connectionId = trackConnection(client, taskName);
+      
+      // Add a custom release method that also untracks
+      const originalRelease = client.release;
+      let isReleased = false;
+      
+      client.release = () => {
+        if (!isReleased) {
+          isReleased = true;
+          releaseConnection(connectionId);
+          originalRelease.call(client);
+        }
+      };
+      
+      resolve(client);
+    }).catch((error) => {
       if (pool.isRetryableError(error)) {
         console.warn(`⚠️ Connection pool exhausted, queuing retry...`);
         queueMetrics.totalQueued++;
-        connectionQueue.push({ resolve, reject, maxRetries, delay, timestamp });
+        connectionQueue.push({ resolve, reject, maxRetries, delay, timestamp, taskName });
         processConnectionQueue();
       } else {
         reject(error);
@@ -379,5 +567,79 @@ pool.getQueueMetrics = () => {
     timestamp: new Date().toISOString()
   };
 };
+
+// Pool health check function
+pool.isHealthy = () => {
+  return pool.totalCount !== undefined && 
+         pool.idleCount !== undefined && 
+         !isPoolEnding && 
+         !isBuildEnvironment;
+};
+
+// Get pool status
+pool.getStatus = () => {
+  return {
+    isHealthy: pool.isHealthy(),
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount,
+    isPoolEnding,
+    isBuildEnvironment,
+    timestamp: new Date().toISOString()
+  };
+};
+
+// Enhanced connection management utilities
+pool.withConnection = async (callback, taskName = 'unknown', timeoutMs = 30000) => {
+  const client = await pool.connectWithRetry(2, 1000, taskName);
+  
+  try {
+    const result = await Promise.race([
+      callback(client),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Query timeout')), timeoutMs)
+      )
+    ]);
+    
+    return result;
+  } finally {
+    client.release();
+  }
+};
+
+// Pool recovery function
+pool.recover = async () => {
+  if (isBuildEnvironment) {
+    console.log('⚠️ Pool recovery skipped during build process');
+    return false;
+  }
+  
+  if (pool.isHealthy()) {
+    console.log('🔧 Pool is already healthy, no recovery needed');
+    return true;
+  }
+  
+  try {
+    console.log('🔧 Attempting to recover database pool...');
+    
+    // Create a new pool with the same configuration
+    const newPool = new Pool(poolConfig);
+    
+    // Copy all methods and properties to the new pool
+    Object.assign(pool, newPool);
+    
+    // Reset the ending flag
+    isPoolEnding = false;
+    
+    console.log('✅ Pool recovery completed successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Pool recovery failed:', error);
+    return false;
+  }
+};
+
+// Export tracking functions for external use
+export { trackConnection, releaseConnection, startConnectionMonitoring };
 
 export default pool;
