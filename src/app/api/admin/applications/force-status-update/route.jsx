@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import AdminAuth from '@/lib/auth/admin-auth'
-import pool from '@/lib/db.cjs'
+import pool from '@/lib/db'
 
 export async function POST(req) {
     try {

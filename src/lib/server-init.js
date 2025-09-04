@@ -19,13 +19,23 @@ export function initializeServer() {
         process.on('SIGINT', () => {
             console.log('\n🛑 Received SIGINT, shutting down gracefully...')
             backgroundTaskManager.stop()
-            process.exit(0)
+            // Only exit in development/test environments
+            if (process.env.NODE_ENV !== 'production') {
+                process.exit(0)
+            } else {
+                console.log('⚠️ Production environment: keeping process alive after SIGINT')
+            }
         })
 
         process.on('SIGTERM', () => {
             console.log('\n🛑 Received SIGTERM, shutting down gracefully...')
             backgroundTaskManager.stop()
-            process.exit(0)
+            // Only exit in development/test environments
+            if (process.env.NODE_ENV !== 'production') {
+                process.exit(0)
+            } else {
+                console.log('⚠️ Production environment: keeping process alive after SIGTERM')
+            }
         })
 
         isInitialized = true

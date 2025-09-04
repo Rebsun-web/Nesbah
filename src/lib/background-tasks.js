@@ -87,6 +87,9 @@ class BackgroundTaskManager {
             }
         })
 
+        // Release all active connections but don't close the pool
+        backgroundConnectionManager.releaseAllConnections()
+
         // Reset tasks
         this.tasks = {}
 

@@ -1,5 +1,5 @@
 import JWTUtils from './jwt-utils.js'
-import pool from '../db.cjs'
+import pool from '../db.js'
 
 export class AdminAuth {
     // Generate JWT token for admin user (using JWTUtils)

@@ -158,6 +158,12 @@ pool.getStatus = () => {
 
 // Force cleanup of idle connections
 pool.cleanup = async () => {
+  // Skip cleanup in production to prevent connection issues
+  if (process.env.NODE_ENV === 'production') {
+    console.log('⚠️ Database pool cleanup skipped in production environment');
+    return;
+  }
+  
   try {
     await pool.end();
     console.log('🔧 Database pool cleanup completed');
@@ -168,6 +174,12 @@ pool.cleanup = async () => {
 
 // Emergency cleanup for connection exhaustion
 pool.emergencyCleanup = async () => {
+  // Skip emergency cleanup in production to prevent connection issues
+  if (process.env.NODE_ENV === 'production') {
+    console.log('⚠️ Emergency database pool cleanup skipped in production environment');
+    return false;
+  }
+  
   try {
     console.log('🚨 Emergency database pool cleanup initiated...');
     
@@ -224,19 +236,33 @@ pool.connectWithRetry = async (maxRetries = 3, delay = 1000) => {
 // Start monitoring automatically
 startMonitoring();
 
-// Graceful shutdown
+// Graceful shutdown - but don't close pool in production
 process.on('SIGINT', () => {
   if (monitoringInterval) {
     clearInterval(monitoringInterval);
   }
-  pool.end();
+  
+  // Only close pool in development/test environments
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('🔧 Development environment: closing database pool on SIGINT');
+    pool.end();
+  } else {
+    console.log('⚠️ Production environment: keeping database pool alive on SIGINT');
+  }
 });
 
 process.on('SIGTERM', () => {
   if (monitoringInterval) {
     clearInterval(monitoringInterval);
   }
-  pool.end();
+  
+  // Only close pool in development/test environments
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('🔧 Development environment: closing database pool on SIGTERM');
+    pool.end();
+  } else {
+    console.log('⚠️ Production environment: keeping database pool alive on SIGTERM');
+  }
 });
 
 module.exports = pool;

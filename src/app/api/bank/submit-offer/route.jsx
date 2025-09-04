@@ -24,7 +24,7 @@ export async function POST(req) {
             }, { status: 400 });
         }
 
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'bank-submit-offer');
         
         try {
             // Start transaction

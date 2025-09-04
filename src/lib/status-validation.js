@@ -1,4 +1,4 @@
-import pool from './db';
+import pool from './db.js';
 
 /**
  * Validates and corrects application status based on auction timing and offers
@@ -8,7 +8,7 @@ import pool from './db';
  * @returns {Promise<Object>} - Object containing validated status and whether it was corrected
  */
 export async function validateApplicationStatus(applicationId, currentStatus = null) {
-    const client = await pool.connect();
+    const client = await pool.connectWithRetry(2, 1000, 'status-validation');
     
     try {
         // If current status not provided, fetch it
@@ -140,7 +140,7 @@ export async function getValidatedApplicationStatus(applicationId) {
  * @returns {Promise<Object>} - Summary of validation results
  */
 export async function validateAllApplicationStatuses() {
-    const client = await pool.connect();
+    const client = await pool.connectWithRetry(2, 1000, 'status-validation');
     
     try {
         // Get all applications

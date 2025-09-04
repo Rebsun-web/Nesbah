@@ -1,7 +1,7 @@
-const pool = require('./db.cjs');
+import pool from './db.js';
 
 async function runAdminMigrations() {
-    const client = await pool.connect();
+    const client = await pool.connectWithRetry(2, 1000, 'admin-db-migration');
     
     try {
         await client.query('BEGIN');

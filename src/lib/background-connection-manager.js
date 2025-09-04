@@ -1,5 +1,5 @@
 // Background Connection Manager - ensures proper connection cleanup for background tasks
-import pool from './db.cjs'
+import pool from './db.js'
 
 class BackgroundConnectionManager {
     constructor() {
@@ -16,7 +16,7 @@ class BackgroundConnectionManager {
         try {
             // Get connection with timeout
             const client = await Promise.race([
-                pool.connect(),
+                pool.connectWithRetry(2, 1000, 'background-connection-manager'),
                 new Promise((_, reject) => 
                     setTimeout(() => reject(new Error('Connection timeout')), this.connectionTimeout)
                 )

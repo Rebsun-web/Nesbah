@@ -1,11 +1,11 @@
-const pool = require('../db.cjs');
+import pool from '../db.js';
 
 class AnalyticsService {
     /**
      * Track when a bank views an application
      */
     static async trackApplicationView(applicationId, bankUserId) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'analytics-service');
         try {
             // Get auction start time for the application
             const appQuery = await client.query(
@@ -40,7 +40,7 @@ class AnalyticsService {
      * Track when a bank submits an offer
      */
     static async trackOfferSubmission(applicationId, bankUserId, offerId) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'analytics-service');
         try {
             // Get the first view time for this bank and application
             const viewQuery = await client.query(
@@ -76,7 +76,7 @@ class AnalyticsService {
      * Calculate and store daily metrics for a specific bank
      */
     static async calculateBankMetrics(bankUserId, date = new Date()) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'analytics-service');
         try {
             const dateStr = date.toISOString().split('T')[0];
             
@@ -154,7 +154,7 @@ class AnalyticsService {
      * Calculate and store overall application conversion metrics
      */
     static async calculateOverallMetrics(date = new Date()) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'analytics-service');
         try {
             const dateStr = date.toISOString().split('T')[0];
             
@@ -234,7 +234,7 @@ class AnalyticsService {
      * Clean up temporary tracking data when auction ends
      */
     static async cleanupAuctionData(applicationId) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'analytics-service');
         try {
             // Delete tracking data for the completed auction
             await client.query(
@@ -256,7 +256,7 @@ class AnalyticsService {
      * Get bank metrics for a specific date range
      */
     static async getBankMetrics(bankUserId, startDate, endDate) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'analytics-service');
         try {
             const result = await client.query(`
                 SELECT * FROM time_metrics 
@@ -275,7 +275,7 @@ class AnalyticsService {
      * Get overall conversion metrics for a date range
      */
     static async getOverallMetrics(startDate, endDate) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'analytics-service');
         try {
             const result = await client.query(`
                 SELECT * FROM application_conversion_metrics 
@@ -293,7 +293,7 @@ class AnalyticsService {
      * Get top performing banks by conversion rate
      */
     static async getTopPerformingBanks(limit = 10, date = new Date()) {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'analytics-service');
         try {
             const dateStr = date.toISOString().split('T')[0];
             

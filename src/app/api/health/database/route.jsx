@@ -33,6 +33,51 @@ export async function GET(req) {
     }
 }
 
+export async function POST(req) {
+    try {
+        console.log('🔧 Manual pool recovery triggered via POST request');
+        
+        // Attempt to recover the pool
+        const recoveryResult = await pool.recover();
+        
+        if (recoveryResult) {
+            console.log('✅ Manual pool recovery successful');
+            
+            // Get updated health data
+            const healthData = await getDatabaseHealth();
+            
+            return NextResponse.json({
+                success: true,
+                message: 'Pool recovery successful',
+                data: healthData,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            console.error('❌ Manual pool recovery failed');
+            
+            return NextResponse.json({
+                success: false,
+                error: 'Pool recovery failed',
+                timestamp: new Date().toISOString()
+            }, { status: 500 });
+        }
+        
+    } catch (error) {
+        console.error('Failed to recover pool:', {
+            error: error.message,
+            code: error.code,
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+        });
+        
+        return NextResponse.json({
+            success: false,
+            error: 'Failed to recover pool',
+            details: error.message
+        }, { status: 500 });
+    }
+}
+
 // Get comprehensive database health information
 async function getDatabaseHealth() {
     const startTime = Date.now();

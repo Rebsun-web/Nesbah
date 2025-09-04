@@ -1,4 +1,4 @@
-const pool = require('./db.cjs')
+import pool from './db.js'
 
 class DatabaseListener {
     constructor() {
@@ -20,7 +20,7 @@ class DatabaseListener {
 
         try {
             // Create a dedicated client for notifications
-            this.client = await pool.connect()
+            this.client = await pool.connectWithRetry(2, 1000, 'database-listener')
             
             // Listen for monitoring events
             await this.client.query('LISTEN monitoring_events')

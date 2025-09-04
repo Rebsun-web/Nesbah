@@ -1,8 +1,8 @@
 // db-migration.cjs (CommonJS version)
-const pool = require('./db.cjs');
+import pool from './db.js';
 
 async function runMigrations() {
-    const client = await pool.connect();
+    const client = await pool.connectWithRetry(2, 1000, 'db-migration');
     
     try {
         await client.query('BEGIN');

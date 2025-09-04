@@ -1,12 +1,7 @@
-const { Pool } = require('pg');
+import pool from './db.js';
 
 async function removeAuctionSystem() {
-    const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-    });
-    
-    const client = await pool.connect();
+    const client = await pool.connectWithRetry(2, 1000, 'remove-auction-system');
     
     try {
         await client.query('BEGIN');
@@ -105,7 +100,10 @@ async function removeAuctionSystem() {
         throw error;
     } finally {
         client.release();
-        await pool.end();
+        // Only close pool in development/test environments
+        if (process.env.NODE_ENV !== 'production') {
+            await pool.end();
+        }
     }
 }
 

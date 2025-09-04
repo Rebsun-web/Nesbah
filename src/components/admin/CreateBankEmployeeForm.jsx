@@ -235,7 +235,7 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
                                             <div className="px-4 py-3 text-gray-500 text-center">
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <BuildingOfficeIcon className="h-5 w-5 text-gray-400" />
-                                                    <span>No banks found matching "{bankSearchTerm}"</span>
+                                                    <span>No banks found matching &quot;{bankSearchTerm}&quot;</span>
                                                 </div>
                                             </div>
                                         )}

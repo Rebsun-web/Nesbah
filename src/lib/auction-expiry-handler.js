@@ -1,4 +1,4 @@
-const pool = require('./db.cjs');
+import pool from './db.js';
 
 class AuctionExpiryHandler {
     /**
@@ -6,7 +6,7 @@ class AuctionExpiryHandler {
      * This function should be called periodically or when needed
      */
     static async handleExpiredAuctions() {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'auction-expiry-handler');
         
         try {
             console.log('⏰ Checking for expired auctions...');
@@ -157,7 +157,7 @@ class AuctionExpiryHandler {
      * Get applications that are approaching auction end (within 2 hours)
      */
     static async getUrgentApplications() {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'auction-expiry-handler');
         
         try {
             const urgentResult = await client.query(`

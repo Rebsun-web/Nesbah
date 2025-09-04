@@ -29,26 +29,46 @@ export function initializeBackgroundTasks() {
         process.on('SIGINT', () => {
             console.log('\n🛑 Received SIGINT, stopping background tasks...')
             backgroundTaskManager.stop()
-            process.exit(0)
+            // Only exit in development/test environments
+            if (process.env.NODE_ENV !== 'production') {
+                process.exit(0)
+            } else {
+                console.log('⚠️ Production environment: keeping process alive after SIGINT')
+            }
         })
 
         process.on('SIGTERM', () => {
             console.log('\n🛑 Received SIGTERM, stopping background tasks...')
             backgroundTaskManager.stop()
-            process.exit(0)
+            // Only exit in development/test environments
+            if (process.env.NODE_ENV !== 'production') {
+                process.exit(0)
+            } else {
+                console.log('⚠️ Production environment: keeping process alive after SIGTERM')
+            }
         })
 
         // Handle uncaught exceptions
         process.on('uncaughtException', (error) => {
             console.error('💥 Uncaught Exception:', error)
             backgroundTaskManager.stop()
-            process.exit(1)
+            // Only exit in development/test environments
+            if (process.env.NODE_ENV !== 'production') {
+                process.exit(1)
+            } else {
+                console.log('⚠️ Production environment: keeping process alive after uncaught exception')
+            }
         })
 
         process.on('unhandledRejection', (reason, promise) => {
             console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason)
             backgroundTaskManager.stop()
-            process.exit(1)
+            // Only exit in development/test environments
+            if (process.env.NODE_ENV !== 'production') {
+                process.exit(1)
+            } else {
+                console.log('⚠️ Production environment: keeping process alive after unhandled rejection')
+            }
         })
 
     } catch (error) {

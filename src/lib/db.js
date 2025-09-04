@@ -26,15 +26,15 @@ const poolConfig = process.env.DATABASE_URL ? {
 
 const pool = new Pool({
   ...poolConfig,
-  // Enhanced connection pool configuration to prevent exhaustion
-  max: 10, // Increased from 5 to 10 for better concurrency
-  min: 2, // Increased from 1 to 2 for better availability
-  idleTimeoutMillis: 30000, // Increased from 10000 to 30000 (30 seconds)
-  connectionTimeoutMillis: 10000, // Increased from 5000 to 10000 (10 seconds)
-  acquireTimeoutMillis: 15000, // Increased from 10000 to 15000 (15 seconds)
+  // Production-optimized connection pool configuration
+  max: process.env.NODE_ENV === 'production' ? 20 : 10, // Higher limit for production
+  min: process.env.NODE_ENV === 'production' ? 3 : 2, // More baseline connections in production
+  idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 60000 : 30000, // Longer idle time in production
+  connectionTimeoutMillis: 10000, // 10 seconds to establish connection
+  acquireTimeoutMillis: 20000, // 20 seconds to acquire connection (increased for production)
   reapIntervalMillis: 1000, // Check for dead connections every second
-  maxUses: 50, // Increased from 25 to 50 - close connections after more queries
-  allowExitOnIdle: true, // Allow the pool to exit when idle
+  maxUses: process.env.NODE_ENV === 'production' ? 100 : 50, // More uses per connection in production
+  allowExitOnIdle: process.env.NODE_ENV !== 'production', // Don't exit on idle in production
   // Enhanced SSL configuration
   ssl: {
     ...poolConfig.ssl,
@@ -47,9 +47,23 @@ let isPoolEnding = false;
 const originalEnd = pool.end.bind(pool);
 
 pool.end = async function() {
+  console.log('🔍 DEBUG: pool.end() called', {
+    isBuildEnvironment,
+    nodeEnv: process.env.NODE_ENV,
+    isPoolEnding,
+    timestamp: new Date().toISOString(),
+    stack: new Error().stack?.split('\n').slice(1, 4)
+  });
+  
   // Skip pool.end() calls during build process
   if (isBuildEnvironment) {
     console.log('⚠️ Pool.end() skipped during build process');
+    return Promise.resolve();
+  }
+  
+  // Skip pool.end() calls in production to prevent connection issues
+  if (process.env.NODE_ENV === 'production') {
+    console.log('⚠️ Pool.end() skipped in production environment to maintain connections');
     return Promise.resolve();
   }
   
@@ -171,14 +185,9 @@ const startConnectionMonitoring = () => {
       console.log(`📊 Pool Status: ${pool.totalCount}/${pool.idleCount}/${pool.waitingCount} (Active: ${poolMetrics.activeConnections})`);
     }
     
-    // Force cleanup if pool is getting too full
-    if (pool.totalCount > 2) {
-      console.warn(`⚠️ Pool getting full (${pool.totalCount}), forcing cleanup...`);
-      pool.end().then(() => {
-        console.log('🔧 Forced pool cleanup completed');
-      }).catch(error => {
-        console.error('❌ Forced pool cleanup failed:', error.message);
-      });
+    // Log warning if pool is getting too full, but don't force cleanup
+    if (pool.totalCount > 8) {
+      console.warn(`⚠️ Pool getting full (${pool.totalCount}), consider scaling up`);
     }
   }, 15000); // Check every 15 seconds (reduced from 30)
 };
@@ -255,12 +264,23 @@ setInterval(() => {
 pool.healthCheck = async () => {
   const startTime = Date.now();
   
+  console.log('🔍 DEBUG: pool.healthCheck() called', {
+    isPoolEnding,
+    nodeEnv: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
+  
   try {
     const client = await pool.connectWithRetry();
     const result = await client.query('SELECT 1 as health_check');
     client.release();
     
     const responseTime = Date.now() - startTime;
+    
+    console.log('🔍 DEBUG: health check successful', {
+      responseTime,
+      result: result.rows[0]
+    });
     
     // Track slow queries
     if (responseTime > 1000) { // More than 1 second
@@ -276,6 +296,12 @@ pool.healthCheck = async () => {
     };
   } catch (error) {
     poolMetrics.failedConnections++;
+    
+    console.log('🔍 DEBUG: health check failed', {
+      error: error.message,
+      responseTime: Date.now() - startTime,
+      isPoolEnding
+    });
     
     return { 
       healthy: false, 
@@ -384,8 +410,14 @@ pool.cleanup = async () => {
     return;
   }
   
+  // Skip cleanup in production to prevent connection issues
+  if (process.env.NODE_ENV === 'production') {
+    console.log('⚠️ Database pool cleanup skipped in production environment');
+    return;
+  }
+  
   try {
-    await pool.end();
+    await pool.end(); // This will use protected version
     console.log('🔧 Database pool cleanup completed');
   } catch (error) {
     console.error('❌ Database pool cleanup error:', error);
@@ -400,11 +432,17 @@ pool.emergencyReset = async () => {
     return false;
   }
   
+  // Skip emergency reset in production to prevent connection issues
+  if (process.env.NODE_ENV === 'production') {
+    console.log('⚠️ Emergency database pool reset skipped in production environment');
+    return false;
+  }
+  
   try {
     console.log('🚨 Emergency database pool reset initiated...');
     
     // Force close all connections
-    await pool.end();
+    await pool.end(); // This will use our protected version
     
     // Wait a moment for connections to fully close
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -446,6 +484,17 @@ let queueMetrics = {
   maxWaitTime: 0
 };
 
+// Connection exhaustion prevention
+const exhaustionPrevention = {
+  maxQueueSize: process.env.NODE_ENV === 'production' ? 50 : 20,
+  maxWaitTime: process.env.NODE_ENV === 'production' ? 30000 : 15000,
+  circuitBreakerThreshold: 5, // Number of consecutive failures before circuit opens
+  circuitBreakerTimeout: 60000, // 1 minute before trying again
+  circuitBreakerState: 'CLOSED', // CLOSED, OPEN, HALF_OPEN
+  consecutiveFailures: 0,
+  lastFailureTime: 0
+};
+
 const processConnectionQueue = async () => {
   if (isProcessingQueue || connectionQueue.length === 0) return;
   
@@ -455,7 +504,7 @@ const processConnectionQueue = async () => {
     const { resolve, reject, maxRetries, delay, timestamp } = connectionQueue.shift();
     
     try {
-      const client = await pool.connect();
+      const client = await pool.connectWithRetry(2, 1000, 'queue-processor');
       const waitTime = Date.now() - timestamp;
       
       // Track the connection if taskName is available
@@ -499,36 +548,57 @@ const processConnectionQueue = async () => {
   isProcessingQueue = false;
 };
 
-// Enhanced connection retry wrapper with queue, metrics, and tracking
+// Enhanced connection retry wrapper with exhaustion prevention
 pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown') => {
+  console.log('🔍 DEBUG: connectWithRetry called', {
+    taskName,
+    maxRetries,
+    isPoolEnding,
+    poolTotalCount: pool.totalCount,
+    poolIdleCount: pool.idleCount,
+    timestamp: new Date().toISOString()
+  });
+  
   // Check if pool is still valid first
-  if (pool.totalCount === undefined || pool.idleCount === undefined) {
-    console.error('❌ Database pool has been closed or is invalid');
-    
-    // Try to recover the pool
-    if (pool.recover) {
-      try {
-        await pool.recover();
-        // If recovery successful, continue with connection attempt
-        if (pool.isHealthy()) {
-          console.log('🔧 Pool recovered, attempting connection...');
-        } else {
-          throw new Error('Database pool recovery failed');
-        }
-      } catch (recoveryError) {
-        console.error('❌ Pool recovery failed:', recoveryError);
-        throw new Error('Database pool has been closed and recovery failed');
-      }
+  if (pool.totalCount === undefined || pool.idleCount === undefined || isPoolEnding) {
+    console.error('❌ Database pool has been closed or is invalid', {
+      totalCount: pool.totalCount,
+      idleCount: pool.idleCount,
+      isPoolEnding
+    });
+    throw new Error('Database pool has been closed or is invalid');
+  }
+  
+  // Circuit breaker check
+  if (exhaustionPrevention.circuitBreakerState === 'OPEN') {
+    const timeSinceLastFailure = Date.now() - exhaustionPrevention.lastFailureTime;
+    if (timeSinceLastFailure < exhaustionPrevention.circuitBreakerTimeout) {
+      throw new Error(`Circuit breaker is OPEN. Database connections are temporarily unavailable. Retry in ${Math.ceil((exhaustionPrevention.circuitBreakerTimeout - timeSinceLastFailure) / 1000)} seconds.`);
     } else {
-      throw new Error('Database pool has been closed or is invalid');
+      // Move to half-open state
+      exhaustionPrevention.circuitBreakerState = 'HALF_OPEN';
+      console.log('🔧 Circuit breaker moved to HALF_OPEN state');
     }
   }
   
-  return new Promise((resolve, reject) => {
-    const timestamp = Date.now();
-    
-    // Try to get a connection immediately first
-    pool.connect().then((client) => {
+  // Check queue size to prevent exhaustion
+  if (connectionQueue.length >= exhaustionPrevention.maxQueueSize) {
+    throw new Error(`Connection queue is full (${connectionQueue.length}/${exhaustionPrevention.maxQueueSize}). Too many concurrent requests.`);
+  }
+  
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const client = await pool.connect();
+      
+      // Reset circuit breaker on successful connection
+      if (exhaustionPrevention.circuitBreakerState === 'HALF_OPEN') {
+        exhaustionPrevention.circuitBreakerState = 'CLOSED';
+        exhaustionPrevention.consecutiveFailures = 0;
+        console.log('✅ Circuit breaker moved to CLOSED state');
+      }
+      
       // Track the connection
       const connectionId = trackConnection(client, taskName);
       
@@ -544,18 +614,31 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
         }
       };
       
-      resolve(client);
-    }).catch((error) => {
-      if (pool.isRetryableError(error)) {
-        console.warn(`⚠️ Connection pool exhausted, queuing retry...`);
-        queueMetrics.totalQueued++;
-        connectionQueue.push({ resolve, reject, maxRetries, delay, timestamp, taskName });
-        processConnectionQueue();
-      } else {
-        reject(error);
+      return client;
+    } catch (error) {
+      lastError = error;
+      
+      // Update circuit breaker state
+      exhaustionPrevention.consecutiveFailures++;
+      exhaustionPrevention.lastFailureTime = Date.now();
+      
+      if (exhaustionPrevention.consecutiveFailures >= exhaustionPrevention.circuitBreakerThreshold) {
+        exhaustionPrevention.circuitBreakerState = 'OPEN';
+        console.warn(`🚨 Circuit breaker OPENED after ${exhaustionPrevention.consecutiveFailures} consecutive failures`);
       }
-    });
-  });
+      
+      if (attempt < maxRetries && pool.isRetryableError(error)) {
+        console.warn(`⚠️ Connection attempt ${attempt} failed, retrying in ${delay}ms... (${error.message})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // Exponential backoff
+        continue;
+      }
+      
+      break;
+    }
+  }
+  
+  throw lastError;
 };
 
 // Get queue metrics
@@ -568,12 +651,33 @@ pool.getQueueMetrics = () => {
   };
 };
 
+// Get exhaustion prevention status
+pool.getExhaustionPreventionStatus = () => {
+  return {
+    ...exhaustionPrevention,
+    currentQueueLength: connectionQueue.length,
+    poolStatus: pool.getStatus(),
+    timestamp: new Date().toISOString()
+  };
+};
+
 // Pool health check function
 pool.isHealthy = () => {
-  return pool.totalCount !== undefined && 
+  const healthy = pool.totalCount !== undefined && 
          pool.idleCount !== undefined && 
          !isPoolEnding && 
          !isBuildEnvironment;
+  
+  console.log('🔍 DEBUG: isHealthy check', {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    isPoolEnding,
+    isBuildEnvironment,
+    healthy,
+    timestamp: new Date().toISOString()
+  });
+  
+  return healthy;
 };
 
 // Get pool status
@@ -609,6 +713,14 @@ pool.withConnection = async (callback, taskName = 'unknown', timeoutMs = 30000) 
 
 // Pool recovery function
 pool.recover = async () => {
+  console.log('🔍 DEBUG: pool.recover() called', {
+    isBuildEnvironment,
+    nodeEnv: process.env.NODE_ENV,
+    isPoolEnding,
+    poolHealthy: pool.isHealthy(),
+    timestamp: new Date().toISOString()
+  });
+  
   if (isBuildEnvironment) {
     console.log('⚠️ Pool recovery skipped during build process');
     return false;
@@ -622,14 +734,21 @@ pool.recover = async () => {
   try {
     console.log('🔧 Attempting to recover database pool...');
     
-    // Create a new pool with the same configuration
+    // Always reset the ending flag first
+    isPoolEnding = false;
+    console.log('🔧 Reset pool ending flag');
+    
+    // In production, don't recreate the pool, just reset the ending flag
+    if (process.env.NODE_ENV === 'production') {
+      console.log('🔧 Production environment: resetting pool state without recreation');
+      return true;
+    }
+    
+    // Create a new pool with the same configuration (only in development)
     const newPool = new Pool(poolConfig);
     
     // Copy all methods and properties to the new pool
     Object.assign(pool, newPool);
-    
-    // Reset the ending flag
-    isPoolEnding = false;
     
     console.log('✅ Pool recovery completed successfully');
     return true;
@@ -638,6 +757,82 @@ pool.recover = async () => {
     return false;
   }
 };
+
+// Enhanced pool health monitoring for production
+pool.startProductionHealthMonitoring = () => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('⚠️ Production health monitoring only runs in production environment');
+    return;
+  }
+  
+  console.log('🔧 Starting production pool health monitoring...');
+  
+  // Monitor pool health every 30 seconds
+  const healthInterval = setInterval(async () => {
+    try {
+      const healthStatus = await pool.healthCheck();
+      const exhaustionStatus = pool.getExhaustionPreventionStatus();
+      
+      if (!healthStatus.healthy) {
+        console.warn('⚠️ Pool health check failed:', healthStatus);
+        
+        // Attempt recovery without closing the pool
+        const recoveryResult = await pool.recover();
+        if (recoveryResult) {
+          console.log('✅ Pool recovery successful');
+        } else {
+          console.error('❌ Pool recovery failed');
+        }
+      } else if (healthStatus.responseTime > 5000) {
+        console.warn(`⚠️ Slow pool response time: ${healthStatus.responseTime}ms`);
+      }
+      
+      // Check for exhaustion warning signs
+      if (exhaustionStatus.currentQueueLength > exhaustionStatus.maxQueueSize * 0.8) {
+        console.warn(`⚠️ Connection queue getting full: ${exhaustionStatus.currentQueueLength}/${exhaustionStatus.maxQueueSize}`);
+      }
+      
+      if (exhaustionStatus.circuitBreakerState === 'OPEN') {
+        console.warn(`🚨 Circuit breaker is OPEN - database connections temporarily unavailable`);
+      }
+      
+      // Log pool status every 5 minutes
+      if (Date.now() % 300000 < 30000) {
+        console.log('📊 Production pool status:', {
+          healthy: healthStatus.healthy,
+          responseTime: healthStatus.responseTime,
+          poolStatus: pool.getStatus(),
+          exhaustionPrevention: exhaustionStatus,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('❌ Pool health monitoring error:', error);
+    }
+  }, 30000);
+  
+  // Store interval for cleanup
+  pool._healthMonitoringInterval = healthInterval;
+  
+  console.log('✅ Production pool health monitoring started');
+};
+
+// Stop production health monitoring
+pool.stopProductionHealthMonitoring = () => {
+  if (pool._healthMonitoringInterval) {
+    clearInterval(pool._healthMonitoringInterval);
+    pool._healthMonitoringInterval = null;
+    console.log('🔧 Production pool health monitoring stopped');
+  }
+};
+
+// Auto-start production health monitoring
+if (process.env.NODE_ENV === 'production') {
+  // Start production health monitoring after a short delay
+  setTimeout(() => {
+    pool.startProductionHealthMonitoring();
+  }, 5000);
+}
 
 // Export tracking functions for external use
 export { trackConnection, releaseConnection, startConnectionMonitoring };
