@@ -1,12 +1,17 @@
-// lib/db.cjs (CommonJS version)
+// lib/db.cjs (CommonJS version) - Updated to use new pool system
 const { Pool } = require('pg');
+
+// Check if we're in a build environment
+const isBuildEnvironment = process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build';
 
 // Use DATABASE_URL if available, otherwise use direct connection parameters
 const poolConfig = process.env.DATABASE_URL ? {
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? {
+  ssl: process.env.DATABASE_URL?.includes('34.166.77.134') ? {
     rejectUnauthorized: false,
-  } : false,
+  } : (process.env.NODE_ENV === 'production' ? {
+    rejectUnauthorized: false,
+  } : false),
 } : {
   host: '34.166.77.134',
   port: 5432,
@@ -20,17 +25,65 @@ const poolConfig = process.env.DATABASE_URL ? {
 
 const pool = new Pool({
   ...poolConfig,
-  // Reduced connection pool limits to prevent exhaustion
-  max: 20, // Reduced from 100 to 20 connections
-  min: 5,  // Reduced from 20 to 5 minimum connections
-  idleTimeoutMillis: 60000, // Reduced to 1 minute
-  connectionTimeoutMillis: 15000, // Reduced timeout to 15 seconds
-  maxUses: 100, // Reduced to prevent long-running connections
-  allowExitOnIdle: true, // Allow the pool to exit when idle
-  // Add connection retry logic
-  retryDelay: 1000,
-  maxRetries: 3, // Increased retries
+  // Production-optimized connection pool configuration
+  max: process.env.NODE_ENV === 'production' ? 20 : 10, // Higher limit for production
+  min: process.env.NODE_ENV === 'production' ? 3 : 2, // More baseline connections in production
+  idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 60000 : 30000, // Longer idle time in production
+  connectionTimeoutMillis: 10000, // 10 seconds to establish connection
+  acquireTimeoutMillis: 20000, // 20 seconds to acquire connection (increased for production)
+  reapIntervalMillis: 1000, // Check for dead connections every second
+  maxUses: process.env.NODE_ENV === 'production' ? 100 : 50, // More uses per connection in production
+  allowExitOnIdle: process.env.NODE_ENV !== 'production', // Don't exit on idle in production
+  // Enhanced SSL configuration
+  ssl: {
+    ...poolConfig.ssl,
+    checkServerIdentity: () => undefined, // Skip hostname verification
+  }
 });
+
+// Add safeguard to prevent multiple pool.end() calls
+let isPoolEnding = false;
+const originalEnd = pool.end.bind(pool);
+
+pool.end = async function() {
+  console.log('🔍 DEBUG: pool.end() called (CJS)', {
+    isBuildEnvironment,
+    nodeEnv: process.env.NODE_ENV,
+    isPoolEnding,
+    timestamp: new Date().toISOString(),
+    stack: new Error().stack?.split('\n').slice(1, 4)
+  });
+  
+  // Skip pool.end() calls during build process
+  if (isBuildEnvironment) {
+    console.log('⚠️ Pool.end() skipped during build process (CJS)');
+    return Promise.resolve();
+  }
+  
+  // Skip pool.end() calls in production to prevent connection issues
+  if (process.env.NODE_ENV === 'production') {
+    console.log('⚠️ Pool.end() skipped in production environment to maintain connections (CJS)');
+    return Promise.resolve();
+  }
+  
+  if (isPoolEnding) {
+    console.log('⚠️ Pool.end() called multiple times, ignoring duplicate call (CJS)');
+    return Promise.resolve();
+  }
+  
+  isPoolEnding = true;
+  console.log('🔧 Pool.end() called, closing all connections... (CJS)');
+  
+  try {
+    await originalEnd();
+    console.log('✅ Pool closed successfully (CJS)');
+  } catch (error) {
+    console.error('❌ Error closing pool (CJS):', error.message);
+    // Reset flag on error so future calls can retry
+    isPoolEnding = false;
+    throw error;
+  }
+};
 
 // Built-in monitoring system
 let monitoringInterval;
@@ -134,9 +187,64 @@ pool.healthCheck = async () => {
   }
 };
 
+// Enhanced connection retry wrapper with exhaustion prevention
+pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown') => {
+  console.log('🔍 DEBUG: connectWithRetry called (CJS)', {
+    taskName,
+    maxRetries,
+    isPoolEnding,
+    poolTotalCount: pool.totalCount,
+    poolIdleCount: pool.idleCount,
+    timestamp: new Date().toISOString()
+  });
+  
+  // Check if pool is still valid first
+  if (pool.totalCount === undefined || pool.idleCount === undefined || isPoolEnding) {
+    console.error('❌ Database pool has been closed or is invalid (CJS)', {
+      totalCount: pool.totalCount,
+      idleCount: pool.idleCount,
+      isPoolEnding
+    });
+    throw new Error('Database pool has been closed or is invalid');
+  }
+  
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔍 Connection attempt ${attempt}/${maxRetries} for task: ${taskName}`);
+      const client = await pool.connect();
+      console.log(`✅ Connection successful on attempt ${attempt} for task: ${taskName}`);
+      return client;
+    } catch (error) {
+      lastError = error;
+      console.warn(`⚠️ Connection attempt ${attempt} failed for task: ${taskName}`, {
+        error: error.message,
+        code: error.code,
+        attempt,
+        maxRetries
+      });
+      
+      if (attempt < maxRetries) {
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // Exponential backoff
+      }
+    }
+  }
+  
+  console.error(`❌ All connection attempts failed for task: ${taskName}`, {
+    maxRetries,
+    lastError: lastError?.message,
+    code: lastError?.code
+  });
+  
+  throw lastError;
+};
+
 // Connection management utility to ensure proper release
 pool.withConnection = async (callback) => {
-  const client = await pool.connect();
+  const client = await pool.connectWithRetry();
   try {
     const result = await callback(client);
     return result;
@@ -158,17 +266,23 @@ pool.getStatus = () => {
 
 // Force cleanup of idle connections
 pool.cleanup = async () => {
+  // Skip cleanup during build process
+  if (isBuildEnvironment) {
+    console.log('⚠️ Database pool cleanup skipped during build process (CJS)');
+    return;
+  }
+  
   // Skip cleanup in production to prevent connection issues
   if (process.env.NODE_ENV === 'production') {
-    console.log('⚠️ Database pool cleanup skipped in production environment');
+    console.log('⚠️ Database pool cleanup skipped in production environment (CJS)');
     return;
   }
   
   try {
-    await pool.end();
-    console.log('🔧 Database pool cleanup completed');
+    await pool.end(); // This will use protected version
+    console.log('🔧 Database pool cleanup completed (CJS)');
   } catch (error) {
-    console.error('❌ Database pool cleanup error:', error);
+    console.error('❌ Database pool cleanup error (CJS):', error);
   }
 };
 
@@ -242,12 +356,12 @@ process.on('SIGINT', () => {
     clearInterval(monitoringInterval);
   }
   
-  // Only close pool in development/test environments
+  // Never close pool in production to prevent connection issues
   if (process.env.NODE_ENV !== 'production') {
-    console.log('🔧 Development environment: closing database pool on SIGINT');
+    console.log('🔧 Development environment: closing database pool on SIGINT (CJS)');
     pool.end();
   } else {
-    console.log('⚠️ Production environment: keeping database pool alive on SIGINT');
+    console.log('⚠️ Production environment: keeping database pool alive on SIGINT (CJS)');
   }
 });
 
@@ -256,12 +370,12 @@ process.on('SIGTERM', () => {
     clearInterval(monitoringInterval);
   }
   
-  // Only close pool in development/test environments
+  // Never close pool in production to prevent connection issues
   if (process.env.NODE_ENV !== 'production') {
-    console.log('🔧 Development environment: closing database pool on SIGTERM');
+    console.log('🔧 Development environment: closing database pool on SIGTERM (CJS)');
     pool.end();
   } else {
-    console.log('⚠️ Production environment: keeping database pool alive on SIGTERM');
+    console.log('⚠️ Production environment: keeping database pool alive on SIGTERM (CJS)');
   }
 });
 

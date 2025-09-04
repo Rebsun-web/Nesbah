@@ -100,10 +100,8 @@ async function removeAuctionSystem() {
         throw error;
     } finally {
         client.release();
-        // Only close pool in development/test environments
-        if (process.env.NODE_ENV !== 'production') {
-            await pool.end();
-        }
+        // Never close pool in production to prevent connection issues
+        // Pool will be managed by the application lifecycle
     }
 }
 

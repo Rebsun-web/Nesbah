@@ -2,9 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Container } from '@/components/container'
+import { BuildingOfficeIcon } from '@heroicons/react/24/outline'
 import BusinessUserViewModal from './BusinessUserViewModal'
+import BankUserViewModal from './BankUserViewModal'
 import EditUserModal from './EditUserModal'
 import CreateBusinessUserForm from './CreateBusinessUserForm'
+import CreateBankUserForm from './CreateBankUserForm'
+import CreateBankEmployeeForm from './CreateBankEmployeeForm'
 
 export default function UserManagement() {
     const [activeTab, setActiveTab] = useState('businesses')
@@ -77,7 +81,7 @@ export default function UserManagement() {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [businessUsers.length, bankUsers.length, bankEmployees.length])
 
     useEffect(() => {
         fetchAllUsers()
@@ -89,6 +93,18 @@ export default function UserManagement() {
         setShowCreateBusinessForm(false)
         fetchAllUsers()
         alert('Business user created successfully!')
+    }
+
+    const handleBankUserCreated = (userData) => {
+        setShowCreateBankForm(false)
+        fetchAllUsers()
+        alert('Bank user created successfully!')
+    }
+
+    const handleBankEmployeeCreated = (employeeData) => {
+        setShowCreateEmployeeForm(false)
+        fetchAllUsers()
+        alert('Bank employee created successfully!')
     }
 
     const handleUserAction = async (userId, action, userType, updateData = {}) => {
@@ -156,6 +172,7 @@ export default function UserManagement() {
     }
 
     const handleEditUser = (user, userType) => {
+        console.log('🔧 handleEditUser called with:', { user, userType })
         setEditingUser({ ...user, userType })
         setShowEditModal(true)
     }
@@ -180,7 +197,7 @@ export default function UserManagement() {
                 requestBody = { user_id: deletingUser.user_id }
             } else if (deletingUser.userType === 'employee') {
                 endpoint = '/api/admin/users/delete-bank-employee'
-                requestBody = { employee_id: deletingUser.user_id }
+                requestBody = { employee_id: deletingUser.employee_id }
             }
 
             const response = await fetch(endpoint, {
@@ -237,16 +254,21 @@ export default function UserManagement() {
             let endpoint = ''
             let requestBody = { ...updatedData }
 
+            console.log('🔧 handleUpdateUser called with:', { editingUser, updatedData })
+
             if (editingUser.userType === 'business') {
                 endpoint = `/api/admin/users/business/${editingUser.user_id}`
                 requestBody = { ...updatedData }
             } else if (editingUser.userType === 'bank') {
-                endpoint = '/api/admin/users/update-bank'
-                requestBody.user_id = editingUser.user_id
+                endpoint = `/api/admin/users/${editingUser.user_id}?user_type=bank`
+                requestBody = { ...updatedData }
             } else if (editingUser.userType === 'employee') {
-                endpoint = '/api/admin/users/update-bank-employee'
-                requestBody.employee_id = editingUser.user_id
+                endpoint = `/api/admin/users/${editingUser.user_id}?user_type=employee`
+                requestBody = { ...updatedData }
             }
+
+            console.log('🔧 Making request to:', endpoint)
+            console.log('🔧 Request body:', requestBody)
 
             const response = await fetch(endpoint, {
                 method: 'PUT',
@@ -255,7 +277,11 @@ export default function UserManagement() {
                 body: JSON.stringify(requestBody)
             })
 
+            console.log('🔧 Response status:', response.status)
+            console.log('🔧 Response headers:', Object.fromEntries(response.headers.entries()))
+
             const data = await response.json()
+            console.log('🔧 Response data:', data)
 
             if (response.ok && data.success) {
                 setShowEditModal(false)
@@ -427,12 +453,12 @@ export default function UserManagement() {
                 )}
 
                 {activeTab === 'employees' && (
-                    <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-sm font-medium text-purple-800">Bank Employees Management</h3>
-                                <p className="text-sm text-purple-600 mt-1">Create and manage bank employee accounts</p>
-                            </div>
+                                                <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-medium text-purple-800">Bank Employees Management</h3>
+                                        <p className="text-sm text-purple-600 mt-1">Create and manage bank employee accounts with automatic bank linking</p>
+                                    </div>
                             <button
                                                                     onClick={openCreateEmployeeForm}
                                 className="bg-purple-700 text-white px-4 py-2 rounded-md hover:bg-purple-800 transition-colors flex items-center"
@@ -507,9 +533,9 @@ export default function UserManagement() {
                                                             className="text-yellow-600 hover:text-yellow-900"
                                                             title="Reset Password"
                                                         >
-                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                                                            </svg>
+                                                                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
                                                         </button>
                                                         <button
                                                             onClick={() => handleDeleteUser(user, 'business')}
@@ -562,10 +588,9 @@ export default function UserManagement() {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bank</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bank Name</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Logo</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credit Limit</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
@@ -573,8 +598,10 @@ export default function UserManagement() {
                                     {bankUsers.map((bank) => (
                                         <tr key={bank.user_id}>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">{bank.entity_name}</div>
-                                                <div className="text-sm text-gray-500">{bank.email}</div>
+                                                <div className="text-sm font-medium text-gray-900">{bank.entity_name || 'N/A'}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900">{bank.email || 'N/A'}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {bank.logo_url ? (
@@ -587,32 +614,15 @@ export default function UserManagement() {
                                                             e.target.nextSibling.style.display = 'inline';
                                                         }}
                                                     />
-                                                ) : (
-                                                    <span className="text-gray-400">No Logo</span>
+                                                ) : null}
+                                                {(!bank.logo_url || bank.logo_url === '') && (
+                                                    <div className="h-8 w-8 bg-gray-100 rounded flex items-center justify-center">
+                                                        <BuildingOfficeIcon className="h-4 w-4 text-gray-400" />
+                                                    </div>
                                                 )}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                <div>{bank.contact_person || 'N/A'}</div>
-                                                <div className="text-gray-500">{bank.contact_person_number || 'N/A'}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {bank.credit_limit ? 
-                                                    `SAR ${parseFloat(bank.credit_limit).toLocaleString()}` : 
-                                                    'N/A'
-                                                }
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex space-x-2">
-                                                    <button
-                                                        onClick={() => handleViewUser(bank, 'bank')}
-                                                        className="text-blue-600 hover:text-blue-900"
-                                                        title="View Details"
-                                                    >
-                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                        </svg>
-                                                    </button>
                                                     <button
                                                         onClick={() => handleEditUser(bank, 'bank')}
                                                         className="text-green-600 hover:text-green-900"
@@ -622,15 +632,15 @@ export default function UserManagement() {
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                         </svg>
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleResetPassword(bank, 'bank')}
-                                                        className="text-yellow-600 hover:text-yellow-900"
-                                                        title="Reset Password"
-                                                    >
-                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 0 1121 9z" />
-                                                        </svg>
-                                                    </button>
+                                                                                                            <button
+                                                            onClick={() => handleResetPassword(bank, 'bank')}
+                                                            className="text-yellow-600 hover:text-yellow-900"
+                                                            title="Reset Password"
+                                                        >
+                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                            </svg>
+                                                        </button>
                                                     <button
                                                         onClick={() => handleSetCustomPassword(bank, 'bank')}
                                                         className="text-purple-600 hover:text-purple-900"
@@ -670,9 +680,9 @@ export default function UserManagement() {
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bank</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bank Logo</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
@@ -688,19 +698,28 @@ export default function UserManagement() {
                                                 {employee.bank_entity_name || 'N/A'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {employee.bank_logo_url ? (
+                                                    <img 
+                                                        src={employee.bank_logo_url} 
+                                                        alt="Bank Logo" 
+                                                        className="h-8 w-8 rounded object-cover"
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                            e.target.nextSibling.style.display = 'inline';
+                                                        }}
+                                                    />
+                                                ) : null}
+                                                {(!employee.bank_logo_url || employee.bank_logo_url === '') && (
+                                                    <div className="h-8 w-8 bg-gray-100 rounded flex items-center justify-center">
+                                                        <BuildingOfficeIcon className="h-4 w-4 text-gray-400" />
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {employee.position || 'N/A'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {employee.phone || 'N/A'}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                    employee.is_active 
-                                                        ? 'bg-green-100 text-green-800' 
-                                                        : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                    {employee.is_active ? 'Active' : 'Inactive'}
-                                                </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {employee.last_login_at ? 
@@ -744,7 +763,7 @@ export default function UserManagement() {
                                                         title="Reset Password"
                                                     >
                                                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 0 1121 9z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                                         </svg>
                                                     </button>
                                                     <button
@@ -885,6 +904,26 @@ export default function UserManagement() {
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">Bank</label>
                                                     <p className="text-sm text-gray-900">{selectedUser.bank_entity_name || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Bank Logo</label>
+                                                    {selectedUser.bank_logo_url ? (
+                                                        <div className="flex items-center space-x-2">
+                                                            <img 
+                                                                src={selectedUser.bank_logo_url} 
+                                                                alt="Bank Logo" 
+                                                                className="h-8 w-8 rounded object-cover"
+                                                                onError={(e) => {
+                                                                    e.target.style.display = 'none';
+                                                                }}
+                                                            />
+                                                            <span className="text-sm text-gray-500">Logo loaded</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-8 w-8 bg-gray-100 rounded flex items-center justify-center">
+                                                            <BuildingOfficeIcon className="h-4 w-4 text-gray-400" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
@@ -1117,8 +1156,29 @@ export default function UserManagement() {
                 {/* Business User View Modal */}
                 <BusinessUserViewModal
                     user={selectedUser}
-                    isOpen={showViewModal}
+                    isOpen={showViewModal && selectedUser?.userType === 'business'}
                     onClose={() => setShowViewModal(false)}
+                />
+
+                {/* Bank User View Modal */}
+                <BankUserViewModal
+                    user={selectedUser}
+                    isOpen={showViewModal && selectedUser?.userType === 'bank'}
+                    onClose={() => setShowViewModal(false)}
+                />
+
+                {/* Create Bank User Modal */}
+                <CreateBankUserForm
+                    isOpen={showCreateBankForm}
+                    onClose={() => setShowCreateBankForm(false)}
+                    onSuccess={handleBankUserCreated}
+                />
+
+                {/* Create Bank Employee Modal */}
+                <CreateBankEmployeeForm
+                    isOpen={showCreateEmployeeForm}
+                    onClose={() => setShowCreateEmployeeForm(false)}
+                    onSuccess={handleBankEmployeeCreated}
                 />
             </div>
         </Container>
