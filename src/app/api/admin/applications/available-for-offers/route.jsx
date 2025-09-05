@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
+import { STATUS_FILTER_SQL } from '@/lib/application-status';
 
 // GET - Get applications available for offers (purchased or live auction)
 export async function GET(req) {
@@ -40,14 +41,14 @@ export async function GET(req) {
         try {
             client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_available-for-offers_route.jsx_route');
             // Build WHERE clause for applications available for offers
-            let whereClause = "WHERE COALESCE(pa.current_application_status, pa.status) = 'live_auction'";
+            let whereClause = `WHERE (${STATUS_FILTER_SQL}) = 'live_auction'`;
             const queryParams = [];
             let paramCount = 0;
 
             // Add status filter if specified
             if (statusFilter !== 'all') {
                 paramCount++;
-                whereClause += ` AND COALESCE(pa.current_application_status, pa.status) = $${paramCount}`;
+                whereClause += ` AND (${STATUS_FILTER_SQL}) = $${paramCount}`;
                 queryParams.push(statusFilter);
             }
 

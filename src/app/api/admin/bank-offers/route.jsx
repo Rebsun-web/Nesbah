@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
+import { STATUS_CALCULATION_SQL } from '@/lib/application-status';
 import { validateApplicationStatus } from '@/lib/status-validation';
 
 // GET - Fetch all bank offers using EXACT same schema as business-bank actions
@@ -88,12 +89,8 @@ export async function GET(req) {
                     bu_user.email as business_email,
                     pa.preferred_repayment_period_months as preferred_repayment_period,
                     pa.requested_financing_amount,
-                    -- Calculated application status using the correct logic
-                    CASE 
-                        WHEN pa.auction_end_time < NOW() AND pa.offers_count > 0 THEN 'completed'
-                        WHEN pa.auction_end_time < NOW() AND pa.offers_count = 0 THEN 'ignored'
-                        ELSE 'live_auction'
-                    END as calculated_application_status
+                    -- Calculated application status using standardized logic
+                    ${STATUS_CALCULATION_SQL}
                 FROM application_offers ao
                 LEFT JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
                 LEFT JOIN users u ON ao.bank_user_id = u.user_id

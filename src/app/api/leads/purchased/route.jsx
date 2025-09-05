@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { authenticateAPIRequest } from '@/lib/auth/api-auth';
+import { STATUS_CALCULATION_SQL } from '@/lib/application-status';
 
 export async function GET(req) {
     // Authenticate the request
@@ -36,7 +37,7 @@ export async function GET(req) {
         const leadsResult = await pool.query(
             `SELECT DISTINCT
                 pa.application_id,
-                COALESCE(pa.current_application_status, pa.status) as status,
+                ${STATUS_CALCULATION_SQL},
                 pa.submitted_at,
                 pa.auction_end_time,
                 pa.offers_count,

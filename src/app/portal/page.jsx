@@ -14,6 +14,7 @@ import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react
 import ApplicationSubmittedModal from '@/components/ApplicationSubmittedModal'
 import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { calculateApplicationStatus, getStatusInfo } from '@/lib/application-status'
 
 // Lazy load heavy components
 const LazyYourApplication = lazy(() => import('@/components/YourApplication'))
@@ -42,34 +43,37 @@ function BusinessPortal() {
 
     // Memoize status info to prevent unnecessary recalculations
     const statusInfo = useMemo(() => {
-        const statusConfig = {
-            'live_auction': {
-                label: t('portal.liveAuction'),
-                description: t('portal.liveAuctionDesc'),
-                color: 'bg-yellow-100 text-yellow-800',
-                icon: '⏰'
-            },
-            'completed': {
-                label: t('portal.dealCompleted'),
-                description: t('portal.dealCompletedDesc'),
-                color: 'bg-green-100 text-green-800',
-                icon: '✅'
-            },
-            'ignored': {
-                label: t('portal.applicationIgnored'),
-                description: t('portal.applicationIgnoredDesc'),
+        if (!applicationData) {
+            return {
+                label: t('portal.unknownStatus'),
+                description: t('portal.unknownStatusDesc'),
                 color: 'bg-gray-100 text-gray-800',
-                icon: '❌'
-            },
+                icon: '❓'
+            };
+        }
+        
+        const calculatedStatus = calculateApplicationStatus(applicationData);
+        const baseStatusInfo = getStatusInfo(calculatedStatus);
+        
+        // Map to localized labels
+        const localizedLabels = {
+            'live_auction': t('portal.liveAuction'),
+            'completed': t('portal.dealCompleted'),
+            'ignored': t('portal.applicationIgnored')
         };
         
-        return statusConfig[applicationStatus] || {
-            label: t('portal.unknownStatus'),
-            description: t('portal.unknownStatusDesc'),
-            color: 'bg-gray-100 text-gray-800',
-            icon: '❓'
+        const localizedDescriptions = {
+            'live_auction': t('portal.liveAuctionDesc'),
+            'completed': t('portal.dealCompletedDesc'),
+            'ignored': t('portal.applicationIgnoredDesc')
         };
-    }, [applicationStatus, t]);
+        
+        return {
+            ...baseStatusInfo,
+            label: localizedLabels[calculatedStatus] || baseStatusInfo.label,
+            description: localizedDescriptions[calculatedStatus] || baseStatusInfo.description
+        };
+    }, [applicationData, t]);
 
     // Function to fetch application data - memoized with useCallback
     const fetchApplicationData = useCallback(async (userId, userInfo) => {
@@ -102,12 +106,15 @@ function BusinessPortal() {
                 const application = appData.data[0]; // Get the first (and only) application
                 setApplicationData(application);
                 
+                // Calculate the correct status using standardized logic
+                const calculatedStatus = calculateApplicationStatus(application);
+                
                 // Check if status changed
-                if (application.status !== applicationStatus) {
+                if (calculatedStatus !== applicationStatus) {
                     setPreviousStatus(applicationStatus);
-                    setApplicationStatus(application.status);
+                    setApplicationStatus(calculatedStatus);
                 } else {
-                    setApplicationStatus(application.status);
+                    setApplicationStatus(calculatedStatus);
                 }
                 
                 setHasApplication(true);
@@ -233,13 +240,13 @@ function BusinessPortal() {
         <div className="flex-1">
           <div className="pt-5">
             <main>
-              <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 gap-6">
+              <div className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
+                <div className="grid grid-cols-1 gap-4 sm:gap-6">
                   {isLoadingBusinessInfo ? (
                     <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-                      <div className="px-8 py-12 text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-4 text-gray-600">Loading business information...</p>
+                      <div className="px-4 sm:px-8 py-8 sm:py-12 text-center">
+                        <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="mt-4 text-sm sm:text-base text-gray-600">Loading business information...</p>
                       </div>
                     </div>
                   ) : (
@@ -252,31 +259,31 @@ function BusinessPortal() {
                     <div className="w-full mb-8">
                       <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
                         {/* Header */}
-                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
-                          <div className="flex items-center justify-between">
+                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 sm:px-8 py-4 sm:py-6">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                             <div className="flex items-center space-x-3">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
-                                <div className="text-2xl text-white">
+                              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-white/10">
+                                <div className="text-xl sm:text-2xl text-white">
                                   {statusInfo?.icon || '⏳'}
                                 </div>
                               </div>
                               <div>
-                                <h1 className="text-2xl font-bold text-white">{t('portal.applicationStatus')}</h1>
-                                <p className="text-indigo-100">{t('portal.trackApplicationProgress')}</p>
+                                <h1 className="text-lg sm:text-2xl font-bold text-white">{t('portal.applicationStatus')}</h1>
+                                <p className="text-sm sm:text-base text-indigo-100">{t('portal.trackApplicationProgress')}</p>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-4">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                               <button
                                 onClick={() => userInfo && fetchApplicationData(userInfo.user_id, userInfo)}
-                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-lg hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
+                                className="inline-flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-white/10 rounded-lg hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
                               >
-                                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
                                 {t('common.refresh')}
                               </button>
                               <div className="flex items-center space-x-2">
-                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusInfo?.color || 'bg-gray-100 text-gray-800'}`}>
+                                <span className={`inline-flex items-center rounded-full px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium ${statusInfo?.color || 'bg-gray-100 text-gray-800'}`}>
                                   {statusInfo?.label || 'Loading...'}
                                 </span>
                               </div>
@@ -285,8 +292,8 @@ function BusinessPortal() {
                         </div>
 
                         {/* Status Bar */}
-                        <div className="px-8 py-4 bg-slate-50 border-b border-slate-200">
-                          <div className="flex items-center justify-between">
+                        <div className="px-4 sm:px-8 py-4 bg-slate-50 border-b border-slate-200">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                             <p className="text-sm text-slate-600">
                               {statusInfo?.description || 'Loading application status...'}
                             </p>
@@ -299,11 +306,11 @@ function BusinessPortal() {
                         </div>
 
                         {/* Status Details */}
-                        <div className="px-8 py-6">
+                        <div className="px-4 sm:px-8 py-4 sm:py-6">
                           {/* Status Information */}
                           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
                             <div className="divide-y divide-gray-200">
-                              <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                              <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                                 <div className="flex items-center space-x-3">
                                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
                                     <div className="text-lg text-purple-600">
@@ -317,7 +324,7 @@ function BusinessPortal() {
                                 </span>
                               </div>
                               
-                              <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                              <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                                 <div className="flex items-center space-x-3">
                                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
                                     <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -326,7 +333,7 @@ function BusinessPortal() {
                                   </div>
                                   <span className="text-sm font-medium text-gray-700">Status Description</span>
                                 </div>
-                                <span className="text-sm text-gray-900 font-semibold max-w-md text-right">
+                                <span className="text-sm text-gray-900 font-semibold max-w-md text-left sm:text-right">
                                   {statusInfo.description}
                                 </span>
                               </div>
@@ -336,9 +343,9 @@ function BusinessPortal() {
                           {/* Application Details */}
                           {applicationData && (
                             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                              <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                                <h5 className="text-lg font-semibold text-gray-900 flex items-center">
-                                  <svg className="h-5 w-5 text-purple-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <div className="px-4 sm:px-6 py-4 bg-gray-50 border-b border-gray-200">
+                                <h5 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center">
+                                  <svg className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                   </svg>
                                   Application Details
@@ -346,7 +353,7 @@ function BusinessPortal() {
                               </div>
                               <div className="divide-y divide-gray-200">
                                 {applicationData.submitted_at && (
-                                  <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                  <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                                     <div className="flex items-center space-x-3">
                                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
                                         <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,7 +369,7 @@ function BusinessPortal() {
                                 )}
                                 
                                 {applicationData.submitted_at && (
-                                  <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                  <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                                     <div className="flex items-center space-x-3">
                                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
                                         <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -395,16 +402,16 @@ function BusinessPortal() {
 
                 </div>
                 {!hasApplication && (
-                <div className="bg-white pt-5">
+                <div className="bg-white pt-3 sm:pt-5">
                   <div className="mx-auto max-w-7xl pt-2">
-                    <header className="mb-3">
-                      <h2 className="text-2xl font-semibold tracking-tight text-purple-900">
+                    <header className="mb-3 px-4 sm:px-0">
+                      <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-purple-900">
                         {t('portal.applyForService')}
                       </h2>
                     </header>
 
                     {/* Tabs: Mobile */}
-                    <div className="mb-6 grid grid-cols-1 sm:hidden">
+                    <div className="mb-4 sm:mb-6 grid grid-cols-1 sm:hidden px-4 sm:px-0">
                       <select
                         value={
                           tabs.find((tab) => tab.value === activeTab)?.name
@@ -416,7 +423,7 @@ function BusinessPortal() {
                           )
                           if (selected) setActiveTab(selected.value)
                         }}
-                        className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pl-3 pr-8 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline-indigo-600"
+                        className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-3 pl-4 pr-8 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline-indigo-600"
                       >
                         {tabs.map((tab) => (
                           <option key={tab.name}>{tab.name}</option>
@@ -424,12 +431,12 @@ function BusinessPortal() {
                       </select>
                       <ChevronDownIcon
                         aria-hidden="true"
-                        className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end fill-gray-500"
+                        className="pointer-events-none col-start-1 row-start-1 mr-3 size-5 self-center justify-self-end fill-gray-500"
                       />
                     </div>
 
                     {/* Tabs: Desktop */}
-                    <div className="mb-6 hidden sm:block">
+                    <div className="mb-4 sm:mb-6 hidden sm:block px-4 sm:px-0">
                       <nav aria-label="Tabs" className="flex space-x-4">
                         {tabs.map((tab) => (
                           <button

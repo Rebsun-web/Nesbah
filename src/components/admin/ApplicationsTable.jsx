@@ -16,6 +16,7 @@ import {
     ChevronDownIcon,
     ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
+import { calculateApplicationStatus, getStatusInfo, formatCountdown } from '@/lib/application-status'
 import NewApplicationModal from './NewApplicationModal'
 import ViewApplicationModal from './ViewApplicationModal'
 import EditApplicationModal from './EditApplicationModal'
@@ -189,56 +190,12 @@ export default function ApplicationsTable() {
         }
     }
 
-    const getStatusInfo = (application) => {
-        const calculatedStatus = application.calculated_status || application.status
-        
-        switch (calculatedStatus) {
-            case 'live_auction':
-                return {
-                    label: 'Live Auction',
-                    color: 'bg-yellow-100 text-yellow-800',
-                    icon: ClockIcon,
-                    description: 'Application is currently in live auction'
-                }
-            case 'completed':
-                return {
-                    label: 'Completed',
-                    color: 'bg-green-100 text-green-800',
-                    icon: CheckCircleIcon,
-                    description: 'Application has offers and auction completed'
-                }
-            case 'ignored':
-                return {
-                    label: 'Ignored',
-                    color: 'bg-red-100 text-red-800',
-                    icon: XCircleIcon,
-                    description: 'Application expired with no offers'
-                }
-            default:
-                return {
-                    label: 'Unknown',
-                    color: 'bg-gray-100 text-gray-800',
-                    icon: ClockIcon,
-                    description: 'Status unknown'
-                }
-        }
+    const getApplicationStatusInfo = (application) => {
+        const calculatedStatus = calculateApplicationStatus(application);
+        return getStatusInfo(calculatedStatus);
     }
 
-    const formatCountdown = (auctionEndTime) => {
-        if (!auctionEndTime) return 'N/A'
-        
-        const endTime = new Date(auctionEndTime)
-        const now = new Date()
-        const timeLeft = endTime - now
-
-        if (timeLeft <= 0) {
-            return 'Auction finished'
-        } else {
-            const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60))
-            const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60))
-            return `${hoursLeft}h ${minutesLeft}m left`
-        }
-    }
+    // formatCountdown is now imported from application-status.js
 
     const formatMoney = (amount) => {
         if (!amount) return 'N/A'
@@ -362,7 +319,7 @@ export default function ApplicationsTable() {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {applications.map((application) => {
-                                const statusInfo = getStatusInfo(application)
+                                const statusInfo = getApplicationStatusInfo(application)
                                 const openedInfo = getArrayInfo(application.opened_by, 'view')
                                 const purchasedInfo = getArrayInfo(application.purchased_by, 'offer')
                                 

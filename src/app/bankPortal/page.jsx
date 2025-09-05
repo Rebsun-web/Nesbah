@@ -102,7 +102,7 @@ function BankPortal() {
         <div className="overflow-hidden">
             {/* 🟪 Container 1 (Dashboard Stats) */}
             <div className="min-h-full">
-                <div className="pt-10">
+                <div className="pt-6 sm:pt-10">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between">
                             <Heading>{t('hero.welcome')}</Heading>
@@ -111,8 +111,8 @@ function BankPortal() {
                     
                     {/* Stats Section */}
                     <main>
-                        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                            <div className="grid gap-8 sm:grid-cols-3">
+                        <div className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
+                            <div className="grid gap-4 sm:gap-8 sm:grid-cols-3">
                                 <Stat
                                     title={t('stats.newLeads')}
                                     value={stats?.incoming_leads ?? '-'}
@@ -132,9 +132,9 @@ function BankPortal() {
             </div>
 
             {/* 🟦 2nd Container (Current Applications) */}
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-8">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-6 sm:pb-8">
                 <div className="mx-auto max-w-7xl">
-                    <h1 className="text-2xl font-semibold tracking-tight text-gray-900 mb-6">
+                    <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 mb-4 sm:mb-6">
                         {t('leads.incoming')}
                     </h1>
                     <BankLeadsTable data={leads} onLeadSubmitSuccess={refreshLeads} />

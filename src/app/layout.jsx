@@ -3,8 +3,8 @@ import '../styles/tailwind.css'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import HydrationHandler from '@/components/HydrationHandler'
 
-// Background tasks are now started manually via API endpoint
-// This prevents server startup delays
+// Auto-start background tasks when the server starts
+import '@/lib/auto-start-background-tasks'
 
 const inter = Inter({ subsets: ['latin'] })
 

@@ -129,12 +129,12 @@ export default function YourApplication({ user }) {
                   </div>
                 </div>
                 {(() => {
-                  const submittedAt = new Date(app.submitted_at);
-                  const elapsedSeconds = Math.floor((currentTime - submittedAt) / 1000);
-                  const remainingSeconds = APPLICATION_TIMEOUT_SECONDS - elapsedSeconds;
+                  // Use auction_end_time if available, otherwise fall back to submitted_at + 48 hours
+                  const auctionEndTime = app.auction_end_time ? new Date(app.auction_end_time) : new Date(new Date(app.submitted_at).getTime() + APPLICATION_TIMEOUT_SECONDS * 1000);
+                  const remainingSeconds = Math.floor((auctionEndTime - currentTime) / 1000);
                   
                   // Debug information (can be removed in production)
-                  console.log(`App #${app.application_id}: Submitted ${elapsedSeconds}s ago, ${remainingSeconds}s remaining`);
+                  console.log(`App #${app.application_id}: Auction ends at ${auctionEndTime.toLocaleString()}, ${remainingSeconds}s remaining`);
                   
                   // Only show countdown if there's still time remaining
                   if (remainingSeconds > 0) {
@@ -146,7 +146,7 @@ export default function YourApplication({ user }) {
                       </div>
                     );
                   } else {
-                    // Countdown has expired (48 hours have passed)
+                    // Countdown has expired
                     console.log(`App #${app.application_id}: Countdown expired, hiding timer`);
                     return null;
                   }

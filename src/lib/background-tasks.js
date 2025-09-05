@@ -5,10 +5,10 @@ class BackgroundTaskManager {
         this.isRunning = false
         this.tasks = {}
         this.taskIntervals = {
-            statusTransitions: 15 * 60 * 1000, // 15 minutes (reduced from 5 minutes)
-            auctionMonitor: 30 * 60 * 1000,   // 30 minutes (reduced from 15 minutes)
-            statusConsistency: 10 * 60 * 1000, // 10 minutes - check for status inconsistencies
-            healthCheck: 60 * 60 * 1000       // 60 minutes (reduced from 30 minutes)
+            statusTransitions: 5 * 60 * 1000,  // 5 minutes - critical for auction transitions
+            auctionMonitor: 10 * 60 * 1000,   // 10 minutes - check for urgent applications
+            statusConsistency: 30 * 60 * 1000, // 30 minutes - less frequent consistency checks
+            healthCheck: 60 * 60 * 1000       // 60 minutes - health checks
         }
         this.connectionTimeout = 30000 // 30 seconds max for any database operation
         this.maxRetries = 3
@@ -63,10 +63,10 @@ class BackgroundTaskManager {
 
         console.log('✅ Background Task Manager started successfully')
         console.log('📊 Active tasks:')
-        console.log('   - Status Transitions: ACTIVE (every 15 minutes)')
-        console.log('   - Auction Status: ACTIVE (every 30 minutes)')
-        console.log('   - Status Consistency: ACTIVE (every 10 minutes)')
-        console.log('   - Health Checks: ACTIVE (every 60 minutes)')
+        console.log('   - Status Transitions: ACTIVE (every 5 minutes) - Critical for auction transitions')
+        console.log('   - Auction Status: ACTIVE (every 10 minutes) - Monitor urgent applications')
+        console.log('   - Status Consistency: ACTIVE (every 30 minutes) - Check for inconsistencies')
+        console.log('   - Health Checks: ACTIVE (every 60 minutes) - System health monitoring')
         console.log('🔧 Connection management: Enhanced with dedicated connection manager')
     }
 
@@ -148,56 +148,18 @@ class BackgroundTaskManager {
         try {
             console.log('⏰ Checking status transitions...')
             
-            // Find live_auction applications that have expired (48-hour period ended)
-            const result = await client.query(`
-                SELECT 
-                    application_id,
-                    status,
-                    offers_count,
-                    auction_end_time,
-                    trade_name,
-                    EXTRACT(EPOCH FROM (auction_end_time - NOW()))/3600 as hours_until_expiry
-                FROM pos_application
-                WHERE status = 'live_auction'
-                AND auction_end_time <= NOW()
-                ORDER BY auction_end_time ASC
-                LIMIT 25
-            `)
-
-            let processedCount = 0
-            for (const app of result.rows) {
-                try {
-                    if (app.offers_count > 0) {
-                        // Auction ended with offers, transition to completed
-                        await this.transitionApplication(
-                            app.application_id,
-                            'live_auction',
-                            'completed',
-                            'Automated transition: Auction ended with offers',
-                            client
-                        )
-                    } else {
-                        // Auction ended without offers, transition to ignored
-                        await this.transitionApplication(
-                            app.application_id,
-                            'live_auction',
-                            'ignored',
-                            'Automated transition: Auction ended without offers',
-                            client
-                        )
-                    }
-                    processedCount++
-                } catch (transitionError) {
-                    console.error(`❌ Error transitioning application ${app.application_id}:`, transitionError.message)
-                    // Continue with other applications
-                }
-            }
-
-            if (processedCount > 0) {
-                console.log(`✅ Processed ${processedCount} live_auction applications`)
+            // Use the dedicated AuctionExpiryHandler for consistent status transitions
+            const { AuctionExpiryHandler } = await import('./auction-expiry-handler.js')
+            
+            // Handle expired auctions using the dedicated handler
+            const result = await AuctionExpiryHandler.handleExpiredAuctions()
+            
+            if (result.processed > 0) {
+                console.log(`✅ Status transitions completed: ${result.processed} applications processed (${result.completed} completed, ${result.ignored} ignored)`)
             } else {
                 console.log('ℹ️ No status transitions needed')
             }
+            
         } catch (error) {
             console.error('❌ Status transitions error:', error)
             throw error // Re-throw to trigger retry logic
@@ -355,15 +317,12 @@ class BackgroundTaskManager {
 // Export singleton instance
 const backgroundTaskManager = new BackgroundTaskManager()
 
-// Auto-start the background task manager when this module is imported
-// This ensures it runs as soon as the application starts
+// Background task manager is now auto-started via auto-start-background-tasks.js
+// This ensures it runs as soon as the application starts without manual intervention
 if (typeof window === 'undefined') {
-    // Only auto-start on server side
-    console.log('🚀 Background Task Manager ready (manual start required)')
-    console.log('⏳ Use /api/admin/background-jobs/start to start background tasks')
-    
-    // Don't auto-start to avoid blocking server startup
-    // Background tasks will be started manually via API endpoint
+    // Only log on server side
+    console.log('🚀 Background Task Manager ready (auto-start enabled)')
+    console.log('⏳ Background tasks will start automatically when the server is ready')
 }
 
 export default backgroundTaskManager

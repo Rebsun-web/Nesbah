@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server'
-import AdminAuth from '@/lib/auth/admin-auth'
-import backgroundTaskManager from '@/lib/background-tasks'
+import { NextResponse } from 'next/server';
+import backgroundTaskManager from '@/lib/background-tasks';
+import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function POST(req) {
     try {
@@ -21,27 +21,32 @@ export async function POST(req) {
             }, { status: 401 });
         }
 
-        // Start the background task manager
-        backgroundTaskManager.start()
+        // Get admin user from session
+        const adminUser = sessionValidation.adminUser;
+
+        console.log('🚀 Manual request to start background tasks...');
         
-        // Get the current status
-        const status = backgroundTaskManager.getStatus()
+        // Start the background task manager
+        backgroundTaskManager.start();
+        
+        // Get current status
+        const status = backgroundTaskManager.getStatus();
         
         return NextResponse.json({
             success: true,
-            message: 'Background task manager started successfully',
+            message: 'Background tasks started successfully',
             data: {
                 status,
-                message: 'Background tasks are now running and will automatically update application statuses every 5 minutes'
+                startedBy: adminUser.email,
+                timestamp: new Date().toISOString()
             }
-        })
-        
+        });
     } catch (error) {
-        console.error('Error starting background task manager:', error)
+        console.error('❌ Error starting background tasks:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to start background task manager' },
+            { success: false, error: 'Failed to start background tasks' },
             { status: 500 }
-        )
+        );
     }
 }
 
@@ -64,25 +69,21 @@ export async function GET(req) {
             }, { status: 401 });
         }
 
-        // Get the current status
-        const status = backgroundTaskManager.getStatus()
+        // Get current status
+        const status = backgroundTaskManager.getStatus();
         
         return NextResponse.json({
             success: true,
             data: {
                 status,
-                isRunning: backgroundTaskManager.isRunning,
-                message: backgroundTaskManager.isRunning 
-                    ? 'Background tasks are running' 
-                    : 'Background tasks are stopped'
+                timestamp: new Date().toISOString()
             }
-        })
-        
+        });
     } catch (error) {
-        console.error('Error getting background task manager status:', error)
+        console.error('❌ Error getting background task status:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to get background task manager status' },
+            { success: false, error: 'Failed to get background task status' },
             { status: 500 }
-        )
+        );
     }
 }

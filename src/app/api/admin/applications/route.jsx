@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
+import { STATUS_CALCULATION_SQL, STATUS_FILTER_SQL } from '@/lib/application-status';
 
 // GET - List applications with filtering, sorting, and pagination
 export async function GET(req) {
@@ -51,13 +52,7 @@ export async function GET(req) {
 
             if (status !== 'all') {
                 paramCount++;
-                whereConditions.push(`(
-                    CASE 
-                        WHEN pa.auction_end_time < NOW() AND pa.offers_count > 0 THEN 'completed'
-                        WHEN pa.auction_end_time < NOW() AND pa.offers_count = 0 THEN 'ignored'
-                        ELSE 'live_auction'
-                    END
-                ) = $${paramCount}`);
+                whereConditions.push(`(${STATUS_FILTER_SQL}) = $${paramCount}`);
                 queryParams.push(status);
             }
 
@@ -133,12 +128,8 @@ export async function GET(req) {
                     u.account_status as user_account_status,
                     u.created_at as user_created_at,
                     u.updated_at as user_updated_at,
-                    -- Calculated status using the correct logic
-                    CASE 
-                        WHEN pa.auction_end_time < NOW() AND pa.offers_count > 0 THEN 'completed'
-                        WHEN pa.auction_end_time < NOW() AND pa.offers_count = 0 THEN 'ignored'
-                        ELSE 'live_auction'
-                    END as calculated_status,
+                    -- Calculated status using standardized logic
+                    ${STATUS_CALCULATION_SQL},
                     -- Array counts
                     COALESCE(array_length(pa.opened_by, 1), 0) as opened_count,
                     COALESCE(array_length(pa.purchased_by, 1), 0) as purchased_count,

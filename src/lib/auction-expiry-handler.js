@@ -1,4 +1,5 @@
 import pool from './db.js';
+import { STATUS_CALCULATION_SQL } from './application-status.js';
 
 class AuctionExpiryHandler {
     /**
@@ -6,13 +7,13 @@ class AuctionExpiryHandler {
      * This function should be called periodically or when needed
      */
     static async handleExpiredAuctions() {
-        const client = await pool.connectWithRetry(2, 1000, 'auction-expiry-handler');
+        const client = await pool.connect();
         
         try {
             console.log('⏰ Checking for expired auctions...');
 
             // Find applications that have expired and need status transition
-            // Use the 48-hour window from submitted_at if auction_end_time is not set
+            // Use standardized logic to identify expired live_auction applications
             const expiredApplications = await client.query(`
                 SELECT 
                     pa.application_id,
@@ -20,12 +21,13 @@ class AuctionExpiryHandler {
                     pa.submitted_at,
                     pa.auction_end_time,
                     pa.trade_name,
-                    pa.current_application_status,
+                    pa.status,
+                    ${STATUS_CALCULATION_SQL},
                     EXTRACT(EPOCH FROM (
                         COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') - NOW()
                     ))/3600 as hours_expired
                 FROM pos_application pa
-                WHERE COALESCE(pa.current_application_status, pa.status) = 'live_auction'
+                WHERE pa.status = 'live_auction'
                 AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') <= NOW()
                 ORDER BY COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') ASC
             `);
@@ -44,16 +46,23 @@ class AuctionExpiryHandler {
                 await client.query('BEGIN');
 
                 try {
-                    if (app.offers_count > 0) {
+                    // Use the calculated status to determine the correct transition
+                    const targetStatus = app.calculated_status;
+                    
+                    if (targetStatus === 'completed') {
                         // Application received offers, transition to completed
                         await this.transitionToCompleted(app.application_id, client);
                         completedCount++;
                         console.log(`  ✅ Application #${app.application_id} (${app.trade_name}) transitioned to completed (${app.offers_count} offers)`);
-                    } else {
+                    } else if (targetStatus === 'ignored') {
                         // No offers received, transition to ignored
                         await this.transitionToIgnored(app.application_id, client);
                         ignoredCount++;
                         console.log(`  ❌ Application #${app.application_id} (${app.trade_name}) transitioned to ignored (no offers)`);
+                    } else {
+                        console.warn(`  ⚠️ Application #${app.application_id} has unexpected calculated status: ${targetStatus}`);
+                        await client.query('ROLLBACK');
+                        continue;
                     }
 
                     await client.query('COMMIT');
@@ -83,12 +92,11 @@ class AuctionExpiryHandler {
      * Transition application to completed status
      */
     static async transitionToCompleted(applicationId, client) {
-        // Update pos_application table
+        // Update pos_application table - only update status field for consistency
         await client.query(`
             UPDATE pos_application 
             SET 
                 status = 'completed',
-                current_application_status = 'completed',
                 updated_at = NOW()
             WHERE application_id = $1
         `, [applicationId]);
@@ -121,12 +129,11 @@ class AuctionExpiryHandler {
      * Transition application to ignored status
      */
     static async transitionToIgnored(applicationId, client) {
-        // Update pos_application table
+        // Update pos_application table - only update status field for consistency
         await client.query(`
             UPDATE pos_application 
             SET 
                 status = 'ignored',
-                current_application_status = 'ignored',
                 updated_at = NOW()
             WHERE application_id = $1
         `, [applicationId]);
@@ -167,12 +174,12 @@ class AuctionExpiryHandler {
                     pa.auction_end_time,
                     pa.offers_count,
                     pa.trade_name,
-                    pa.current_application_status,
+                    pa.status,
                     EXTRACT(EPOCH FROM (
                         COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') - NOW()
                     ))/3600 as hours_until_expiry
                 FROM pos_application pa
-                WHERE COALESCE(pa.current_application_status, pa.status) = 'live_auction'
+                WHERE pa.status = 'live_auction'
                 AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') > NOW()
                 AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') <= NOW() + INTERVAL '2 hours'
                 ORDER BY COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') ASC

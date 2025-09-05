@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { authenticateAPIRequest } from '@/lib/auth/api-auth';
+import { STATUS_FILTER_SQL } from '@/lib/application-status';
 
 export async function GET(req) {
     // Authenticate the request
@@ -67,9 +68,8 @@ export async function GET(req) {
                     -- Count all live auction applications the bank hasn't purchased yet
                     SELECT COUNT(*) as count
                     FROM pos_application pa
-                    WHERE COALESCE(pa.current_application_status, pa.status) = 'live_auction'
+                    WHERE (${STATUS_FILTER_SQL}) = 'live_auction'
                       AND NOT $1 = ANY(pa.purchased_by)
-                      AND (pa.auction_end_time IS NULL OR pa.auction_end_time > NOW())
                 ),
                 submitted_offers AS (
                     -- Count offers submitted by this bank
@@ -81,9 +81,8 @@ export async function GET(req) {
                     -- Count applications that ended without this bank purchasing
                     SELECT COUNT(*) as count
                     FROM pos_application pa
-                    WHERE COALESCE(pa.current_application_status, pa.status) IN ('completed', 'ignored')
+                    WHERE (${STATUS_FILTER_SQL}) IN ('completed', 'ignored')
                       AND NOT $1 = ANY(pa.purchased_by)
-                      AND pa.auction_end_time < NOW()
                 )
                 SELECT 
                     il.count as incoming_leads,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
+import { STATUS_CALCULATION_SQL } from '@/lib/application-status';
 
 export async function GET(req) {
     try {
@@ -27,24 +28,23 @@ export async function GET(req) {
         const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_status-dashboard_route.jsx_route');
         
         try {
-            // Get status counts for the 3 main statuses only
+            // Get status counts using standardized calculation
             const statusCountsQuery = `
                 WITH all_possible_statuses AS (
                     SELECT unnest(ARRAY['live_auction', 'completed', 'ignored']) as status
                 ),
                 actual_status_counts AS (
                     SELECT 
-                        COALESCE(pa.current_application_status, pa.status) as status,
+                        ${STATUS_CALCULATION_SQL},
                         COUNT(DISTINCT pa.application_id) as count
                     FROM pos_application pa
-                    WHERE COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'completed', 'ignored')
-                    GROUP BY COALESCE(pa.current_application_status, pa.status)
+                    GROUP BY ${STATUS_CALCULATION_SQL}
                 )
                 SELECT 
                     aps.status,
                     COALESCE(actual_counts.count, 0) as count
                 FROM all_possible_statuses aps
-                LEFT JOIN actual_status_counts actual_counts ON aps.status = actual_counts.status
+                LEFT JOIN actual_status_counts actual_counts ON aps.status = actual_counts.calculated_status
                 ORDER BY 
                     CASE aps.status
                         WHEN 'live_auction' THEN 1
@@ -56,17 +56,16 @@ export async function GET(req) {
             
             const statusCountsResult = await client.query(statusCountsQuery);
             
-            // Get recent applications (simplified without auction timing)
+            // Get recent applications using standardized calculation
             const recentApplicationsQuery = `
                 SELECT 
                     pa.application_id,
-                    COALESCE(pa.current_application_status, pa.status) as status,
+                    ${STATUS_CALCULATION_SQL},
                     pa.submitted_at,
                     pa.trade_name,
                     pa.offers_count,
                     pa.revenue_collected
                 FROM pos_application pa
-                WHERE COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'completed', 'ignored')
                 ORDER BY pa.submitted_at DESC
                 LIMIT 20
             `;

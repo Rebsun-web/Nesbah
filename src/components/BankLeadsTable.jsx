@@ -180,7 +180,8 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
 
     return (
         <>
-            <div className="mt-6 -mx-4 sm:-mx-6 lg:-mx-8">
+            {/* Desktop Table */}
+            <div className="hidden lg:block mt-6 -mx-4 sm:-mx-6 lg:-mx-8">
                 <div className="px-4 sm:px-6 lg:px-8">
                     <div className="overflow-hidden">
                         <table className="w-full divide-y divide-gray-300">
@@ -253,6 +254,64 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                         </table>
                     </div>
                 </div>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="lg:hidden mt-4 space-y-4">
+                {sortedData.map((lead) => {
+                    const endTime = lead.auction_end_time ? new Date(lead.auction_end_time) : new Date(new Date(lead.submitted_at).getTime() + 48 * 60 * 60 * 1000);
+                    const now = new Date();
+                    const timeLeft = endTime - now;
+                    const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+
+                    return (
+                        <div
+                            key={lead.application_id}
+                            onClick={() => handleRowClick(lead)}
+                            className={`cursor-pointer bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow ${
+                                hoursLeft < 2 ? 'border-red-200 bg-red-50' : hoursLeft < 6 ? 'border-yellow-200 bg-yellow-50' : ''
+                            }`}
+                        >
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <span className="text-sm font-medium text-gray-900">
+                                        {lead.pos_provider || 'N/A'}
+                                    </span>
+                                </div>
+                                <div className="flex items-center space-x-1 text-xs font-semibold text-red-600">
+                                    <span>⏳</span>
+                                    <span>{formatCountdown(lead.submitted_at, lead.auction_end_time)}</span>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                    <span className="text-gray-500">Monthly Sales:</span>
+                                    <div className="font-medium text-gray-900">{formatMoney(lead.monthly_sales)}</div>
+                                </div>
+                                <div>
+                                    <span className="text-gray-500">Financing Amount:</span>
+                                    <div className="font-medium text-gray-900">{formatMoney(lead.financing_amount)}</div>
+                                </div>
+                                <div>
+                                    <span className="text-gray-500">POS Age:</span>
+                                    <div className="font-medium text-gray-900">{lead.pos_age || 'N/A'}</div>
+                                </div>
+                                <div>
+                                    <span className="text-gray-500">Repayment:</span>
+                                    <div className="font-medium text-gray-900">{lead.repayment_period ? `${lead.repayment_period}m` : 'N/A'}</div>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                                <div className="text-xs text-gray-500">
+                                    Submitted: {new Date(lead.submitted_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })}
             </div>
 
             {/* Business Info Modal */}

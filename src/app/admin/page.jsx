@@ -163,19 +163,19 @@ export default function AdminDashboard() {
                     onClose={() => setSidebarOpen(false)}
                 />
                 
-                <main className="flex-1 p-8">
-                    <div className="px-8 lg:px-12">
+                <main className="flex-1 p-4 sm:p-6 lg:p-8">
+                    <div className="px-4 sm:px-6 lg:px-8 xl:px-12">
                         <div className="mx-auto max-w-7xl">
-                            <div className="bg-white rounded-lg shadow-lg p-8">
-                                <div className="mb-8">
-                                    <h1 className="text-3xl font-bold text-gray-900">
+                            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
+                                <div className="mb-6 sm:mb-8">
+                                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
                                         {activeTab === 'applications' && 'Applications Management'}
                                         {activeTab === 'offers' && 'Bank Offers Management'}
                                         {activeTab === 'analytics' && 'Analytics Dashboard'}
                                         {activeTab === 'overview' && 'Admin Dashboard Overview'}
 
                                     </h1>
-                                    <p className="text-gray-600 mt-2">
+                                    <p className="text-sm sm:text-base text-gray-600 mt-2">
                                         {activeTab === 'applications' && 'Manage and track all business applications with full CRUD operations'}
                                         {activeTab === 'offers' && 'Manage all bank offers and financing proposals'}
                                         {activeTab === 'analytics' && 'Comprehensive analytics across all platform metrics'}
