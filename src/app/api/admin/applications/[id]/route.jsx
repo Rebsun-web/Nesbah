@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
+import { cascadeDeleteApplication } from '@/lib/cascade-deletion';
 
 // GET - Get specific application by ID
 export async function GET(req, { params }) {
@@ -454,19 +455,13 @@ export async function DELETE(req, { params }) {
         try {
             await client.query('BEGIN');
 
-            // Check if application exists
-            const checkQuery = `SELECT application_id FROM pos_application WHERE application_id = $1`;
-            const checkResult = await client.query(checkQuery, [applicationId]);
+            // Use the cascade deletion utility
+            const result = await cascadeDeleteApplication(client, applicationId, false);
             
-            if (checkResult.rows.length === 0) {
+            if (!result.success) {
                 await client.query('ROLLBACK');
-                return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+                return NextResponse.json({ success: false, error: result.error }, { status: 404 });
             }
-
-            // Delete related records first (in reverse order of dependencies)
-            await client.query(`DELETE FROM application_offers WHERE submitted_application_id = $1`, [applicationId]);
-            await client.query(`DELETE FROM status_audit_log WHERE application_id = $1`, [applicationId]);
-            await client.query(`DELETE FROM pos_application WHERE application_id = $1`, [applicationId]);
 
             await client.query('COMMIT');
 

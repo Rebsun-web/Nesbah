@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { 
     CheckCircleIcon, 
-    StarIcon, 
-    ClockIcon
+    StarIcon
 } from '@heroicons/react/24/outline'
 
 export default function ApplicationSuccessMetrics() {
@@ -90,8 +89,7 @@ export default function ApplicationSuccessMetrics() {
     const { 
         offer_fulfillment, 
         multi_offer_rate, 
-        multi_offer_breakdown,
-        completion_velocity
+        multi_offer_breakdown
     } = data
 
     // Debug: Log the multi-offer breakdown data
@@ -128,14 +126,23 @@ export default function ApplicationSuccessMetrics() {
             </div>
 
             {/* Key Success Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-100 text-sm font-medium">Offer Fulfillment Rate</p>
-                            <p className="text-3xl font-bold">{offer_fulfillment?.fulfillment_rate || 0}%</p>
+                            <p className="text-3xl font-bold">{(() => {
+                                const rate = offer_fulfillment?.fulfillment_rate;
+                                return (rate !== null && rate !== undefined && !isNaN(rate) && isFinite(rate)) ? `${rate}%` : '0%';
+                            })()}</p>
                             <p className="text-green-100 text-sm mt-1">
-                                {offer_fulfillment?.applications_with_offers || 0} of {offer_fulfillment?.total_applications || 0}
+                                {(() => {
+                                    const offers = offer_fulfillment?.applications_with_offers;
+                                    const total = offer_fulfillment?.total_applications;
+                                    const safeOffers = (offers !== null && offers !== undefined && !isNaN(offers) && isFinite(offers)) ? offers : 0;
+                                    const safeTotal = (total !== null && total !== undefined && !isNaN(total) && isFinite(total)) ? total : 0;
+                                    return `${safeOffers} of ${safeTotal}`;
+                                })()}
                             </p>
                         </div>
                         <CheckCircleIcon className="h-12 w-12 text-green-200" />
@@ -146,33 +153,31 @@ export default function ApplicationSuccessMetrics() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-blue-100 text-sm font-medium">Multi-Offer Rate</p>
-                            <p className="text-3xl font-bold">{multi_offer_rate?.multi_offer_rate || 0}%</p>
+                            <p className="text-3xl font-bold">{(() => {
+                                const rate = multi_offer_rate?.multi_offer_rate;
+                                return (rate !== null && rate !== undefined && !isNaN(rate) && isFinite(rate)) ? `${rate}%` : '0%';
+                            })()}</p>
                             <p className="text-blue-100 text-sm mt-1">
-                                {multi_offer_rate?.applications_with_multiple_offers || 0} applications
+                                {(() => {
+                                    const count = multi_offer_rate?.applications_with_multiple_offers;
+                                    const safeCount = (count !== null && count !== undefined && !isNaN(count) && isFinite(count)) ? count : 0;
+                                    return `${safeCount} applications`;
+                                })()}
                             </p>
                         </div>
                         <StarIcon className="h-12 w-12 text-blue-200" />
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-purple-100 text-sm font-medium">Avg Completion Time</p>
-                            <p className="text-3xl font-bold">{completion_velocity?.avg_completion_hours || 0}h</p>
-                            <p className="text-purple-100 text-sm mt-1">
-                                Fastest: {completion_velocity?.min_completion_hours || 0}h
-                            </p>
-                        </div>
-                        <ClockIcon className="h-12 w-12 text-purple-200" />
-                    </div>
-                </div>
 
                 <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-6 text-white">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-orange-100 text-sm font-medium">Success Rate</p>
-                            <p className="text-3xl font-bold">{offer_fulfillment?.success_rate || 0}%</p>
+                            <p className="text-3xl font-bold">{(() => {
+                                const rate = offer_fulfillment?.success_rate;
+                                return (rate !== null && rate !== undefined && !isNaN(rate) && isFinite(rate)) ? `${rate}%` : '0%';
+                            })()}</p>
                             <p className="text-orange-100 text-sm mt-1">
                                 Completed applications
                             </p>
@@ -182,116 +187,100 @@ export default function ApplicationSuccessMetrics() {
                 </div>
             </div>
 
-            {/* Offer Fulfillment Details */}
+            {/* Offer Analysis */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <CheckCircleIcon className="h-5 w-5 mr-2 text-gray-500" />
-                        Offer Fulfillment Breakdown
-                    </h3>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                            <span className="text-sm font-medium text-green-900">Applications with Offers</span>
-                            <span className="text-lg font-semibold text-green-700">
-                                {offer_fulfillment?.applications_with_offers || 0}
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                            <span className="text-sm font-medium text-blue-900">Applications without Offers</span>
-                            <span className="text-lg font-semibold text-blue-700">
-                                {offer_fulfillment?.applications_without_offers || 0}
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                            <span className="text-sm font-medium text-purple-900">Total Applications</span>
-                            <span className="text-lg font-semibold text-purple-700">
-                                {offer_fulfillment?.total_applications || 0}
-                            </span>
-                        </div>
-                        <div className="text-center p-4 bg-gray-50 rounded-lg">
-                            <p className="text-sm text-gray-600">Fulfillment Rate</p>
-                            <p className="text-2xl font-bold text-gray-900">
-                                {offer_fulfillment?.fulfillment_rate || 0}%
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Multi-Offer Analysis */}
+                {/* Multi-Offer Applications */}
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                         <StarIcon className="h-5 w-5 mr-2 text-gray-500" />
-                        Multi-Offer Analysis
+                        Multi-Offer Applications
                     </h3>
                     <div className="space-y-4">
                         <div className="text-center p-4 bg-blue-50 rounded-lg">
                             <p className="text-sm text-blue-600 font-medium">Applications with Multiple Offers</p>
                             <p className="text-2xl font-bold text-blue-700">
-                                {multi_offer_rate?.applications_with_multiple_offers || 0}
+                                {(() => {
+                                    const count = multi_offer_rate?.applications_with_multiple_offers;
+                                    return (count !== null && count !== undefined && !isNaN(count) && isFinite(count)) ? count : 0;
+                                })()}
                             </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="text-center p-3 bg-green-50 rounded-lg">
                                 <p className="text-sm text-green-600">2 Offers</p>
                                 <p className="text-lg font-semibold text-green-700">
-                                    {multi_offer_breakdown?.find(item => item.offers_count === 2)?.application_count || 0}
+                                    {(() => {
+                                        const item = multi_offer_breakdown?.find(item => item.offers_count === 2);
+                                        const count = item?.application_count;
+                                        return (count !== null && count !== undefined && !isNaN(count) && isFinite(count)) ? count : 0;
+                                    })()}
                                 </p>
                             </div>
                             <div className="text-center p-3 bg-purple-50 rounded-lg">
                                 <p className="text-sm text-purple-600">3+ Offers</p>
                                 <p className="text-lg font-semibold text-purple-700">
-                                    {multi_offer_breakdown?.filter(item => item.offers_count >= 3).reduce((sum, item) => sum + parseInt(item.application_count), 0) || 0}
+                                    {multi_offer_breakdown?.filter(item => item.offers_count >= 3).reduce((sum, item) => {
+                                        const count = parseInt(item.application_count) || 0;
+                                        return sum + (isNaN(count) ? 0 : count);
+                                    }, 0) || 0}
                                 </p>
                             </div>
                         </div>
                         <div className="text-center p-3 bg-orange-50 rounded-lg">
                             <p className="text-sm text-orange-600">Multi-Offer Rate</p>
                             <p className="text-lg font-semibold text-orange-700">
-                                {multi_offer_rate?.multi_offer_rate || 0}%
+                                {(() => {
+                                    const rate = multi_offer_rate?.multi_offer_rate;
+                                    return (rate !== null && rate !== undefined && !isNaN(rate) && isFinite(rate)) ? `${rate}%` : '0%';
+                                })()}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Single-Offer Applications */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <CheckCircleIcon className="h-5 w-5 mr-2 text-gray-500" />
+                        Single-Offer Applications
+                    </h3>
+                    <div className="space-y-4">
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                            <p className="text-sm text-green-600 font-medium">Applications with 1 Offer</p>
+                            <p className="text-2xl font-bold text-green-700">
+                                {(() => {
+                                    const totalOffers = offer_fulfillment?.applications_with_offers || 0;
+                                    const multiOffers = multi_offer_rate?.applications_with_multiple_offers || 0;
+                                    const singleOffers = totalOffers - multiOffers;
+                                    return singleOffers < 0 ? 0 : singleOffers;
+                                })()}
+                            </p>
+                        </div>
+                        <div className="text-center p-3 bg-blue-50 rounded-lg">
+                            <p className="text-sm text-blue-600">Single-Offer Rate</p>
+                            <p className="text-lg font-semibold text-blue-700">
+                                {(() => {
+                                    const totalApps = offer_fulfillment?.total_applications || 0;
+                                    const singleOfferApps = (offer_fulfillment?.applications_with_offers || 0) - (multi_offer_rate?.applications_with_multiple_offers || 0);
+                                    if (totalApps === 0) return '0%';
+                                    const rate = Math.round((singleOfferApps / totalApps) * 100);
+                                    return isNaN(rate) || !isFinite(rate) ? '0%' : `${rate}%`;
+                                })()}
+                            </p>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                            <p className="text-sm text-gray-600">Applications without Offers</p>
+                            <p className="text-lg font-semibold text-gray-700">
+                                {(() => {
+                                    const count = offer_fulfillment?.applications_without_offers;
+                                    return (count !== null && count !== undefined && !isNaN(count) && isFinite(count)) ? count : 0;
+                                })()}
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Completion Velocity */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                    <ClockIcon className="h-5 w-5 mr-2 text-gray-500" />
-                    Application Completion Velocity
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <p className="text-sm text-blue-600 font-medium">Average Completion Time</p>
-                        <p className="text-xl font-bold text-blue-700">
-                            {completion_velocity?.avg_completion_hours || 0} hours
-                        </p>
-                        <p className="text-xs text-blue-600 mt-1">
-                            From submission to completion
-                        </p>
-                    </div>
-                    
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <p className="text-sm text-green-600 font-medium">Fastest Completion</p>
-                        <p className="text-xl font-bold text-green-700">
-                            {completion_velocity?.min_completion_hours || 0} hours
-                        </p>
-                        <p className="text-xs text-green-600 mt-1">
-                            Best performance
-                        </p>
-                    </div>
-                    
-                    <div className="text-center p-4 bg-red-50 rounded-lg">
-                        <p className="text-sm text-red-600 font-medium">Slowest Completion</p>
-                        <p className="text-xl font-bold text-red-700">
-                            {completion_velocity?.max_completion_hours || 0} hours
-                        </p>
-                        <p className="text-xs text-red-600 mt-1">
-                            Needs attention
-                        </p>
-                    </div>
-                </div>
-            </div>
 
 
 

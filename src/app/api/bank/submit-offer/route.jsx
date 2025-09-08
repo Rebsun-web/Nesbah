@@ -16,11 +16,42 @@ export async function POST(req) {
         const relationshipManagerContact = formData.get('relationshipManagerContact');
         const comment = formData.get('comment');
         
+        // Debug logging
+        console.log('📝 Form data received:', {
+            leadId,
+            bankUserId,
+            approvedAmount,
+            repaymentPeriod,
+            interestRate,
+            monthlyInstallment,
+            gracePeriod,
+            relationshipManagerContact,
+            comment
+        });
+        
         // Validate required fields
         if (!leadId || !bankUserId || !approvedAmount || !repaymentPeriod || !interestRate || !monthlyInstallment) {
+            console.log('❌ Missing required fields:', {
+                leadId: !!leadId,
+                bankUserId: !!bankUserId,
+                approvedAmount: !!approvedAmount,
+                repaymentPeriod: !!repaymentPeriod,
+                interestRate: !!interestRate,
+                monthlyInstallment: !!monthlyInstallment
+            });
             return NextResponse.json({
                 success: false,
-                message: 'Missing required fields: approvedAmount, repaymentPeriod, interestRate, monthlyInstallment are required'
+                message: 'Missing required fields: leadId, bankUserId, approvedAmount, repaymentPeriod, interestRate, monthlyInstallment are required'
+            }, { status: 400 });
+        }
+        
+        // Validate bankUserId is a valid integer
+        const bankUserIdInt = parseInt(bankUserId);
+        if (isNaN(bankUserIdInt)) {
+            console.log('❌ Invalid bankUserId:', bankUserId);
+            return NextResponse.json({
+                success: false,
+                message: 'Invalid bankUserId: must be a valid integer'
             }, { status: 400 });
         }
 
@@ -32,8 +63,8 @@ export async function POST(req) {
             
             // Get bank information
             const bankInfo = await client.query(
-                'SELECT entity_name FROM bank_users WHERE user_id = $1',
-                [bankUserId]
+                'SELECT entity_name FROM users WHERE user_id = $1',
+                [bankUserIdInt]
             );
             
             if (bankInfo.rows.length === 0) {
@@ -63,8 +94,8 @@ export async function POST(req) {
                 RETURNING offer_id
             `, [
                 leadId,
-                bankUserId,
-                bankUserId,
+                bankUserIdInt,
+                bankUserIdInt,
                 parseFloat(approvedAmount),
                 parseInt(repaymentPeriod),
                 parseFloat(interestRate),
@@ -93,7 +124,7 @@ export async function POST(req) {
                 DO UPDATE SET 
                     offer_id = EXCLUDED.offer_id,
                     submitted_at = EXCLUDED.submitted_at
-            `, [leadId, bankUserId, bankName, offerId, new Date()]);
+            `, [leadId, bankUserIdInt, bankName, offerId, new Date()]);
             
             // Update offers count in pos_application
             await client.query(`
@@ -105,7 +136,7 @@ export async function POST(req) {
                         ELSE array_append(COALESCE(purchased_by, ARRAY[]::integer[]), $2)
                     END
                 WHERE application_id = $1
-            `, [leadId, bankUserId]);
+            `, [leadId, bankUserIdInt]);
             
             // Commit transaction
             await client.query('COMMIT');

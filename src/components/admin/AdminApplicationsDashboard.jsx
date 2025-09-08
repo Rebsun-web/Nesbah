@@ -15,7 +15,11 @@ import {
     ExclamationTriangleIcon,
     InformationCircleIcon
 } from '@heroicons/react/24/outline'
-import { calculateApplicationStatus, getStatusInfo, formatCountdown } from '@/lib/application-status'
+import { calculateApplicationStatus, getStatusInfo, formatCountdown, safeTextFormat } from '@/lib/application-status'
+import NewApplicationModal from './NewApplicationModal'
+import ViewApplicationModal from './ViewApplicationModal'
+import EditApplicationModal from './EditApplicationModal'
+import DeleteApplicationModal from './DeleteApplicationModal'
 
 export default function AdminApplicationsDashboard() {
     const [applications, setApplications] = useState([])
@@ -30,6 +34,11 @@ export default function AdminApplicationsDashboard() {
     const [totalApplications, setTotalApplications] = useState(0)
     const [showStatusUpdateModal, setShowStatusUpdateModal] = useState(false)
     const [statusUpdateInfo, setStatusUpdateInfo] = useState(null)
+    const [showNewApplicationModal, setShowNewApplicationModal] = useState(false)
+    const [showViewModal, setShowViewModal] = useState(false)
+    const [showEditModal, setShowEditModal] = useState(false)
+    const [showDeleteModal, setShowDeleteModal] = useState(false)
+    const [selectedApplication, setSelectedApplication] = useState(null)
 
     const fetchApplications = async () => {
         try {
@@ -72,21 +81,27 @@ export default function AdminApplicationsDashboard() {
     const checkStatusUpdates = async () => {
         try {
             const response = await fetch('/api/admin/applications/update-status', {
-                credentials: 'include'
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             })
             
             if (response.ok) {
                 const data = await response.json()
-                if (data.success && data.data.needs_update > 0) {
+                if (data.success && data.data && data.data.needs_update > 0) {
                     setStatusUpdateInfo({
                         needsUpdate: data.data.needs_update,
-                        applications: data.data.applications_needing_update
+                        applications: data.data.applications_needing_update || []
                     })
                     setShowStatusUpdateModal(true)
                 }
+            } else {
+                console.warn('Status update check failed:', response.status, response.statusText)
             }
         } catch (err) {
             console.error('Error checking status updates:', err)
+            // Don't show error to user for background status checks
         }
     }
 
@@ -124,6 +139,54 @@ export default function AdminApplicationsDashboard() {
         fetchApplications()
         checkStatusUpdates()
     }, [currentPage, searchTerm, statusFilter, sortBy, sortOrder])
+
+    const handleNewApplicationSuccess = (newApplication) => {
+        fetchApplications()
+        setCurrentPage(1)
+    }
+
+    const handleViewApplication = (application) => {
+        setSelectedApplication(application)
+        setShowViewModal(true)
+    }
+
+    const handleEditApplication = (application) => {
+        setSelectedApplication(application)
+        setShowEditModal(true)
+    }
+
+    const handleDeleteApplication = (application) => {
+        setSelectedApplication(application)
+        setShowDeleteModal(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (!selectedApplication) return
+
+        try {
+            const response = await fetch(`/api/admin/applications/${selectedApplication.application_id}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            })
+            
+            if (response.ok) {
+                const data = await response.json()
+                if (data.success) {
+                    alert('Application deleted successfully')
+                    setShowDeleteModal(false)
+                    setSelectedApplication(null)
+                    fetchApplications()
+                } else {
+                    alert('Failed to delete application: ' + data.error)
+                }
+            } else {
+                alert('Failed to delete application')
+            }
+        } catch (err) {
+            console.error('Error deleting application:', err)
+            alert('Error deleting application')
+        }
+    }
 
     const getApplicationStatusInfo = (application) => {
         const calculatedStatus = calculateApplicationStatus(application);
@@ -171,20 +234,30 @@ export default function AdminApplicationsDashboard() {
                     <p className="text-gray-600">Manage business applications and track auction statuses</p>
                 </div>
                 
-                {statusUpdateInfo && statusUpdateInfo.needsUpdate > 0 && (
-                    <div className="flex items-center space-x-3">
-                        <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" />
-                        <span className="text-yellow-800 font-medium">
-                            {statusUpdateInfo.needsUpdate} applications need status updates
-                        </span>
-                        <button
-                            onClick={updateApplicationStatuses}
-                            className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 transition-colors"
-                        >
-                            Update Now
-                        </button>
-                    </div>
-                )}
+                <div className="flex items-center space-x-3">
+                    <button
+                        onClick={() => setShowNewApplicationModal(true)}
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        New Application
+                    </button>
+                    
+                    {statusUpdateInfo && statusUpdateInfo.needsUpdate > 0 && (
+                        <div className="flex items-center space-x-3">
+                            <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" />
+                            <span className="text-yellow-800 font-medium">
+                                {statusUpdateInfo.needsUpdate} applications need status updates
+                            </span>
+                            <button
+                                onClick={updateApplicationStatuses}
+                                className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 transition-colors"
+                            >
+                                Update Now
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Filters and Search */}
@@ -284,16 +357,16 @@ export default function AdminApplicationsDashboard() {
                                         {/* Business Information */}
                                         <td className="px-6 py-4">
                                             <div className="text-sm font-medium text-gray-900">
-                                                {application.trade_name}
+                                                {safeTextFormat(application.trade_name, 30)}
                                             </div>
                                             <div className="text-sm text-gray-500">
-                                                CR: {application.cr_number}
+                                                CR: {safeTextFormat(application.cr_number)}
                                             </div>
                                             <div className="text-sm text-gray-500">
-                                                {application.city}
+                                                {safeTextFormat(application.city)}
                                             </div>
                                             <div className="text-xs text-gray-400">
-                                                {application.legal_form} • {application.registration_status}
+                                                {safeTextFormat(application.legal_form)} • {safeTextFormat(application.registration_status)}
                                             </div>
                                         </td>
 
@@ -309,7 +382,7 @@ export default function AdminApplicationsDashboard() {
                                                 {application.number_of_pos_devices || 'N/A'} devices
                                             </div>
                                             <div className="text-xs text-gray-400">
-                                                {application.city_of_operation}
+                                                {application.city_of_operation || 'N/A'}
                                             </div>
                                         </td>
 
@@ -349,21 +422,21 @@ export default function AdminApplicationsDashboard() {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div className="flex space-x-2">
                                                 <button
-                                                    onClick={() => {/* View details */}}
+                                                    onClick={() => handleViewApplication(application)}
                                                     className="text-purple-600 hover:text-purple-900"
                                                     title="View Details"
                                                 >
                                                     <EyeIcon className="h-4 w-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => {/* Edit application */}}
+                                                    onClick={() => handleEditApplication(application)}
                                                     className="text-blue-600 hover:text-blue-900"
                                                     title="Edit Application"
                                                 >
                                                     <PencilIcon className="h-4 w-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => {/* Delete application */}}
+                                                    onClick={() => handleDeleteApplication(application)}
                                                     className="text-red-600 hover:text-red-900"
                                                     title="Delete Application"
                                                 >
@@ -447,7 +520,7 @@ export default function AdminApplicationsDashboard() {
                                     <ul className="mt-2 text-xs text-gray-500 space-y-1">
                                         {statusUpdateInfo.applications.slice(0, 5).map((app) => (
                                             <li key={app.application_id}>
-                                                • {app.trade_name} (CR: {app.cr_number})
+                                                • {app.trade_name || 'N/A'} (CR: {app.cr_number || 'N/A'})
                                             </li>
                                         ))}
                                         {statusUpdateInfo.applications.length > 5 && (
@@ -492,6 +565,42 @@ export default function AdminApplicationsDashboard() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Modals */}
+            {showNewApplicationModal && (
+                <NewApplicationModal
+                    isOpen={showNewApplicationModal}
+                    onClose={() => setShowNewApplicationModal(false)}
+                    onSuccess={handleNewApplicationSuccess}
+                />
+            )}
+
+            {showViewModal && selectedApplication && (
+                <ViewApplicationModal
+                    isOpen={showViewModal}
+                    onClose={() => setShowViewModal(false)}
+                    application={selectedApplication}
+                    onRefresh={fetchApplications}
+                />
+            )}
+
+            {showEditModal && selectedApplication && (
+                <EditApplicationModal
+                    isOpen={showEditModal}
+                    onClose={() => setShowEditModal(false)}
+                    application={selectedApplication}
+                    onSuccess={fetchApplications}
+                />
+            )}
+
+            {showDeleteModal && selectedApplication && (
+                <DeleteApplicationModal
+                    isOpen={showDeleteModal}
+                    onClose={() => setShowDeleteModal(false)}
+                    application={selectedApplication}
+                    onConfirm={handleDeleteConfirm}
+                />
             )}
         </div>
     )

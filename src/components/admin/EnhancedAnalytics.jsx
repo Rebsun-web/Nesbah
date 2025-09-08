@@ -241,7 +241,7 @@ export default function EnhancedAnalytics() {
                                 {(() => {
                                     const value = applicationsData?.summary?.total_applications || 0;
                                     console.log('🔍 EnhancedAnalytics: Total Applications display value:', value);
-                                    return <AnimatedNumber start={0} end={value} />;
+                                    return <AnimatedNumber start={0} end={Number(value) || 0} />;
                                 })()}
                             </p>
                         </div>

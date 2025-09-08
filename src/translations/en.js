@@ -321,7 +321,35 @@ const translations = {
   'services.transparentComparison': 'Transparent Comparison',
   'services.saveTime': 'Save Time & Effort',
   'services.directCommunication': 'Direct Bank Communication',
-  'services.applyForPosFinancing': 'Apply for POS Financing'
+  'services.applyForPosFinancing': 'Apply for POS Financing',
+  
+  // Admin translations
+  'admin.applications': 'Applications',
+  'admin.businessInfo': 'Business Info',
+  'admin.posDetails': 'POS Details',
+  'admin.financial': 'Financial',
+  'admin.statusTracking': 'Status & Tracking',
+  'admin.actions': 'Actions',
+  'admin.application': 'Application',
+  'admin.financingAmount': 'Financing Amount',
+  'admin.repaymentPeriod': 'Repayment Period',
+  'admin.monthlySales': 'Monthly Sales',
+  'admin.posProvider': 'POS Provider',
+  'admin.offers': 'Offers',
+  'admin.views': 'Views',
+  'admin.purchases': 'Purchases',
+  'admin.submitted': 'Submitted',
+  'admin.businessUser': 'Business User',
+  'admin.bankUser': 'Bank User',
+  'admin.bankEmployee': 'Bank Employee',
+  'admin.capital': 'Capital',
+  'admin.creditLimit': 'Credit Limit',
+  'admin.contact': 'Contact',
+  'admin.phone': 'Phone',
+  'admin.lastLogin': 'Last Login',
+  'admin.never': 'Never',
+  'admin.active': 'Active',
+  'admin.inactive': 'Inactive'
 }
 
 export default translations

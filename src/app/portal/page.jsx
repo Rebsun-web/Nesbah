@@ -324,7 +324,7 @@ function BusinessPortal() {
                                 </span>
                               </div>
                               
-                              <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
+                              <div className="px-4 sm:px-6 py-4 flex flex-col space-y-2 hover:bg-gray-50 transition-colors">
                                 <div className="flex items-center space-x-3">
                                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
                                     <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -333,7 +333,7 @@ function BusinessPortal() {
                                   </div>
                                   <span className="text-sm font-medium text-gray-700">Status Description</span>
                                 </div>
-                                <span className="text-sm text-gray-900 font-semibold max-w-md text-left sm:text-right">
+                                <span className="text-sm text-gray-900 font-semibold text-left ml-11">
                                   {statusInfo.description}
                                 </span>
                               </div>
@@ -353,7 +353,7 @@ function BusinessPortal() {
                               </div>
                               <div className="divide-y divide-gray-200">
                                 {applicationData.submitted_at && (
-                                  <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
+                                  <div className="px-4 sm:px-6 py-4 flex flex-col space-y-2 hover:bg-gray-50 transition-colors">
                                     <div className="flex items-center space-x-3">
                                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
                                         <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,14 +362,14 @@ function BusinessPortal() {
                                       </div>
                                       <span className="text-sm font-medium text-gray-700">Submitted Date</span>
                                     </div>
-                                    <span className="text-sm text-gray-900 font-semibold">
+                                    <span className="text-sm text-gray-900 font-semibold ml-11">
                                       {new Date(applicationData.submitted_at).toLocaleDateString()}
                                     </span>
                                   </div>
                                 )}
                                 
                                 {applicationData.submitted_at && (
-                                  <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
+                                  <div className="px-4 sm:px-6 py-4 flex flex-col space-y-2 hover:bg-gray-50 transition-colors">
                                     <div className="flex items-center space-x-3">
                                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
                                         <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,7 +378,7 @@ function BusinessPortal() {
                                       </div>
                                       <span className="text-sm font-medium text-gray-700">Submitted Time</span>
                                     </div>
-                                    <span className="text-sm text-gray-900 font-semibold">
+                                    <span className="text-sm text-gray-900 font-semibold ml-11">
                                       {new Date(applicationData.submitted_at).toLocaleTimeString()}
                                     </span>
                                   </div>

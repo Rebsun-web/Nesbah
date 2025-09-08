@@ -466,19 +466,19 @@ export default function CreateBusinessUserForm({ isOpen, onClose, onSuccess }) {
                                             {wathiqData.contact_info.email && (
                                                 <div>
                                                     <span className="font-medium text-gray-700">Email:</span>
-                                                    <p className="text-gray-900">{wathiqData.contact_info.email}</p>
+                                                    <p className="text-gray-900">{wathiqData.contact_info.email || 'N/A'}</p>
                                                 </div>
                                             )}
                                             {wathiqData.contact_info.phone && (
                                                 <div>
                                                     <span className="font-medium text-gray-700">Phone:</span>
-                                                    <p className="text-gray-900">{wathiqData.contact_info.phone}</p>
+                                                    <p className="text-gray-900">{wathiqData.contact_info.phone || 'N/A'}</p>
                                                 </div>
                                             )}
                                             {wathiqData.contact_info.mobile && (
                                                 <div>
                                                     <span className="font-medium text-gray-700">Mobile:</span>
-                                                    <p className="text-gray-900">{wathiqData.contact_info.mobile}</p>
+                                                    <p className="text-gray-900">{wathiqData.contact_info.mobile || 'N/A'}</p>
                                                 </div>
                                             )}
                                         </div>
@@ -490,14 +490,29 @@ export default function CreateBusinessUserForm({ isOpen, onClose, onSuccess }) {
                                     <div className="mt-4 pt-4 border-t border-gray-200">
                                         <h6 className="font-medium text-gray-700 mb-2">Business Activities:</h6>
                                         <div className="flex flex-wrap gap-2">
-                                            {wathiqData.activities.map((activity, index) => (
-                                                <span
-                                                    key={index}
-                                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                                                >
-                                                    {typeof activity === 'string' ? activity : activity.name || activity.activityName}
-                                                </span>
-                                            ))}
+                                            {wathiqData.activities && Array.isArray(wathiqData.activities) ? wathiqData.activities.map((activity, index) => {
+                                                try {
+                                                    const activityText = typeof activity === 'string' ? activity : (activity.name || activity.activityName || 'N/A');
+                                                    return (
+                                                        <span
+                                                            key={index}
+                                                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                                        >
+                                                            {activityText || 'N/A'}
+                                                        </span>
+                                                    );
+                                                } catch (error) {
+                                                    console.error('Error rendering activity:', error);
+                                                    return (
+                                                        <span
+                                                            key={index}
+                                                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
+                                                        >
+                                                            Error
+                                                        </span>
+                                                    );
+                                                }
+                                            }) : <span className="text-gray-500 italic">No activities available</span>}
                                         </div>
                                     </div>
                                 )}

@@ -7,7 +7,7 @@ class AuctionExpiryHandler {
      * This function should be called periodically or when needed
      */
     static async handleExpiredAuctions() {
-        const client = await pool.connect();
+        const client = await pool.connectWithRetry(2, 1000, 'auction-expiry-handler');
         
         try {
             console.log('⏰ Checking for expired auctions...');

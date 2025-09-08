@@ -100,21 +100,6 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                 
                                 <div className="sm:flex sm:items-start">
                                     <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                                        {/* Debug Section - Remove after fixing */}
-                                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                                            <h4 className="text-sm font-medium text-red-800 mb-2">🔍 Debug - Raw Data Received:</h4>
-                                            <div className="text-xs text-red-700 space-y-1">
-                                                <div>pos_provider_name: &quot;{businessData.pos_provider_name || 'undefined'}&quot;</div>
-                                                <div>pos_age_duration_months: &quot;{businessData.pos_age_duration_months || 'undefined'}&quot;</div>
-                                                <div>avg_monthly_pos_sales: &quot;{businessData.avg_monthly_pos_sales || 'undefined'}&quot;</div>
-                                                <div>requested_financing_amount: &quot;{businessData.requested_financing_amount || 'undefined'}&quot;</div>
-                                                <div>preferred_repayment_period_months: &quot;{businessData.preferred_repayment_period_months || 'undefined'}&quot;</div>
-                                                <div>city_of_operation: &quot;{businessData.city_of_operation || 'undefined'}&quot;</div>
-                                                <div>notes: &quot;{businessData.notes || 'undefined'}&quot;</div>
-                                                <div>All keys: {Object.keys(businessData).join(', ')}</div>
-                                            </div>
-                                        </div>
-                                        
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             {/* Business Information */}
                                             <div className="space-y-4">
@@ -123,9 +108,9 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                     Business Information
                                                 </h4>
                                                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                                                    <div className="flex justify-between">
+                                                    <div className="flex justify-between items-start">
                                                         <span className="text-sm font-medium text-gray-700">Business Name:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.trade_name || 'N/A'}</span>
+                                                        <span className="text-sm text-gray-900 text-right max-w-[60%] break-words">{businessData.trade_name || 'N/A'}</span>
                                                     </div>
                                                     <div className="flex justify-between">
                                                         <span className="text-sm font-medium text-gray-700">CR Number:</span>
@@ -150,54 +135,6 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                     <div className="flex justify-between">
                                                         <span className="text-sm font-medium text-gray-700">City:</span>
                                                         <span className="text-sm text-gray-900">{businessData.city_of_operation || businessData.address || 'N/A'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Business Activities */}
-                                            <div className="space-y-4">
-                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
-                                                    <DocumentTextIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                                                    Business Activities
-                                                </h4>
-                                                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Sector:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.sector || 'N/A'}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Activities:</span>
-                                                        <span className="text-sm text-gray-900">
-                                                            {Array.isArray(businessData.activities) 
-                                                                ? businessData.activities.slice(0, 3).join(', ') 
-                                                                : businessData.activities || 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">E-commerce:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.has_ecommerce ? 'Yes' : 'No'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Contact Information */}
-                                            <div className="space-y-4">
-                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
-                                                    <UserIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                                                    Contact Information
-                                                </h4>
-                                                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Contact Person:</span>
-                                                        <span className="text-sm text-gray-900">{maskContactInfo('name', businessData.contact_person)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Phone:</span>
-                                                        <span className="text-sm text-gray-900">{maskContactInfo('phone', businessData.contact_person_number)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Email:</span>
-                                                        <span className="text-sm text-gray-900">{maskContactInfo('email', businessData.business_contact_email)}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -240,16 +177,6 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                                 `${businessData.preferred_repayment_period_months} months` : 'N/A'}
                                                         </span>
                                                     </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">City of Operation:</span>
-                                                        <span className="text-sm text-gray-900">
-                                                            {businessData.city_of_operation || 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Has E-commerce:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.has_ecommerce ? 'Yes' : 'No'}</span>
-                                                    </div>
                                                     {businessData.store_url && (
                                                         <div className="flex justify-between">
                                                             <span className="text-sm font-medium text-gray-700">Store URL:</span>
@@ -260,6 +187,60 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                             </span>
                                                         </div>
                                                     )}
+                                                </div>
+                                            </div>
+
+                                            {/* Business Activities */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                                    <DocumentTextIcon className="h-5 w-5 text-indigo-600 mr-2" />
+                                                    Business Activities
+                                                </h4>
+                                                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Activities:</span>
+                                                        <span className="text-sm text-gray-900">
+                                                            {(() => {
+                                                                try {
+                                                                    if (Array.isArray(businessData.activities)) {
+                                                                        return businessData.activities.join(', ');
+                                                                    } else if (businessData.activities) {
+                                                                        return businessData.activities.toString().split(',').map(activity => activity.trim()).join(', ');
+                                                                    }
+                                                                    return 'N/A';
+                                                                } catch (error) {
+                                                                    console.error('Error processing activities:', error);
+                                                                    return 'Error loading activities';
+                                                                }
+                                                            })()}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">E-commerce:</span>
+                                                        <span className="text-sm text-gray-900">{businessData.has_ecommerce ? 'Yes' : 'No'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Contact Information */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                                    <UserIcon className="h-5 w-5 text-indigo-600 mr-2" />
+                                                    Contact Information
+                                                </h4>
+                                                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Contact Person:</span>
+                                                        <span className="text-sm text-gray-900">{maskContactInfo('name', businessData.contact_person)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Phone:</span>
+                                                        <span className="text-sm text-gray-900">{maskContactInfo('phone', businessData.contact_person_number)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Email:</span>
+                                                        <span className="text-sm text-gray-900">{maskContactInfo('email', businessData.business_contact_email)}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -284,14 +265,6 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                 <div className="flex justify-between">
                                                     <span className="text-sm font-medium text-gray-700">Status:</span>
                                                     <span className="text-sm text-gray-900">{businessData.status || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-sm font-medium text-gray-700">Number of POS Devices:</span>
-                                                    <span className="text-sm text-gray-900">{businessData.number_of_pos_devices || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-sm font-medium text-gray-700">Own POS System:</span>
-                                                    <span className="text-sm text-gray-900">{businessData.own_pos_system ? 'Yes' : 'No'}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -363,40 +336,51 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                     Offers ({businessData.offers.length})
                                                 </h4>
                                                 <div className="space-y-3">
-                                                    {businessData.offers.map((offer, index) => (
-                                                        <div key={offer.offer_id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                                            <div className="flex items-center justify-between mb-2">
-                                                                <h5 className="text-sm font-semibold text-gray-900">
-                                                                    Offer #{offer.offer_id} by {offer.bank_name || 'Unknown Bank'}
-                                                                </h5>
-                                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                                    offer.status === 'submitted' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                                                                }`}>
-                                                                    {offer.status}
-                                                                </span>
-                                                            </div>
-                                                            {offer.offer_comment && (
-                                                                <p className="text-sm text-gray-700 mb-2">
-                                                                    <strong>Comment:</strong> {offer.offer_comment}
-                                                                </p>
-                                                            )}
-                                                            {offer.offer_terms && (
-                                                                <p className="text-sm text-gray-700 mb-2">
-                                                                    <strong>Terms:</strong> {offer.offer_terms}
-                                                                </p>
-                                                            )}
-                                                            <p className="text-xs text-gray-500">
-                                                                Submitted: {new Date(offer.submitted_at).toLocaleString()}
-                                                            </p>
-                                                        </div>
-                                                    ))}
+                                                    {businessData.offers && Array.isArray(businessData.offers) ? businessData.offers.map((offer, index) => {
+                                                        try {
+                                                            return (
+                                                                <div key={offer.offer_id || index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <h5 className="text-sm font-semibold text-gray-900">
+                                                                            Offer #{offer.offer_id || 'N/A'} by {offer.bank_name || 'Unknown Bank'}
+                                                                        </h5>
+                                                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                                                            offer.status === 'submitted' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                                                                        }`}>
+                                                                            {offer.status || 'N/A'}
+                                                                        </span>
+                                                                    </div>
+                                                                    {offer.offer_comment && (
+                                                                        <p className="text-sm text-gray-700 mb-2">
+                                                                            <strong>Comment:</strong> {offer.offer_comment || 'N/A'}
+                                                                        </p>
+                                                                    )}
+                                                                    {offer.offer_terms && (
+                                                                        <p className="text-sm text-gray-700 mb-2">
+                                                                            <strong>Terms:</strong> {offer.offer_terms || 'N/A'}
+                                                                        </p>
+                                                                    )}
+                                                                    <p className="text-xs text-gray-500">
+                                                                        Submitted: {offer.submitted_at ? new Date(offer.submitted_at).toLocaleString() : 'N/A'}
+                                                                    </p>
+                                                                </div>
+                                                            );
+                                                        } catch (error) {
+                                                            console.error('Error rendering offer:', error);
+                                                            return (
+                                                                <div key={index} className="bg-red-50 rounded-lg p-4 border border-red-200">
+                                                                    <p className="text-sm text-red-600">Error loading offer data</p>
+                                                                </div>
+                                                            );
+                                                        }
+                                                    }) : <span className="text-gray-500 italic">No offers available</span>}
                                                 </div>
                                             </div>
                                         )}
                                     </div>
                                 </div>
                                 
-                                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse space-y-3 sm:space-y-0">
                                     <button
                                         type="button"
                                         className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto"
@@ -407,7 +391,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                     {onSubmitOffer && (
                                         <button
                                             type="button"
-                                            className="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto"
+                                            className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto"
                                             onClick={handleSubmitOffer}
                                             disabled={isSubmitting}
                                         >

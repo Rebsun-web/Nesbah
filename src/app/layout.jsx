@@ -13,6 +13,11 @@ export const metadata = {
     template: '%s - Nesbah',
     default: 'Nesbah - Grow your business with us',
   },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+  },
 }
 
 export default function RootLayout({ children }) {

@@ -164,7 +164,7 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                     <div className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h4 className="text-xl font-semibold text-gray-900">{application.trade_name}</h4>
+                                <h4 className="text-xl font-semibold text-gray-900">{application.trade_name || 'N/A'}</h4>
                                 <p className="text-sm text-gray-600">Application #{application.application_id}</p>
                                 <p className="text-sm text-gray-500">
                                     Submitted: {new Date(application.submitted_at).toLocaleDateString()}
@@ -227,17 +227,17 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                             <div className="space-y-3">
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">Trade Name</label>
-                                    <p className="text-sm text-gray-900">{application.trade_name}</p>
+                                    <p className="text-sm text-gray-900">{application.trade_name || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">CR Number</label>
-                                    <p className="text-sm text-gray-900">{application.cr_number}</p>
+                                    <p className="text-sm text-gray-900">{application.cr_number || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">City</label>
                                     <p className="text-sm text-gray-900 flex items-center">
                                         <MapPinIcon className="h-4 w-4 mr-1" />
-                                        {application.city}
+                                        {application.city || 'N/A'}
                                     </p>
                                 </div>
                                 <div>

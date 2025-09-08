@@ -58,18 +58,18 @@ export default function AnalyticsDashboard() {
                         onClose={() => setSidebarOpen(false)}
                     />
                     
-                    <main className="flex-1 p-6">
-                        <div className="max-w-7xl mx-auto">
-                            <div className="mb-6">
-                                <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-                                <p className="text-gray-600 mt-2">
+                    <main className="flex-1 px-4 sm:ml-14 sm:mr-24">
+                        <div className="w-full p-3 sm:p-6">
+                            <div className="mb-4 sm:mb-6">
+                                <h1 className="text-xl sm:text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+                                <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">
                                     Analytics and insights for the dual-auction system
                                 </p>
                             </div>
 
                             {/* Analytics Navigation */}
-                            <div className="mb-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="mb-4 sm:mb-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                     {analyticsTabs.map((tab) => {
                                         const Icon = tab.icon
                                         const isActive = activeTab === tab.id
@@ -79,29 +79,29 @@ export default function AnalyticsDashboard() {
                                                 key={tab.id}
                                                 onClick={() => setActiveTab(tab.id)}
                                                 className={`
-                                                    p-6 rounded-lg border-2 transition-all duration-200 text-left
+                                                    p-3 sm:p-6 rounded-lg border-2 transition-all duration-200 text-left
                                                     ${isActive 
                                                         ? 'border-purple-500 bg-purple-50 shadow-lg' 
                                                         : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow-md'
                                                     }
                                                 `}
                                             >
-                                                <div className="flex items-center mb-3">
+                                                <div className="flex items-center mb-2 sm:mb-3">
                                                     <Icon 
                                                         className={`
-                                                            h-8 w-8 mr-3
+                                                            h-5 w-5 sm:h-8 sm:w-8 mr-2 sm:mr-3
                                                             ${isActive ? 'text-purple-600' : 'text-gray-400'}
                                                         `} 
                                                     />
                                                     <h3 className={`
-                                                        font-semibold text-lg
+                                                        font-semibold text-sm sm:text-lg
                                                         ${isActive ? 'text-purple-900' : 'text-gray-900'}
                                                     `}>
                                                         {tab.name}
                                                     </h3>
                                                 </div>
                                                 <p className={`
-                                                    text-sm
+                                                    text-xs sm:text-sm
                                                     ${isActive ? 'text-purple-700' : 'text-gray-600'}
                                                 `}>
                                                     {tab.description}

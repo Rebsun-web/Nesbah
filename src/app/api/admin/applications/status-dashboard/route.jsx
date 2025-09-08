@@ -38,7 +38,7 @@ export async function GET(req) {
                         ${STATUS_CALCULATION_SQL},
                         COUNT(DISTINCT pa.application_id) as count
                     FROM pos_application pa
-                    GROUP BY ${STATUS_CALCULATION_SQL}
+                    GROUP BY calculated_status
                 )
                 SELECT 
                     aps.status,

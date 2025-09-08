@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { cascadeDeleteApplication } from '@/lib/cascade-deletion';
 
 export async function POST(req) {
     try {
@@ -10,8 +11,11 @@ export async function POST(req) {
         try {
             await client.query('BEGIN');
             
-            // Delete the old test application first
-            await client.query(`DELETE FROM pos_application WHERE application_id = 2`);
+            // Use the cascade deletion utility to clean up existing application
+            const deleteResult = await cascadeDeleteApplication(client, 2, false);
+            if (deleteResult.success) {
+                console.log(`✅ Cleaned up existing application 2: ${deleteResult.totalRecordsDeleted} records deleted`);
+            }
             
             // Create a completely new application with fresh timestamps
             const now = new Date();

@@ -157,6 +157,12 @@ export async function GET(req, { params }) {
             SELECT 
                 ao.offer_id,
                 ao.submitted_application_id,
+                ao.approved_financing_amount,
+                ao.proposed_repayment_period_months,
+                ao.interest_rate,
+                ao.monthly_installment_amount,
+                ao.grace_period_months,
+                ao.relationship_manager_name,
                 ao.deal_value as offer_amount,
                 ao.offer_device_setup_fee as setup_fee,
                 ao.offer_transaction_fee_mada as transaction_fee_mada,

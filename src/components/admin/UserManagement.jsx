@@ -5,8 +5,10 @@ import { Container } from '@/components/container'
 import BusinessUserViewModal from './BusinessUserViewModal'
 import EditUserModal from './EditUserModal'
 import CreateBusinessUserForm from './CreateBusinessUserForm'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function UserManagement() {
+    const { t } = useLanguage()
     const [activeTab, setActiveTab] = useState('businesses')
     const [businessUsers, setBusinessUsers] = useState([])
     const [bankUsers, setBankUsers] = useState([])
@@ -452,7 +454,9 @@ export default function UserManagement() {
                         <div className="px-5 py-4 border-b border-gray-200">
                             <h3 className="text-lg font-medium text-gray-900">Business Users</h3>
                         </div>
-                        <div className="overflow-x-auto">
+                        
+                        {/* Desktop Table */}
+                        <div className="hidden lg:block overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
@@ -460,9 +464,7 @@ export default function UserManagement() {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trade Name</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CR Number</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Legal Form</th>
-
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capital</th>
-
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
@@ -470,18 +472,16 @@ export default function UserManagement() {
                                     {businessUsers.length > 0 ? (
                                         businessUsers.map((user) => (
                                             <tr key={user.user_id}>
-                                                <td className="px-5 py-4 whitespace-nowrap">
+                                                <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm font-medium text-gray-900">{user.email}</div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.trade_name || user.entity_name || 'N/A'}</td>
-                                                <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-900">{user.cr_number || user.cr_national_number || 'N/A'}</td>
-                                                <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-900">{user.legal_form || 'N/A'}</td>
-
-                                                <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.cr_number || user.cr_national_number || 'N/A'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.legal_form || 'N/A'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                     {user.cr_capital ? `SAR ${user.cr_capital.toLocaleString()}` : 'N/A'}
                                                 </td>
-
-                                                <td className="px-5 py-4 whitespace-nowrap text-sm font-medium">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                     <div className="flex space-x-2">
                                                         <button
                                                             onClick={() => handleViewUser(user, 'business')}
@@ -550,6 +550,100 @@ export default function UserManagement() {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Mobile Cards */}
+                        <div className="lg:hidden p-4 space-y-4">
+                            {businessUsers.length > 0 ? (
+                                businessUsers.map((user) => (
+                                    <div key={user.user_id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                                        {/* Header */}
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                                <span className="text-sm font-medium text-gray-900">{t('admin.businessUser')}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* User Info */}
+                                        <div className="mb-3">
+                                            <h4 className="text-sm font-medium text-gray-900 mb-1">{user.trade_name || user.entity_name || 'N/A'}</h4>
+                                            <div className="text-xs text-gray-500 space-y-1">
+                                                <div>{t('common.email')}: {user.email}</div>
+                                                <div>CR: {user.cr_number || user.cr_national_number || 'N/A'}</div>
+                                                <div>{user.legal_form || 'N/A'}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Capital */}
+                                        <div className="mb-3">
+                                            <span className="text-xs text-gray-500">{t('admin.capital')}:</span>
+                                            <div className="text-sm font-medium text-gray-900">
+                                                {user.cr_capital ? `SAR ${user.cr_capital.toLocaleString()}` : 'N/A'}
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Actions */}
+                                        <div className="flex justify-end space-x-2 pt-3 border-t border-gray-100">
+                                            <button
+                                                onClick={() => handleViewUser(user, 'business')}
+                                                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100"
+                                            >
+                                                <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                                {t('common.view')}
+                                            </button>
+                                            <button
+                                                onClick={() => handleEditUser(user, 'business')}
+                                                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100"
+                                            >
+                                                <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                                {t('common.edit')}
+                                            </button>
+                                            <button
+                                                onClick={() => handleResetPassword(user, 'business')}
+                                                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-yellow-600 bg-yellow-50 rounded-md hover:bg-yellow-100"
+                                            >
+                                                <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                                </svg>
+                                                Reset
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteUser(user, 'business')}
+                                                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100"
+                                            >
+                                                <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8">
+                                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    <h3 className="mt-2 text-sm font-medium text-gray-900">No business users found</h3>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        Get started by creating a new business user.
+                                    </p>
+                                    <div className="mt-6">
+                                        <button
+                                            onClick={openCreateBusinessForm}
+                                            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                        >
+                                            Create Business User
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -558,7 +652,9 @@ export default function UserManagement() {
                         <div className="px-6 py-4 border-b border-gray-200">
                             <h3 className="text-lg font-medium text-gray-900">Bank Users</h3>
                         </div>
-                        <div className="overflow-x-auto">
+                        
+                        {/* Desktop Table */}
+                        <div className="hidden lg:block overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
@@ -656,6 +752,93 @@ export default function UserManagement() {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Mobile Cards */}
+                        <div className="lg:hidden p-4 space-y-4">
+                            {bankUsers.map((bank) => (
+                                <div key={bank.user_id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                <span className="text-sm font-medium text-gray-900">{t('admin.bankUser')}</span>
+                                            </div>
+                                        {bank.logo_url && (
+                                            <img 
+                                                src={bank.logo_url} 
+                                                alt="Bank Logo" 
+                                                className="h-8 w-8 rounded object-cover"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                    
+                                    {/* Bank Info */}
+                                    <div className="mb-3">
+                                        <h4 className="text-sm font-medium text-gray-900 mb-1">{bank.entity_name}</h4>
+                                        <div className="text-xs text-gray-500 space-y-1">
+                                            <div>{t('common.email')}: {bank.email}</div>
+                                            <div>{t('admin.contact')}: {bank.contact_person || 'N/A'}</div>
+                                            <div>{t('admin.phone')}: {bank.contact_person_number || 'N/A'}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Credit Limit */}
+                                    <div className="mb-3">
+                                        <span className="text-xs text-gray-500">{t('admin.creditLimit')}:</span>
+                                        <div className="text-sm font-medium text-gray-900">
+                                            {bank.credit_limit ? 
+                                                `SAR ${parseFloat(bank.credit_limit).toLocaleString()}` : 
+                                                'N/A'
+                                            }
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Actions */}
+                                    <div className="flex justify-end space-x-2 pt-3 border-t border-gray-100">
+                                        <button
+                                            onClick={() => handleViewUser(bank, 'bank')}
+                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100"
+                                        >
+                                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            View
+                                        </button>
+                                        <button
+                                            onClick={() => handleEditUser(bank, 'bank')}
+                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100"
+                                        >
+                                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleResetPassword(bank, 'bank')}
+                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-yellow-600 bg-yellow-50 rounded-md hover:bg-yellow-100"
+                                        >
+                                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 0 1121 9z" />
+                                            </svg>
+                                            Reset
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteUser(bank, 'bank')}
+                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100"
+                                        >
+                                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -664,7 +847,9 @@ export default function UserManagement() {
                         <div className="px-6 py-4 border-b border-gray-200">
                             <h3 className="text-lg font-medium text-gray-900">Bank Employees</h3>
                         </div>
-                        <div className="overflow-x-auto">
+                        
+                        {/* Desktop Table */}
+                        <div className="hidden lg:block overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
@@ -699,7 +884,7 @@ export default function UserManagement() {
                                                         ? 'bg-green-100 text-green-800' 
                                                         : 'bg-red-100 text-red-800'
                                                 }`}>
-                                                    {employee.is_active ? 'Active' : 'Inactive'}
+                                                    {employee.is_active ? t('admin.active') : t('admin.inactive')}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -762,6 +947,91 @@ export default function UserManagement() {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Mobile Cards */}
+                        <div className="lg:hidden p-4 space-y-4">
+                            {bankEmployees.map((employee) => (
+                                <div key={employee.employee_id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                <span className="text-sm font-medium text-gray-900">{t('admin.bankEmployee')}</span>
+                                            </div>
+                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                            employee.is_active 
+                                                ? 'bg-green-100 text-green-800' 
+                                                : 'bg-red-100 text-red-800'
+                                        }`}>
+                                            {employee.is_active ? t('admin.active') : t('admin.inactive')}
+                                        </span>
+                                    </div>
+                                    
+                                    {/* Employee Info */}
+                                    <div className="mb-3">
+                                        <h4 className="text-sm font-medium text-gray-900 mb-1">{employee.first_name} {employee.last_name}</h4>
+                                        <div className="text-xs text-gray-500 space-y-1">
+                                            <div>{t('common.email')}: {employee.email}</div>
+                                            <div>Bank: {employee.bank_entity_name || 'N/A'}</div>
+                                            <div>Position: {employee.position || 'N/A'}</div>
+                                            <div>{t('admin.phone')}: {employee.phone || 'N/A'}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Last Login */}
+                                    <div className="mb-3">
+                                        <span className="text-xs text-gray-500">{t('admin.lastLogin')}:</span>
+                                        <div className="text-sm font-medium text-gray-900">
+                                            {employee.last_login_at ? 
+                                                new Date(employee.last_login_at).toLocaleDateString() : 
+                                                t('admin.never')
+                                            }
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Actions */}
+                                    <div className="flex justify-end space-x-2 pt-3 border-t border-gray-100">
+                                        <button
+                                            onClick={() => handleViewUser(employee, 'employee')}
+                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100"
+                                        >
+                                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            View
+                                        </button>
+                                        <button
+                                            onClick={() => handleEditUser(employee, 'employee')}
+                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100"
+                                        >
+                                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleResetPassword(employee, 'employee')}
+                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-yellow-600 bg-yellow-50 rounded-md hover:bg-yellow-100"
+                                        >
+                                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 0 1121 9z" />
+                                            </svg>
+                                            Reset
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteUser(employee, 'employee')}
+                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100"
+                                        >
+                                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 )}

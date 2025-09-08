@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
+import { STATUS_CALCULATION_SQL } from '@/lib/application-status';
 
 export async function GET(req) {
     try {
@@ -71,23 +72,23 @@ export async function GET(req) {
             `);
             console.log('  - Sample applications:', sampleApps.rows);
             
-            // 1. Status Progression Analytics Query - Use same status logic as applications table
+            // 1. Status Progression Analytics Query - Use standardized status calculation
             const statusProgressionQuery = showAll ? `
                 SELECT 
-                    COALESCE(current_application_status, status) as status,
+                    ${STATUS_CALCULATION_SQL},
                     COUNT(*) as count,
                     ROUND((COUNT(*) * 100.0 / SUM(COUNT(*)) OVER ()), 2) as percentage
-                FROM pos_application 
-                GROUP BY COALESCE(current_application_status, status)
+                FROM pos_application pa
+                GROUP BY calculated_status
                 ORDER BY count DESC
             ` : `
                 SELECT 
-                    COALESCE(current_application_status, status) as status,
+                    ${STATUS_CALCULATION_SQL},
                     COUNT(*) as count,
                     ROUND((COUNT(*) * 100.0 / SUM(COUNT(*)) OVER ()), 2) as percentage
-                FROM pos_application 
-                WHERE submitted_at >= $1 AND submitted_at <= $2
-                GROUP BY COALESCE(current_application_status, status)
+                FROM pos_application pa
+                WHERE pa.submitted_at >= $1 AND pa.submitted_at <= $2
+                GROUP BY calculated_status
                 ORDER BY count DESC
             `;
             const statusProgression = await client.query(statusProgressionQuery, showAll ? [] : [startDate, endDate]);
@@ -123,7 +124,7 @@ export async function GET(req) {
 
             // Process each status and calculate percentages
             statusProgression.rows.forEach(row => {
-                const status = row.status;
+                const status = row.calculated_status;
                 const count = parseInt(row.count);
                 const percentage = parseFloat(row.percentage) || 0;
                 
@@ -171,15 +172,15 @@ export async function GET(req) {
             `;
             const abandonmentRate = await client.query(abandonmentRateQuery, [startDate, endDate]);
 
-            // 4. Status Duration Analysis Query - Use same status logic
+            // 4. Status Duration Analysis Query - Use standardized status calculation
             const statusDurationQuery = `
                 SELECT 
-                    COALESCE(current_application_status, status) as status,
+                    ${STATUS_CALCULATION_SQL},
                     COUNT(*) as count,
                     ROUND(AVG(EXTRACT(EPOCH FROM (COALESCE(updated_at, NOW()) - submitted_at)) / 3600), 2) as avg_hours_in_status
-                FROM pos_application 
-                WHERE submitted_at >= $1 AND submitted_at <= $2
-                GROUP BY COALESCE(current_application_status, status)
+                FROM pos_application pa
+                WHERE pa.submitted_at >= $1 AND pa.submitted_at <= $2
+                GROUP BY calculated_status
                 ORDER BY count DESC
             `;
             const statusDuration = await client.query(statusDurationQuery, [startDate, endDate]);

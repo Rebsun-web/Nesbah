@@ -16,14 +16,16 @@ import {
     ChevronDownIcon,
     ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
-import { calculateApplicationStatus, getStatusInfo, formatCountdown } from '@/lib/application-status'
+import { calculateApplicationStatus, getStatusInfo, formatCountdown, safeTextFormat } from '@/lib/application-status'
 import NewApplicationModal from './NewApplicationModal'
 import ViewApplicationModal from './ViewApplicationModal'
 import EditApplicationModal from './EditApplicationModal'
 import DeleteApplicationModal from './DeleteApplicationModal'
 import BankLogo from '@/components/BankLogo'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function ApplicationsTable() {
+    const { t } = useLanguage()
     const [applications, setApplications] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
@@ -89,21 +91,27 @@ export default function ApplicationsTable() {
     const checkStatusUpdates = async () => {
         try {
             const response = await fetch('/api/admin/applications/update-status', {
-                credentials: 'include'
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             })
             
             if (response.ok) {
                 const data = await response.json()
-                if (data.success && data.data.needs_update > 0) {
+                if (data.success && data.data && data.data.needs_update > 0) {
                     setStatusUpdateInfo({
                         needsUpdate: data.data.needs_update,
-                        applications: data.data.applications_needing_update
+                        applications: data.data.applications_needing_update || []
                     })
                     setShowStatusUpdateModal(true)
                 }
+            } else {
+                console.warn('Status update check failed:', response.status, response.statusText)
             }
         } catch (err) {
             console.error('Error checking status updates:', err)
+            // Don't show error to user for background status checks
         }
     }
 
@@ -291,8 +299,8 @@ export default function ApplicationsTable() {
                 </div>
             </div>
 
-            {/* Applications Table */}
-            <div className="bg-white shadow rounded-lg overflow-hidden">
+            {/* Desktop Table */}
+            <div className="hidden lg:block bg-white shadow rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
@@ -341,16 +349,16 @@ export default function ApplicationsTable() {
                                         {/* Business Information */}
                                         <td className="px-6 py-4">
                                             <div className="text-sm font-medium text-gray-900">
-                                                {application.trade_name}
+                                                {safeTextFormat(application.trade_name, 30)}
                                             </div>
                                             <div className="text-sm text-gray-500">
-                                                CR: {application.cr_number}
+                                                CR: {safeTextFormat(application.cr_number)}
                                             </div>
                                             <div className="text-sm text-gray-500">
-                                                {application.city}
+                                                {safeTextFormat(application.city)}
                                             </div>
                                             <div className="text-xs text-gray-400">
-                                                {application.legal_form} • {application.registration_status}
+                                                {safeTextFormat(application.legal_form)} • {safeTextFormat(application.registration_status)}
                                             </div>
                                         </td>
 
@@ -366,7 +374,7 @@ export default function ApplicationsTable() {
                                                 {application.number_of_pos_devices || 'N/A'} devices
                                             </div>
                                             <div className="text-xs text-gray-400">
-                                                {application.city_of_operation}
+                                                {application.city_of_operation || 'N/A'}
                                             </div>
                                         </td>
 
@@ -434,7 +442,105 @@ export default function ApplicationsTable() {
                         </tbody>
                     </table>
                 </div>
+            </div>
 
+            {/* Mobile Cards */}
+            <div className="lg:hidden space-y-4">
+                {applications.map((application) => {
+                    const statusInfo = getApplicationStatusInfo(application)
+                    const openedInfo = getArrayInfo(application.opened_by, 'view')
+                    const purchasedInfo = getArrayInfo(application.purchased_by, 'offer')
+                    
+                    return (
+                        <div key={application.application_id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <span className="text-sm font-medium text-gray-900">
+                                        #{application.application_id}
+                                    </span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                    <statusInfo.icon className="h-4 w-4" />
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusInfo.color}`}>
+                                        {statusInfo.label}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {/* Business Info */}
+                            <div className="mb-3">
+                                <h4 className="text-sm font-medium text-gray-900 mb-1">{safeTextFormat(application.trade_name, 30)}</h4>
+                                <div className="text-xs text-gray-500 space-y-1">
+                                    <div>CR: {safeTextFormat(application.cr_number)}</div>
+                                    <div>{safeTextFormat(application.city)} • {safeTextFormat(application.legal_form)}</div>
+                                </div>
+                            </div>
+                            
+                            {/* Financial Info */}
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <span className="text-xs text-gray-500">{t('admin.financingAmount')}:</span>
+                                    <div className="text-sm font-medium text-gray-900">{formatMoney(application.requested_financing_amount)}</div>
+                                </div>
+                                <div>
+                                    <span className="text-xs text-gray-500">{t('admin.repaymentPeriod')}:</span>
+                                    <div className="text-sm font-medium text-gray-900">{application.preferred_repayment_period_months || 'N/A'} months</div>
+                                </div>
+                                <div>
+                                    <span className="text-xs text-gray-500">{t('admin.monthlySales')}:</span>
+                                    <div className="text-sm font-medium text-gray-900">{formatMoney(application.avg_monthly_pos_sales)}</div>
+                                </div>
+                                <div>
+                                    <span className="text-xs text-gray-500">{t('admin.posProvider')}:</span>
+                                    <div className="text-sm font-medium text-gray-900">{application.pos_provider_name || 'N/A'}</div>
+                                </div>
+                            </div>
+                            
+                            {/* Status & Tracking */}
+                            <div className="mb-3 pt-3 border-t border-gray-100">
+                                <div className="flex justify-between items-center text-xs text-gray-500">
+                                    <span>{t('admin.offers')}: {application.offers_count || 0}</span>
+                                    <span>{t('admin.views')}: {openedInfo.display}</span>
+                                    <span>{t('admin.purchases')}: {purchasedInfo.display}</span>
+                                </div>
+                                <div className="text-xs text-gray-400 mt-1">
+                                    {t('admin.submitted')}: {new Date(application.submitted_at).toLocaleDateString()}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                    {formatCountdown(application.auction_end_time)}
+                                </div>
+                            </div>
+                            
+                            {/* Actions */}
+                            <div className="flex justify-end space-x-2 pt-3 border-t border-gray-100">
+                                <button
+                                    onClick={() => handleViewApplication(application)}
+                                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 rounded-md hover:bg-purple-100"
+                                >
+                                    <EyeIcon className="h-3 w-3 mr-1" />
+                                    View
+                                </button>
+                                <button
+                                    onClick={() => handleEditApplication(application)}
+                                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100"
+                                >
+                                    <PencilIcon className="h-3 w-3 mr-1" />
+                                    Edit
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteApplication(application)}
+                                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100"
+                                >
+                                    <TrashIcon className="h-3 w-3 mr-1" />
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    )
+                })}
+                
                 {/* Pagination */}
                 {totalPages > 1 && (
                     <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">

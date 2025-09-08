@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { cascadeDeleteApplication } from '@/lib/cascade-deletion';
 
 export async function DELETE(req) {
     try {
@@ -10,26 +11,16 @@ export async function DELETE(req) {
         try {
             await client.query('BEGIN');
             
-            // Delete the POS application
-            const deleteAppResult = await client.query(
-                `DELETE FROM pos_application WHERE application_id = 7`
-            );
+            // Use the cascade deletion utility
+            const result = await cascadeDeleteApplication(client, 7, true, 1001);
             
-            if (deleteAppResult.rowCount === 0) {
+            if (!result.success) {
+                await client.query('ROLLBACK');
                 return NextResponse.json({
                     success: false,
-                    error: 'Test application not found'
+                    error: result.error
                 });
             }
-            
-            // Also delete the business user and user records if they exist
-            await client.query(
-                `DELETE FROM business_users WHERE user_id = 1001`
-            );
-            
-            await client.query(
-                `DELETE FROM users WHERE user_id = 1001`
-            );
             
             await client.query('COMMIT');
             

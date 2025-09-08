@@ -3,6 +3,13 @@
  * This module provides consistent status calculation across all components
  */
 
+import { 
+    ClockIcon, 
+    CheckCircleIcon, 
+    XCircleIcon, 
+    QuestionMarkCircleIcon 
+} from '@heroicons/react/24/outline'
+
 /**
  * Calculate the correct application status based on auction timing and offers
  * @param {Object} application - Application object with auction_end_time and offers_count
@@ -49,7 +56,7 @@ export function getStatusInfo(status) {
                 label: 'Live Auction',
                 color: 'bg-yellow-100 text-yellow-800',
                 borderColor: 'border-yellow-200',
-                icon: '⏰',
+                icon: ClockIcon,
                 description: 'Application is currently in live auction'
             };
         case 'completed':
@@ -57,7 +64,7 @@ export function getStatusInfo(status) {
                 label: 'Completed',
                 color: 'bg-green-100 text-green-800',
                 borderColor: 'border-green-200',
-                icon: '✅',
+                icon: CheckCircleIcon,
                 description: 'Application has offers and auction completed'
             };
         case 'ignored':
@@ -65,7 +72,7 @@ export function getStatusInfo(status) {
                 label: 'Ignored',
                 color: 'bg-red-100 text-red-800',
                 borderColor: 'border-red-200',
-                icon: '❌',
+                icon: XCircleIcon,
                 description: 'Application expired with no offers'
             };
         default:
@@ -73,7 +80,7 @@ export function getStatusInfo(status) {
                 label: 'Unknown',
                 color: 'bg-gray-100 text-gray-800',
                 borderColor: 'border-gray-200',
-                icon: '❓',
+                icon: QuestionMarkCircleIcon,
                 description: 'Status unknown'
             };
     }
@@ -87,16 +94,46 @@ export function getStatusInfo(status) {
 export function formatCountdown(auctionEndTime) {
     if (!auctionEndTime) return 'N/A';
     
-    const endTime = new Date(auctionEndTime);
-    const now = new Date();
-    const timeLeft = endTime - now;
+    try {
+        const endTime = new Date(auctionEndTime);
+        const now = new Date();
+        const timeLeft = endTime - now;
+        
+        if (timeLeft <= 0) {
+            return 'Auction finished';
+        } else {
+            const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+            const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            return `${hoursLeft}h ${minutesLeft}m left`;
+        }
+    } catch (error) {
+        console.error('Error formatting countdown:', error);
+        return 'N/A';
+    }
+}
+
+/**
+ * Safely format text for display, handling Arabic and special characters
+ * @param {string} text - Text to format
+ * @param {number} maxLength - Maximum length (optional)
+ * @returns {string} - Safely formatted text
+ */
+export function safeTextFormat(text, maxLength = null) {
+    if (!text) return 'N/A';
     
-    if (timeLeft <= 0) {
-        return 'Auction finished';
-    } else {
-        const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
-        const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        return `${hoursLeft}h ${minutesLeft}m left`;
+    try {
+        // Ensure text is a string
+        const textStr = String(text);
+        
+        // Truncate if maxLength is specified
+        const truncated = maxLength && textStr.length > maxLength 
+            ? textStr.substring(0, maxLength) + '...' 
+            : textStr;
+            
+        return truncated;
+    } catch (error) {
+        console.error('Error formatting text:', error);
+        return 'N/A';
     }
 }
 

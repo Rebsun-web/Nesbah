@@ -11,15 +11,12 @@ export function PosApplication({ user, onSuccess}) {
   const tradeName = user?.business?.trade_name || '';
   const email = user?.email || '';
 
-  const [ownPosSystem, setOwnPosSystem] = useState('no');
   const [notes, setNotes] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
   const [base64File, setBase64File] = useState(null);
 
   const [contactPerson, setContactPerson] = useState('');
   const [contactPersonNumber, setContactPersonNumber] = useState('');
-  const [numberOfPos, setNumberOfPos] = useState('');
-  const [cityOfOperation, setCityOfOperation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // New POS application fields
@@ -84,15 +81,6 @@ export function PosApplication({ user, onSuccess}) {
       return;
     }
 
-    if (!numberOfPos.trim()) {
-      alert('Please enter the number of POS devices required.');
-      return;
-    }
-
-    if (!cityOfOperation.trim()) {
-      alert('Please enter the city of operation.');
-      return;
-    }
 
     // Validate new required POS fields
     if (!posProviderName.trim()) {
@@ -126,11 +114,8 @@ export function PosApplication({ user, onSuccess}) {
       uploaded_document: base64File?.data || null,
       uploaded_filename: base64File?.name || null,
       uploaded_mimetype: base64File?.type || null,
-      own_pos_system: ownPosSystem === 'yes',
       contact_person: contactPerson,
       contact_person_number: contactPersonNumber,
-      number_of_pos_devices: numberOfPos,
-      city_of_operation: cityOfOperation,
       // New POS application fields
       pos_provider_name: posProviderName,
       pos_age_duration_months: parseInt(posAgeDuration) || 0,
@@ -195,192 +180,139 @@ export function PosApplication({ user, onSuccess}) {
     <div className="w-full">
       <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 sm:px-8 py-4 sm:py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
-                <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-white/10">
+                <svg className="h-6 w-6 sm:h-7 sm:w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Apply for Service</h1>
-                <p className="text-indigo-100">Complete your POS finance application</p>
+                <h1 className="text-lg sm:text-2xl font-bold text-white">Apply for Service</h1>
+                <p className="text-sm sm:text-base text-indigo-100">Complete your POS finance application</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Status Bar */}
-        <div className="px-8 py-4 bg-slate-50 border-b border-slate-200">
+        <div className="px-4 sm:px-8 py-3 sm:py-4 bg-slate-50 border-b border-slate-200">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-600">
+            <p className="text-xs sm:text-sm text-slate-600">
               Please fill in all required fields to submit your application
             </p>
           </div>
         </div>
 
         {/* Form Content */}
-        <form onSubmit={handleSubmit} className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+        <form onSubmit={handleSubmit} className="px-3 sm:px-6 lg:px-8 py-3 sm:py-6">
+          <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-2">
             {/* CR National Number */}
             <div>
-              <label htmlFor="cr_national_number" className="block text-sm font-semibold text-slate-700 mb-2">
+              <label htmlFor="cr_national_number" className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
                 CR National Number
               </label>
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-2 sm:p-3 border border-blue-100">
                 <input
                   id="cr_national_number"
                   name="cr_national_number"
                   type="text"
                   value={crNationalNumber}
                   readOnly
-                  className="block w-full bg-transparent text-sm font-medium text-blue-900 border-none outline-none"
+                  className="block w-full bg-transparent text-xs sm:text-sm font-medium text-blue-900 border-none outline-none"
                 />
               </div>
             </div>
 
             {/* Trade Name */}
             <div>
-              <label htmlFor="trade_name" className="block text-sm font-semibold text-slate-700 mb-2">
+              <label htmlFor="trade_name" className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
                 Trade Name
               </label>
-              <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-3 border border-purple-100">
+              <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-2 sm:p-3 border border-purple-100">
                 <input
                   id="trade_name"
                   name="trade_name"
                   type="text"
                   value={tradeName}
                   readOnly
-                  className="block w-full bg-transparent text-sm font-medium text-purple-900 border-none outline-none"
+                  className="block w-full bg-transparent text-xs sm:text-sm font-medium text-purple-900 border-none outline-none"
                 />
               </div>
             </div>
 
-            {/* POS System */}
-            <div>
-              <label htmlFor="own_pos_system" className="block text-sm font-medium text-gray-900">
-                Do you already have a POS system?
-              </label>
-              <div className="mt-2">
-                <select
-                  id="own_pos_system"
-                  name="own_pos_system"
-                  value={ownPosSystem}
-                  onChange={(e) => setOwnPosSystem(e.target.value)}
-                  className="block w-full rounded-md bg-white px-3 py-2 text-sm text-gray-900 outline outline-1 outline-gray-300 focus:outline-indigo-600"
-                >
-                  <option value="no">No</option>
-                  <option value="yes">Yes</option>
-                </select>
-              </div>
-            </div>
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-900">
+              <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-900">
                 Email
               </label>
               <div className="mt-2">
-                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                <div className="flex items-center rounded-md bg-white pl-2 sm:pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
                   <input
                     id="email"
                     name="email"
                     type="email"
                     value={email}
                     readOnly
-                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-2 sm:pr-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <label htmlFor="contactperson" className="block text-sm font-medium text-gray-900">
+              <label htmlFor="contactperson" className="block text-xs sm:text-sm font-medium text-gray-900">
                 Contact person
               </label>
               <div className="mt-2">
-                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                <div className="flex items-center rounded-md bg-white pl-2 sm:pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
                   <input
                     id="contactperson"
                     name="contactperson"
                     type="text"
                     value={contactPerson}
                     onChange={(e) => setContactPerson(e.target.value)}
-                    className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-2 sm:pr-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <label htmlFor="contactpersonnumber" className="block text-sm font-medium text-gray-900">
+              <label htmlFor="contactpersonnumber" className="block text-xs sm:text-sm font-medium text-gray-900">
                 Contact mobile number
               </label>
               <div className="mt-2">
-                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                <div className="flex items-center rounded-md bg-white pl-2 sm:pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
                   <input
                     id="contactpersonnumber"
                     name="contactpersonnumber"
                     type="tel"
                     value={contactPersonNumber}
                     onChange={(e) => setContactPersonNumber(e.target.value)}
-                    className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-2 sm:pr-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                   />
                 </div>
               </div>
             </div>
 
-            <div>
-              <label htmlFor="nrofpos" className="block text-sm font-medium text-gray-900">
-                Number of POS devices required
-              </label>
-              <div className="mt-2">
-                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
-                  <input
-                    id="nrofpos"
-                    name="nrofpos"
-                    type="text"
-                    value={numberOfPos}
-                    onChange={(e) => setNumberOfPos(e.target.value)}
-                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="cityofoperation" className="block text-sm font-medium text-gray-900">
-                {t('pos.cityOfOperation')}
-              </label>
-              <div className="mt-2">
-                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
-                  <input
-                    id="cityofoperation"
-                    name="cityofoperation"
-                    type="text"
-                    value={cityOfOperation}
-                    onChange={(e) => setCityOfOperation(e.target.value)}
-                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
 
             {/* New POS Application Fields */}
             <div>
-              <label htmlFor="posProviderName" className="block text-sm font-medium text-gray-900">
+              <label htmlFor="posProviderName" className="block text-xs sm:text-sm font-medium text-gray-900">
                 POS Provider Name *
               </label>
               <div className="mt-2">
-                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                <div className="flex items-center rounded-md bg-white pl-2 sm:pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
                   <input
                     id="posProviderName"
                     name="posProviderName"
                     type="text"
                     value={posProviderName}
                     onChange={(e) => setPosProviderName(e.target.value)}
-                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-2 sm:pr-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                     placeholder="e.g., Verifone, Ingenico, PAX"
                   />
                 </div>
@@ -388,11 +320,11 @@ export function PosApplication({ user, onSuccess}) {
             </div>
 
             <div>
-              <label htmlFor="posAgeDuration" className="block text-sm font-medium text-gray-900">
+              <label htmlFor="posAgeDuration" className="block text-xs sm:text-sm font-medium text-gray-900">
                 POS Age Duration (months) *
               </label>
               <div className="mt-2">
-                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                <div className="flex items-center rounded-md bg-white pl-2 sm:pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
                   <input
                     id="posAgeDuration"
                     name="posAgeDuration"
@@ -400,7 +332,7 @@ export function PosApplication({ user, onSuccess}) {
                     min="0"
                     value={posAgeDuration}
                     onChange={(e) => setPosAgeDuration(e.target.value)}
-                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-2 sm:pr-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                     placeholder="e.g., 24"
                   />
                 </div>
@@ -408,11 +340,11 @@ export function PosApplication({ user, onSuccess}) {
             </div>
 
             <div>
-              <label htmlFor="avgMonthlyPosSales" className="block text-sm font-medium text-gray-900">
+              <label htmlFor="avgMonthlyPosSales" className="block text-xs sm:text-sm font-medium text-gray-900">
                 Average Monthly POS Sales (SAR) *
               </label>
               <div className="mt-2">
-                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                <div className="flex items-center rounded-md bg-white pl-2 sm:pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
                   <input
                     id="avgMonthlyPosSales"
                     name="avgMonthlyPosSales"
@@ -421,7 +353,7 @@ export function PosApplication({ user, onSuccess}) {
                     step="0.01"
                     value={avgMonthlyPosSales}
                     onChange={(e) => setAvgMonthlyPosSales(e.target.value)}
-                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-2 sm:pr-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                     placeholder="e.g., 50000.00"
                   />
                 </div>
@@ -429,11 +361,11 @@ export function PosApplication({ user, onSuccess}) {
             </div>
 
             <div>
-              <label htmlFor="requestedFinancingAmount" className="block text-sm font-medium text-gray-900">
+              <label htmlFor="requestedFinancingAmount" className="block text-xs sm:text-sm font-medium text-gray-900">
                 Requested Financing Amount (SAR) *
               </label>
               <div className="mt-2">
-                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                <div className="flex items-center rounded-md bg-white pl-2 sm:pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
                   <input
                     id="requestedFinancingAmount"
                     name="requestedFinancingAmount"
@@ -442,7 +374,7 @@ export function PosApplication({ user, onSuccess}) {
                     step="0.01"
                     value={requestedFinancingAmount}
                     onChange={(e) => setRequestedFinancingAmount(e.target.value)}
-                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-2 sm:pr-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                     placeholder="e.g., 100000.00"
                   />
                 </div>
@@ -450,11 +382,11 @@ export function PosApplication({ user, onSuccess}) {
             </div>
 
             <div>
-              <label htmlFor="preferredRepaymentPeriod" className="block text-sm font-medium text-gray-900">
+              <label htmlFor="preferredRepaymentPeriod" className="block text-xs sm:text-sm font-medium text-gray-900">
                 Preferred Repayment Period (months)
               </label>
               <div className="mt-2">
-                <div className="flex items-center rounded-md bg-white pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
+                <div className="flex items-center rounded-md bg-white pl-2 sm:pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
                   <input
                     id="preferredRepaymentPeriod"
                     name="preferredRepaymentPeriod"
@@ -463,7 +395,7 @@ export function PosApplication({ user, onSuccess}) {
                     max="120"
                     value={preferredRepaymentPeriod}
                     onChange={(e) => setPreferredRepaymentPeriod(e.target.value)}
-                    className="block min-w-0 grow bg-white py-1.5 pl-1 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-2 sm:pr-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                     placeholder="e.g., 24 (optional)"
                   />
                 </div>
@@ -472,7 +404,7 @@ export function PosApplication({ user, onSuccess}) {
 
             {/* Notes */}
             <div className="lg:col-span-2">
-              <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
+              <label htmlFor="notes" className="block text-xs sm:text-sm font-medium text-gray-900">
                 {t('pos.notes')}
               </label>
               <div className="mt-2">
@@ -482,20 +414,20 @@ export function PosApplication({ user, onSuccess}) {
                   rows={4}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline outline-1 outline-gray-300 placeholder:text-gray-400 focus:outline-indigo-600"
+                  className="block w-full rounded-md bg-white px-2 sm:px-3 py-2 sm:py-1.5 text-xs sm:text-sm text-gray-900 outline outline-1 outline-gray-300 placeholder:text-gray-400 focus:outline-indigo-600"
                 />
               </div>
             </div>
 
             {/* Upload */}
             <div className="lg:col-span-2">
-              <label htmlFor="file-upload" className="block text-sm font-medium text-gray-900">
+              <label htmlFor="file-upload" className="block text-xs sm:text-sm font-medium text-gray-900">
                 {t('pos.uploadDocument')}
               </label>
-              <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
+              <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-3 sm:px-6 py-6 sm:py-10">
                 <div className="text-center">
-                  <PhotoIcon className="mx-auto h-12 w-12 text-gray-300" aria-hidden="true"/>
-                  <div className="mt-4 flex text-sm text-gray-600">
+                  <PhotoIcon className="mx-auto h-8 w-8 sm:h-12 sm:w-12 text-gray-300" aria-hidden="true"/>
+                  <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row text-xs sm:text-sm text-gray-600">
                     <label
                       htmlFor="file-upload"
                       className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 hover:text-indigo-500"
@@ -510,38 +442,38 @@ export function PosApplication({ user, onSuccess}) {
                         onChange={handleFileUpload}
                       />
                     </label>
-                    <p className="pl-1">{t('pos.orDragAndDrop')}</p>
+                    <p className="pl-0 sm:pl-1 mt-1 sm:mt-0">{t('pos.orDragAndDrop')}</p>
                   </div>
                   <p className="text-xs text-gray-600">{t('pos.fileTypes')}</p>
                 </div>
               </div>
               {uploadedFile && (
                 <div className="mt-4 text-sm text-gray-700">
-                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-green-50 border border-green-200 rounded-lg p-3 space-y-3 sm:space-y-0">
                     <div className="flex items-center space-x-3">
                       <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                       </div>
                       <div>
-                        <p className="font-medium text-green-800">{uploadedFile.name}</p>
-                        <p className="text-green-600">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <p className="text-xs sm:text-sm font-medium text-green-800">{uploadedFile.name}</p>
+                        <p className="text-xs sm:text-sm text-green-600">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                       <a
                         href={URL.createObjectURL(uploadedFile)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                        className="text-indigo-600 hover:text-indigo-800 text-xs sm:text-sm font-medium"
                       >
                         {t('pos.previewFile')}
                       </a>
                       <button
                         type="button"
                         onClick={clearUploadedFile}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        className="text-red-600 hover:text-red-800 text-xs sm:text-sm font-medium"
                       >
                         Remove
                       </button>
@@ -553,14 +485,14 @@ export function PosApplication({ user, onSuccess}) {
           </div>
 
           {/* Form Footer */}
-          <div className="flex flex-col sm:flex-row items-center justify-end gap-3 sm:gap-6 border-t border-slate-200 pt-4 sm:pt-6 mt-4 sm:mt-6">
-            <button type="button" className="w-full sm:w-auto text-sm font-semibold text-slate-600 hover:text-slate-900 py-2 px-4">
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-3 sm:gap-6 border-t border-slate-200 pt-3 sm:pt-6 mt-3 sm:mt-6">
+            <button type="button" className="w-full sm:w-auto text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 py-2 px-4">
               {t('common.reset')}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`w-full sm:w-auto rounded-lg px-6 py-3 sm:py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all duration-200 ${
+              className={`w-full sm:w-auto rounded-lg px-4 sm:px-6 py-3 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all duration-200 ${
                 isSubmitting 
                   ? 'bg-gray-400 cursor-not-allowed' 
                   : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
@@ -568,7 +500,7 @@ export function PosApplication({ user, onSuccess}) {
             >
               {isSubmitting ? (
                 <div className="flex items-center justify-center space-x-2">
-                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-3 w-3 sm:h-4 sm:w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>

@@ -179,7 +179,7 @@ export default function BoughtLeadsDisplay({ userInfo }) {
                                     <div className="flex items-center space-x-3">
                                         <BuildingOfficeIcon className="h-5 w-5 text-gray-400" />
                                         <h4 className="text-lg font-medium text-gray-900">
-                                            {lead.trade_name}
+                                            {lead.trade_name || 'N/A'}
                                         </h4>
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusInfo(lead.status).color}`}>
                                             {getStatusInfo(lead.status).icon} {getStatusInfo(lead.status).label}

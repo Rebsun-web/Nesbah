@@ -26,7 +26,7 @@ export default function AdminApplicationsPage() {
                 
                 <main className="flex-1 p-8">
                     <div className="px-8 lg:px-12">
-                        <div className="mx-auto max-w-7xl">
+                        <div className="w-full">
                             <div className="bg-white rounded-lg shadow-lg p-8">
                                 <div className="mb-8">
                                     <h1 className="text-3xl font-bold text-gray-900">

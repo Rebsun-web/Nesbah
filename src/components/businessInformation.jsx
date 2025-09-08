@@ -231,53 +231,35 @@ export function BusinessInformation({ businessInfo }) {
     <div className="w-full">
       <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 sm:px-8 py-4 sm:py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
-                <BuildingOfficeIcon className="h-7 w-7 text-white" />
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-white/10">
+                <BuildingOfficeIcon className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
               </div>
-                              <div>
-                  <h1 className="text-2xl font-bold text-white">{t('business.yourInformation')}</h1>
-                  <p className="text-indigo-100">{t('business.reviewInformation')}</p>
-                </div>
+              <div>
+                <h1 className="text-lg sm:text-2xl font-bold text-white">{t('business.yourInformation')}</h1>
+                <p className="text-sm sm:text-base text-indigo-100">{t('business.reviewInformation')}</p>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-                className="sm:hidden inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-lg hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
-        >
-          {isOpen ? (
-            <>
-                    <ChevronUpIcon className="h-4 w-4 mr-2" />
-                    Hide
-            </>
-          ) : (
-            <>
-                    <ChevronDownIcon className="h-4 w-4 mr-2" />
-                    Show
-            </>
-          )}
-        </button>
-      </div>
           </div>
-          </div>
+        </div>
 
         {/* Status Bar */}
-        <div className="px-8 py-4 bg-slate-50 border-b border-slate-200">
+        <div className="px-4 sm:px-8 py-3 sm:py-4 bg-slate-50 border-b border-slate-200">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-600">
+            <p className="text-xs sm:text-sm text-slate-600">
               {t('business.informationDisplayedBelow')}
             </p>
           </div>
-          </div>
+        </div>
 
         {/* Content */}
-        <div className="px-8 py-8">
+        <div className="px-4 sm:px-8 py-4 sm:py-8">
           {/* Business Information Section */}
           <div className="mb-8">
-            <h4 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <BuildingOfficeIcon className="h-5 w-5 text-purple-600 mr-3" />
+            <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
+              <BuildingOfficeIcon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mr-2 sm:mr-3" />
               Business Information
             </h4>
             
@@ -285,96 +267,96 @@ export function BusinessInformation({ businessInfo }) {
             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
               <div className="divide-y divide-gray-200">
                 {/* Company Name */}
-                <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                      <BuildingOfficeIcon className="h-4 w-4 text-purple-600" />
+                    <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                      <BuildingOfficeIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">Company Name</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Company Name</span>
                   </div>
-                                          <span className="text-sm text-gray-900 font-semibold">{displayValue(businessInfo?.trade_name)}</span>
+                  <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{displayValue(businessInfo?.trade_name)}</span>
                 </div>
 
                 {/* CR National Number */}
-                <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                      <DocumentTextIcon className="h-4 w-4 text-purple-600" />
+                    <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                      <DocumentTextIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">CR National Number</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">CR National Number</span>
                   </div>
-                                          <span className="text-sm text-gray-900 font-semibold">{displayValue(businessInfo?.cr_national_number)}</span>
+                  <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{displayValue(businessInfo?.cr_national_number)}</span>
                 </div>
 
                 {/* CR Number */}
-                <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                      <DocumentTextIcon className="h-4 w-4 text-purple-600" />
+                    <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                      <DocumentTextIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">CR Number</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">CR Number</span>
                   </div>
-                    <span className="text-sm text-gray-900 font-semibold">{displayValue(businessInfo?.cr_number)}</span>
+                  <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{displayValue(businessInfo?.cr_number)}</span>
                 </div>
 
                 {/* Registration Status */}
-                <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                      <InformationCircleIcon className="h-4 w-4 text-purple-600" />
+                    <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                      <InformationCircleIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">Registration Status</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Registration Status</span>
                   </div>
-                                          <span className="text-sm text-gray-900 font-semibold capitalize">{displayValue(businessInfo?.registration_status)}</span>
+                  <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0 capitalize">{displayValue(businessInfo?.registration_status)}</span>
                 </div>
 
                 {/* Headquarters City */}
-                <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                      <MapPinIcon className="h-4 w-4 text-purple-600" />
+                    <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                      <MapPinIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">Headquarters City</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Headquarters City</span>
                   </div>
-                  <span className="text-sm text-gray-900 font-semibold">{displayValue(businessInfo.address)}</span>
+                  <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{displayValue(businessInfo.address)}</span>
                 </div>
 
                 {/* Legal Form */}
-                <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                      <DocumentTextIcon className="h-4 w-4 text-purple-600" />
+                    <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                      <DocumentTextIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">Legal Form</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Legal Form</span>
                   </div>
-                                          <span className="text-sm text-gray-900 font-semibold">{displayValue(businessInfo?.legal_form)}</span>
+                  <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{displayValue(businessInfo?.legal_form)}</span>
                 </div>
 
                 {/* E-commerce Status */}
-                <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                      <GlobeAltIcon className="h-4 w-4 text-purple-600" />
+                    <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                      <GlobeAltIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">E-commerce Activities</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">E-commerce Activities</span>
                   </div>
-                  <span className="text-sm text-gray-900 font-semibold">
-                                          {businessInfo?.has_ecommerce !== undefined ? (businessInfo?.has_ecommerce ? 'Yes' : 'No') : displayValue(businessInfo?.has_ecommerce, 'Not Provided')}
+                  <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
+                    {businessInfo?.has_ecommerce !== undefined ? (businessInfo?.has_ecommerce ? 'Yes' : 'No') : displayValue(businessInfo?.has_ecommerce, 'Not Provided')}
                   </span>
                 </div>
 
                 {/* Store URL */}
-                <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                      <GlobeAltIcon className="h-4 w-4 text-purple-600" />
+                    <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                      <GlobeAltIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">E-commerce Store</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">E-commerce Store</span>
                   </div>
-                  <div className="text-sm text-gray-900 font-semibold">
+                  <div className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
                     {businessInfo?.store_url ? (
                       <a href={businessInfo?.store_url} target="_blank" rel="noopener noreferrer" 
-                         className="hover:underline text-purple-600">
+                         className="hover:underline text-purple-600 break-all">
                         {businessInfo?.store_url}
                       </a>
                     ) : (
@@ -387,48 +369,48 @@ export function BusinessInformation({ businessInfo }) {
 
             {/* Financial Information */}
             <div className="mt-8">
-              <h5 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                <CurrencyDollarIcon className="h-5 w-5 text-purple-600 mr-3" />
+              <h5 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
+                <CurrencyDollarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mr-2 sm:mr-3" />
                 Financial Information
               </h5>
               
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                 <div className="divide-y divide-gray-200">
                   {/* CR Capital */}
-                  <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                        <CurrencyDollarIcon className="h-4 w-4 text-purple-600" />
+                      <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                        <CurrencyDollarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                       </div>
-                      <span className="text-sm font-medium text-gray-700">CR Capital</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">CR Capital</span>
                     </div>
-                    <span className="text-sm text-gray-900 font-semibold">
+                    <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
                       {businessInfo?.cr_capital ? `${formatMoney(businessInfo?.cr_capital)} SAR` : displayValue(businessInfo?.cr_capital, 'Not Provided')}
                     </span>
                   </div>
 
                   {/* Cash Capital */}
-                  <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                        <CurrencyDollarIcon className="h-4 w-4 text-purple-600" />
+                      <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                        <CurrencyDollarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                       </div>
-                      <span className="text-sm font-medium text-gray-700">Cash Capital</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">Cash Capital</span>
                     </div>
-                    <span className="text-sm text-gray-900 font-semibold">
+                    <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
                       {businessInfo?.cash_capital ? `${formatMoney(businessInfo?.cash_capital)} SAR` : displayValue(businessInfo?.cash_capital, 'Not Provided')}
                     </span>
                   </div>
 
                   {/* In-Kind Capital */}
-                  <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                        <CurrencyDollarIcon className="h-4 w-4 text-purple-600" />
+                      <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                        <CurrencyDollarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                       </div>
-                      <span className="text-sm font-medium text-gray-700">In-Kind Capital</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">In-Kind Capital</span>
                     </div>
-                    <span className="text-sm text-gray-900 font-semibold">
+                    <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
                       {businessInfo?.in_kind_capital ? `${formatMoney(businessInfo?.in_kind_capital)} SAR` : displayValue(businessInfo?.in_kind_capital, 'Not Provided')}
                     </span>
                   </div>
@@ -438,34 +420,34 @@ export function BusinessInformation({ businessInfo }) {
 
             {/* Dates Information */}
             <div className="mt-8">
-              <h5 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                <DocumentTextIcon className="h-5 w-5 text-purple-600 mr-3" />
+              <h5 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
+                <DocumentTextIcon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mr-2 sm:mr-3" />
                 Important Dates
               </h5>
               
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                 <div className="divide-y divide-gray-200">
                                       {businessInfo?.issue_date_gregorian && (
-                      <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                         <div className="flex items-center space-x-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                            <DocumentTextIcon className="h-4 w-4 text-purple-600" />
+                          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                            <DocumentTextIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                           </div>
-                          <span className="text-sm font-medium text-gray-700">Issue Date</span>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">Issue Date</span>
                         </div>
-                        <span className="text-sm text-gray-900 font-semibold">{businessInfo?.issue_date_gregorian}</span>
+                        <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{businessInfo?.issue_date_gregorian}</span>
                       </div>
                     )}
 
                                       {businessInfo?.confirmation_date_gregorian && (
-                      <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                         <div className="flex items-center space-x-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                            <DocumentTextIcon className="h-4 w-4 text-purple-600" />
+                          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                            <DocumentTextIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                           </div>
-                          <span className="text-sm font-medium text-gray-700">Confirmation Date</span>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">Confirmation Date</span>
                         </div>
-                        <span className="text-sm text-gray-900 font-semibold">{businessInfo?.confirmation_date_gregorian}</span>
+                        <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{businessInfo?.confirmation_date_gregorian}</span>
                       </div>
                     )}
                 </div>
@@ -475,42 +457,55 @@ export function BusinessInformation({ businessInfo }) {
             {/* Business Activities */}
             {businessInfo?.sector && (
               <div className="mt-8">
-                <h5 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                  <BuildingOfficeIcon className="h-5 w-5 text-purple-600 mr-3" />
+                <h5 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
+                  <BuildingOfficeIcon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mr-2 sm:mr-3" />
                   Business Activities
                 </h5>
                 
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
                   <div className="space-y-3">
                     {(() => {
-                      // Split activities by comma and clean them up
-                      const activities = businessInfo?.sector
-                        .split(',')
-                        .map(activity => activity.trim())
-                        .filter(activity => activity.length > 0)
-                        .map(activity => {
-                          // Clean up common formatting issues
-                          let cleaned = activity
-                            .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-                            .replace(/^and\s+/i, '') // Remove leading "and"
-                            .replace(/^,\s*/, '') // Remove leading comma
-                            .replace(/,\s*$/, ''); // Remove trailing comma
-                          
-                          // Capitalize first letter of each word
-                          cleaned = cleaned.replace(/\b\w/g, l => l.toUpperCase());
-                          
-                          return cleaned;
-                        });
+                      try {
+                        // Safely handle sector field
+                        const sector = businessInfo?.sector;
+                        if (!sector || typeof sector !== 'string') {
+                          return <span className="text-gray-500 italic">Not Provided</span>;
+                        }
 
-                      // Display each activity on a new line
-                      return activities.map((activity, index) => (
-                        <div key={index} className="flex items-start space-x-3">
-                          <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
-                          <span className="text-sm text-gray-700 leading-relaxed">
-                            {activity}
-                          </span>
-                        </div>
-                      ));
+                        // Split activities by comma and clean them up
+                        const activities = sector
+                          .split(',')
+                          .map(activity => activity.trim())
+                          .filter(activity => activity.length > 0)
+                          .map(activity => {
+                            // Clean up common formatting issues
+                            let cleaned = activity
+                              .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                              .replace(/^and\s+/i, '') // Remove leading "and"
+                              .replace(/^,\s*/, '') // Remove leading comma
+                              .replace(/,\s*$/, ''); // Remove trailing comma
+                            
+                            // Capitalize first letter of each word (only for English text)
+                            if (/^[a-zA-Z\s]+$/.test(cleaned)) {
+                              cleaned = cleaned.replace(/\b\w/g, l => l.toUpperCase());
+                            }
+                            
+                            return cleaned;
+                          });
+
+                        // Display each activity on a new line
+                        return activities.map((activity, index) => (
+                          <div key={index} className="flex items-start space-x-3">
+                            <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
+                            <span className="text-sm text-gray-700 leading-relaxed">
+                              {activity || 'N/A'}
+                            </span>
+                          </div>
+                        ));
+                      } catch (error) {
+                        console.error('Error processing sector:', error);
+                        return <span className="text-gray-500 italic">Error loading activities</span>;
+                      }
                     })()}
                   </div>
                 </div>
@@ -519,55 +514,67 @@ export function BusinessInformation({ businessInfo }) {
 
             {/* Management Structure */}
             <div className="mt-8">
-              <h5 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                <UserIcon className="h-5 w-5 text-purple-600 mr-3" />
+              <h5 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
+                <UserIcon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mr-2 sm:mr-3" />
                 Management Structure
               </h5>
               
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                 <div className="divide-y divide-gray-200">
-                  <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                        <UserIcon className="h-4 w-4 text-purple-600" />
+                      <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                        <UserIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                       </div>
-                      <span className="text-sm font-medium text-gray-700">Management Structure</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">Management Structure</span>
                     </div>
-                    <span className="text-sm text-gray-900 font-semibold">
+                    <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
                       {displayValue(businessInfo?.management_structure)}
                     </span>
                   </div>
 
                   {/* Management Team */}
-                  <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                        <UserIcon className="h-4 w-4 text-purple-600" />
+                      <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                        <UserIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                       </div>
-                      <span className="text-sm font-medium text-gray-700">Management Team Members</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">Management Team Members</span>
                     </div>
-                    <div className="text-sm text-gray-900 font-semibold text-right max-w-xs">
-                      {businessInfo?.management_managers ? (() => {
+                    <div className="text-xs sm:text-sm text-gray-900 font-semibold text-left sm:text-right max-w-xs ml-9 sm:ml-0">
+                      {(() => {
                         try {
-                          const managers = typeof businessInfo?.management_managers === 'string' 
-                            ? JSON.parse(businessInfo?.management_managers) 
-                            : businessInfo?.management_managers;
+                          const managers = businessInfo?.management_managers;
+                          if (!managers) {
+                            return <span className="text-gray-500 italic">Not Provided</span>;
+                          }
+
+                          let parsedManagers;
+                          if (typeof managers === 'string') {
+                            try {
+                              parsedManagers = JSON.parse(managers);
+                            } catch {
+                              parsedManagers = [managers];
+                            }
+                          } else {
+                            parsedManagers = managers;
+                          }
                           
-                          if (Array.isArray(managers) && managers.length > 0) {
-                            return managers.map((manager, index) => (
+                          if (Array.isArray(parsedManagers) && parsedManagers.length > 0) {
+                            return parsedManagers.map((manager, index) => (
                               <span key={index} className="block">
-                                {typeof manager === 'object' ? manager.name : manager}
+                                {typeof manager === 'object' ? (manager.name || 'N/A') : (manager || 'N/A')}
                               </span>
                             ));
-                          } else if (typeof managers === 'string' && managers.trim()) {
-                            return <span>{managers}</span>;
+                          } else if (typeof parsedManagers === 'string' && parsedManagers.trim()) {
+                            return <span>{parsedManagers}</span>;
                           }
-                          return displayValue(businessInfo?.management_managers, 'Not Provided');
+                          return <span className="text-gray-500 italic">Not Provided</span>;
                         } catch (error) {
                           console.error('Error parsing management_managers:', error);
-                          return displayValue(businessInfo?.management_managers, 'Not Provided');
+                          return <span className="text-gray-500 italic">Error loading managers</span>;
                         }
-                      })() : displayValue(businessInfo?.management_managers, 'Not Provided')}
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -577,14 +584,14 @@ export function BusinessInformation({ businessInfo }) {
 
 
           {/* Footer Note */}
-          <div className="pt-8 border-t border-gray-200">
-            <div className="flex items-start space-x-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                <ExclamationTriangleIcon className="h-4 w-4 text-purple-600" />
+          <div className="pt-6 sm:pt-8 border-t border-gray-200">
+            <div className="flex items-start space-x-3 sm:space-x-4">
+              <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                <ExclamationTriangleIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
               </div>
               <div>
-                <h4 className="text-base font-semibold text-gray-900 mb-2">{t('business.needToUpdateInformation')}</h4>
-                <p className="text-sm text-gray-600">
+                <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 sm:mb-2">{t('business.needToUpdateInformation')}</h4>
+                <p className="text-xs sm:text-sm text-gray-600">
                   {t('business.wrongInformationContact')}
                 </p>
               </div>

@@ -173,31 +173,31 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
         <div className="w-full">
             <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
-                    <div className="flex items-center justify-between">
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 sm:px-8 py-4 sm:py-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                         <div className="flex items-center space-x-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
-                                <BanknotesIcon className="h-7 w-7 text-white" />
+                            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-white/10">
+                                <BanknotesIcon className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-white">{t('offers.bankOffersReceived')}</h1>
-                                <p className="text-indigo-100">{t('offers.compareOffers')}</p>
+                                <h1 className="text-lg sm:text-2xl font-bold text-white">{t('offers.bankOffersReceived')}</h1>
+                                <p className="text-sm sm:text-base text-indigo-100">{t('offers.compareOffers')}</p>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                             <button
                                 onClick={fetchOffers}
-                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-lg hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
+                                className="inline-flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-white/10 rounded-lg hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
                             >
-                                <ClockIcon className="h-4 w-4 mr-2" />
+                                <ClockIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                                 {t('common.refresh')}
                             </button>
                             <div className="flex items-center space-x-2">
-                                <span className="inline-flex items-center rounded-full bg-green-400 px-3 py-1 text-sm font-medium text-white">
+                                <span className="inline-flex items-center rounded-full bg-green-400 px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-white">
                                     {offers.length} {offers.length === 1 ? t('offers.offer') : t('offers.offers')}
                                 </span>
                                 {applicationStatus === 'live_auction' && (
-                                    <span className="inline-flex items-center rounded-full bg-yellow-400 px-3 py-1 text-sm font-medium text-yellow-900">
+                                    <span className="inline-flex items-center rounded-full bg-yellow-400 px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-yellow-900">
                                         {t('offers.liveAuction')}
                                     </span>
                                 )}
@@ -207,9 +207,9 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                 </div>
 
                 {/* Status Bar */}
-                <div className="px-8 py-4 bg-slate-50 border-b border-slate-200">
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm text-slate-600">
+                <div className="px-4 sm:px-8 py-3 sm:py-4 bg-slate-50 border-b border-slate-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-1 sm:space-y-0">
+                        <p className="text-xs sm:text-sm text-slate-600">
                             {applicationStatus === 'live_auction' 
                                 ? t('offers.liveAuctionDescription')
                                 : t('offers.reviewOffersDescription')
@@ -224,36 +224,33 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                 </div>
 
                 {/* Offers Content */}
-                <div className="px-8 py-6">
-                    <div className="space-y-6">
-                        {currentOffers.map((offer, index) => (
+                <div className="px-4 sm:px-8 py-4 sm:py-6">
+                    <div className="space-y-4 sm:space-y-6">
+                        {currentOffers && Array.isArray(currentOffers) ? currentOffers.map((offer, index) => {
+                            try {
+                                return (
                             <div key={index} className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300">
                                 {/* Offer Header */}
-                                <div className="px-6 py-4 border-b border-slate-100">
-                                    <div className="flex items-start justify-between">
+                                <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100">
+                                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
                                         <div className="flex items-center space-x-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-                                                <CheckCircleIcon className="h-6 w-6 text-green-600" />
+                                            <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-green-100">
+                                                <CheckCircleIcon className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
                                             </div>
                                             <div>
-                                                <h3 className="text-lg font-bold text-slate-900">
+                                                <h3 className="text-base sm:text-lg font-bold text-slate-900">
                                                     {offer.bank_name || t('offers.bankOffer')}
                                                 </h3>
-                                                <div className="flex items-center space-x-3 mt-1">
-                                                    <span className="text-sm text-slate-500">
+                                                <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3 mt-1">
+                                                    <span className="text-xs sm:text-sm text-slate-500">
                                                         {t('offers.submitted')}: {new Date(offer.submitted_at).toLocaleDateString()}
                                                     </span>
-                                                    {offer.offer_validity_days && (
-                                                        <span className="text-sm text-slate-500">
-                                                            {t('offers.validFor')}: {offer.offer_validity_days} {t('offers.days')}
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-3">
                                             {offer.is_featured && (
-                                                <span className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800">
+                                                <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 sm:px-3 py-1 text-xs font-medium text-yellow-800">
                                                     ⭐ {t('offers.featured')}
                                                 </span>
                                             )}
@@ -262,24 +259,24 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                                 </div>
 
                                 {/* Financing Terms - Required Fields Only */}
-                                <div className="px-6 py-6 bg-white">
-                                    <h4 className="text-lg font-semibold text-black mb-6 flex items-center">
-                                        <svg className="h-5 w-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="px-4 sm:px-6 py-4 sm:py-6 bg-white">
+                                    <h4 className="text-base sm:text-lg font-semibold text-black mb-4 sm:mb-6 flex items-center">
+                                        <svg className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                         </svg>
                                         Required Financing Fields
                                     </h4>
-                                    <div className="space-y-4">
+                                    <div className="space-y-3 sm:space-y-4">
                                         {/* Approved Financing Amount */}
-                                        <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                                                <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 bg-white rounded-lg border border-gray-200">
+                                            <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-purple-100">
+                                                <svg className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-sm font-medium text-gray-600">Approved Financing Amount (SAR)</div>
-                                                <div className="text-lg font-semibold text-black">
+                                                <div className="text-xs sm:text-sm font-medium text-gray-600">Approved Financing Amount (SAR)</div>
+                                                <div className="text-base sm:text-lg font-semibold text-black">
                                                     {offer.approved_financing_amount ? 
                                                         `SAR ${parseFloat(offer.approved_financing_amount).toLocaleString()}` : 
                                                         'SAR 0'
@@ -289,15 +286,15 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                                         </div>
                                         
                                         {/* Repayment Period */}
-                                        <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                                                <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 bg-white rounded-lg border border-gray-200">
+                                            <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-purple-100">
+                                                <svg className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-sm font-medium text-gray-600">Proposed Repayment Period (months)</div>
-                                                <div className="text-lg font-semibold text-black">
+                                                <div className="text-xs sm:text-sm font-medium text-gray-600">Proposed Repayment Period (months)</div>
+                                                <div className="text-base sm:text-lg font-semibold text-black">
                                                     {offer.proposed_repayment_period_months ? 
                                                         `${offer.proposed_repayment_period_months} months` : 
                                                         'N/A'
@@ -307,15 +304,15 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                                         </div>
                                         
                                         {/* Interest Rate */}
-                                        <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                                                <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 bg-white rounded-lg border border-gray-200">
+                                            <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-purple-100">
+                                                <svg className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-sm font-medium text-gray-600">Interest/Profit Rate (%)</div>
-                                                <div className="text-lg font-semibold text-black">
+                                                <div className="text-xs sm:text-sm font-medium text-gray-600">Interest/Profit Rate (%)</div>
+                                                <div className="text-base sm:text-lg font-semibold text-black">
                                                     {offer.interest_rate ? 
                                                         `${offer.interest_rate}%` : 
                                                         '0.00%'
@@ -325,15 +322,15 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                                         </div>
                                         
                                         {/* Monthly Installment */}
-                                        <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                                                <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 bg-white rounded-lg border border-gray-200">
+                                            <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-purple-100">
+                                                <svg className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-sm font-medium text-gray-600">Monthly Installment (SAR)</div>
-                                                <div className="text-lg font-semibold text-black">
+                                                <div className="text-xs sm:text-sm font-medium text-gray-600">Monthly Installment (SAR)</div>
+                                                <div className="text-base sm:text-lg font-semibold text-black">
                                                     {offer.monthly_installment_amount ? 
                                                         `SAR ${parseFloat(offer.monthly_installment_amount).toLocaleString()}` : 
                                                         'SAR 0'
@@ -343,15 +340,15 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                                         </div>
                                         
                                         {/* Grace Period */}
-                                        <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                                                <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 bg-white rounded-lg border border-gray-200">
+                                            <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-purple-100">
+                                                <svg className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-sm font-medium text-gray-600">Grace Period (optional)</div>
-                                                <div className="text-lg font-semibold text-black">
+                                                <div className="text-xs sm:text-sm font-medium text-gray-600">Grace Period (optional)</div>
+                                                <div className="text-base sm:text-lg font-semibold text-black">
                                                     {offer.grace_period_months && offer.grace_period_months > 0 ? 
                                                         `${offer.grace_period_months} months` : 
                                                         'Not applicable'
@@ -361,44 +358,44 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                                         </div>
                                         
                                         {/* Relationship Manager */}
-                                        <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                                                <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 bg-white rounded-lg border border-gray-200">
+                                            <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-purple-100">
+                                                <svg className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-sm font-medium text-gray-600">Relationship Manager Contact</div>
-                                                <div className="text-lg font-semibold text-black mb-1">
+                                                <div className="text-xs sm:text-sm font-medium text-gray-600">Relationship Manager Contact</div>
+                                                <div className="text-base sm:text-lg font-semibold text-black mb-1">
                                                     {offer.relationship_manager_name || offer.bank_contact_person || 'N/A'}
                                                 </div>
                                                 {offer.relationship_manager_phone && (
-                                                    <div className="text-sm text-gray-600">📞 {offer.relationship_manager_phone}</div>
+                                                    <div className="text-xs sm:text-sm text-gray-600">📞 {offer.relationship_manager_phone}</div>
                                                 )}
                                                 {offer.relationship_manager_email && (
-                                                    <div className="text-sm text-gray-600">✉️ {offer.relationship_manager_email}</div>
+                                                    <div className="text-xs sm:text-sm text-gray-600">✉️ {offer.relationship_manager_email}</div>
                                                 )}
                                             </div>
                                         </div>
 
                                         {/* Document Upload */}
-                                        <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                                                <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 bg-white rounded-lg border border-gray-200">
+                                            <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-purple-100">
+                                                <svg className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                 </svg>
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-sm font-medium text-gray-600">Supporting Documents</div>
-                                                <div className="text-lg font-semibold text-black">
+                                                <div className="text-xs sm:text-sm font-medium text-gray-600">Supporting Documents</div>
+                                                <div className="text-base sm:text-lg font-semibold text-black">
                                                     {offer.uploaded_filename ? (
                                                         <div className="space-y-2">
                                                             <div className="flex items-center space-x-2">
-                                                                <span className="text-sm text-gray-700">{offer.uploaded_filename}</span>
+                                                                <span className="text-xs sm:text-sm text-gray-700">{offer.uploaded_filename}</span>
                                                             </div>
                                                             <button 
                                                                 onClick={() => window.open(`/api/offers/${offer.offer_id}/document`, '_blank')}
-                                                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                                                                className="inline-flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
                                                             >
                                                                 Download
                                                             </button>
@@ -412,23 +409,32 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                                );
+                            } catch (error) {
+                                console.error('Error rendering offer:', error);
+                                return (
+                                    <div key={index} className="border border-red-200 rounded-lg overflow-hidden bg-red-50 p-4">
+                                        <p className="text-red-600">Error loading offer data</p>
+                                    </div>
+                                );
+                            }
+                        }) : <div className="text-center text-gray-500 py-8">No offers available</div>}
                     </div>
 
                     {/* Pagination */}
                     {totalPages > 1 && (
-                        <div className="mt-6 pt-6 border-t border-slate-200">
-                            <div className="flex items-center justify-between">
-                                <div className="text-sm text-slate-600">
+                        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-slate-200">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                                <div className="text-xs sm:text-sm text-slate-600">
                                     {t('offers.showing')} {indexOfFirstOffer + 1} {t('offers.to')} {Math.min(indexOfLastOffer, offers.length)} {t('offers.of')} {offers.length} {offers.length === 1 ? t('offers.offer') : t('offers.offers')}
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <button
                                         onClick={() => handlePageChange(currentPage - 1)}
                                         disabled={currentPage === 1}
-                                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                        className="inline-flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                                     >
-                                        <ChevronLeftIcon className="h-4 w-4" />
+                                        <ChevronLeftIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                                         {t('common.previous')}
                                     </button>
                                     
@@ -437,7 +443,7 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                                             <button
                                                 key={page}
                                                 onClick={() => handlePageChange(page)}
-                                                className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                                className={`inline-flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 ${
                                                     currentPage === page
                                                         ? 'bg-indigo-600 text-white'
                                                         : 'text-slate-500 bg-white border border-slate-300 hover:bg-slate-50'
@@ -451,10 +457,10 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                                     <button
                                         onClick={() => handlePageChange(currentPage + 1)}
                                         disabled={currentPage === totalPages}
-                                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                        className="inline-flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                                     >
                                         {t('common.next')}
-                                        <ChevronRightIcon className="h-4 w-4" />
+                                        <ChevronRightIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                                     </button>
                                 </div>
                             </div>
@@ -463,14 +469,14 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                 </div>
 
                 {/* Footer Note */}
-                <div className="px-8 py-6 bg-slate-50 border-t border-slate-200">
+                <div className="px-4 sm:px-8 py-4 sm:py-6 bg-slate-50 border-t border-slate-200">
                     <div className="flex items-start space-x-3">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-100 flex-shrink-0">
+                        <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-lg bg-blue-100 flex-shrink-0">
                             <DocumentIcon className="h-3 w-3 text-blue-600" />
                         </div>
                         <div>
-                            <h4 className="text-sm font-semibold text-slate-900 mb-1">{t('offers.nextSteps')}</h4>
-                            <p className="text-sm text-slate-600">
+                            <h4 className="text-xs sm:text-sm font-semibold text-slate-900 mb-1">{t('offers.nextSteps')}</h4>
+                            <p className="text-xs sm:text-sm text-slate-600">
                                 {t('offers.nextStepsDescription')}
                             </p>
                         </div>

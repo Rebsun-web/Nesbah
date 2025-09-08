@@ -224,7 +224,7 @@ export default function AdminBankOffersPage() {
         <div className="min-h-screen bg-gray-50">
             <AdminNavbar />
             
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
                 {/* Header */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
                     <div className="flex items-center justify-between">

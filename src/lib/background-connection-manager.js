@@ -170,6 +170,11 @@ class BackgroundConnectionManager {
         return cleanedCount
     }
 
+    // Release all connections (alias for emergencyCleanup for compatibility)
+    async releaseAllConnections() {
+        return await this.emergencyCleanup()
+    }
+
     // Health check
     async healthCheck() {
         try {

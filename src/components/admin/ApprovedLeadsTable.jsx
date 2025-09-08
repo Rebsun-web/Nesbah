@@ -257,7 +257,7 @@ export default function ApprovedLeadsTable() {
                                                         #{lead.application_id}
                                                     </div>
                                                     <div className="text-sm text-gray-500">
-                                                        {lead.trade_name}
+                                                        {lead.trade_name || 'N/A'}
                                                     </div>
                                                     <div className="text-xs text-gray-400">
                                                         {lead.city}

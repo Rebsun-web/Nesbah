@@ -116,18 +116,18 @@ function OffersPage() {
 
     if (isLoading || isLoadingAppData) {
         return (
-            <div>
+            <div className="min-h-screen flex flex-col">
                 <BusinessNavbar />
-                <main className="pb-16">
+                <main className="flex-1">
                     <Container/>
                     <div className="min-h-full">
                         <div className="pt-5">
                             <main>
-                                <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                                    <div className="flex items-center justify-center min-h-64">
+                                <div className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
+                                    <div className="flex items-center justify-center min-h-48 sm:min-h-64">
                                         <div className="text-center">
-                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                                            <p className="mt-4 text-gray-600">Loading offers...</p>
+                                            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto"></div>
+                                            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">Loading offers...</p>
                                         </div>
                                     </div>
                                 </div>
@@ -143,18 +143,18 @@ function OffersPage() {
     // Don't render the main content until we have both userInfo and application data
     if (!userInfo || !userInfo.user_id) {
         return (
-            <div>
+            <div className="min-h-screen flex flex-col">
                 <BusinessNavbar />
-                <main className="pb-16">
+                <main className="flex-1">
                     <Container/>
                     <div className="min-h-full">
                         <div className="pt-5">
                             <main>
-                                <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                                    <div className="flex items-center justify-center min-h-64">
+                                <div className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
+                                    <div className="flex items-center justify-center min-h-48 sm:min-h-64">
                                         <div className="text-center">
-                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                                            <p className="mt-4 text-gray-600">Loading user information...</p>
+                                            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto"></div>
+                                            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">Loading user information...</p>
                                         </div>
                                     </div>
                                 </div>
@@ -169,26 +169,26 @@ function OffersPage() {
 
     if (error) {
         return (
-            <div>
+            <div className="min-h-screen flex flex-col">
                 <BusinessNavbar />
-                <main className="pb-16">
+                <main className="flex-1">
                     <Container/>
                     <div className="min-h-full">
                         <div className="pt-5">
                             <main>
-                                <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                                <div className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6">
                                         <div className="text-center">
-                                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
-                                                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div className="mx-auto flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-red-100 mb-3 sm:mb-4">
+                                                <svg className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                                                 </svg>
                                             </div>
-                                            <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Offers</h3>
-                                            <p className="text-red-700 mb-4">{error}</p>
+                                            <h3 className="text-base sm:text-lg font-semibold text-red-900 mb-2">Error Loading Offers</h3>
+                                            <p className="text-sm sm:text-base text-red-700 mb-3 sm:mb-4">{error}</p>
                                             <button
                                                 onClick={() => router.push('/login')}
-                                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                                className="inline-flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                                             >
                                                 Go to Login
                                             </button>
@@ -205,57 +205,43 @@ function OffersPage() {
     }
 
     return (
-        <div>
+        <div className="min-h-screen flex flex-col">
             <BusinessNavbar />
-            <main className="pb-16">
+            <main className="flex-1">
                 <Container/>
                 <div className="min-h-full">
                     <div className="pt-5">
                         <main>
-                            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                            <div className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
                                 {console.log('🔍 Render state:', { hasApplication, isLoadingAppData, userInfo: !!userInfo })}
                                 {hasApplication ? (
                                     <BankOffersDisplay userInfo={userInfo} applicationStatus={applicationStatus} />
                                 ) : isLoadingAppData ? (
                                     <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-                                        <div className="px-8 py-12 text-center">
-                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                                            <p className="mt-4 text-gray-600">Loading application data...</p>
+                                        <div className="px-4 sm:px-8 py-8 sm:py-12 text-center">
+                                            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto"></div>
+                                            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">Loading application data...</p>
                                         </div>
                                     </div>
                                 ) : !isLoadingAppData && userInfo ? (
                                     <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-                                        <div className="px-8 py-12 text-center">
-                                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 mb-6">
-                                                <svg className="h-10 w-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div className="px-4 sm:px-8 py-8 sm:py-12 text-center">
+                                            <div className="mx-auto flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-slate-100 mb-4 sm:mb-6">
+                                                <svg className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                 </svg>
                                             </div>
-                                            <h3 className="text-lg font-semibold text-slate-900 mb-2">No Application Found</h3>
-                                            <p className="text-slate-600 max-w-md mx-auto mb-6">
+                                            <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-2">No Application Found</h3>
+                                            <p className="text-sm sm:text-base text-slate-600 max-w-md mx-auto mb-4 sm:mb-6">
                                                 You need to submit an application first before you can view offers from banks.
                                             </p>
-                                            <div className="space-y-3">
-                                                <a
-                                                    href="/portal"
-                                                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl"
-                                                >
-                                                    Go to Dashboard
-                                                </a>
-                                                <button
-                                                    onClick={() => router.push('/portal')}
-                                                    className="block w-full mt-3 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                                                >
-                                                    Submit New Application
-                                                </button>
-                                            </div>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-                                        <div className="px-8 py-12 text-center">
-                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                                            <p className="mt-4 text-gray-600">Initializing...</p>
+                                        <div className="px-4 sm:px-8 py-8 sm:py-12 text-center">
+                                            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto"></div>
+                                            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">Initializing...</p>
                                         </div>
                                     </div>
                                 )}

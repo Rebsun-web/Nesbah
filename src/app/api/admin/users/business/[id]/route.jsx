@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
+import { cascadeDeleteMultipleApplications } from '@/lib/cascade-deletion';
 import { validateApplicationStatus } from '@/lib/status-validation';
 
 // GET - Get detailed business user information including application contact details
@@ -408,25 +409,9 @@ export async function DELETE(req, { params }) {
             
             if (applicationIds.length > 0) {
                 try {
-                    // Delete application offers
-                    await client.query('DELETE FROM application_offers WHERE submitted_application_id = ANY($1)', [applicationIds]);
-                    console.log(`🗑️ Deleted application offers for ${applicationIds.length} applications`);
-                    
-                    // Delete application offer tracking
-                    await client.query('DELETE FROM application_offer_tracking WHERE application_id = ANY($1)', [applicationIds]);
-                    console.log(`🗑️ Deleted application offer tracking for ${applicationIds.length} applications`);
-                    
-                    // Delete bank application views
-                    await client.query('DELETE FROM bank_application_views WHERE application_id = ANY($1)', [applicationIds]);
-                    console.log(`🗑️ Deleted bank application views for ${applicationIds.length} applications`);
-                    
-                    // Delete bank offer submissions
-                    await client.query('DELETE FROM bank_offer_submissions WHERE application_id = ANY($1)', [applicationIds]);
-                    console.log(`🗑️ Deleted bank offer submissions for ${applicationIds.length} applications`);
-                    
-                    // Delete application revenue
-                    await client.query('DELETE FROM application_revenue WHERE application_id = ANY($1)', [applicationIds]);
-                    console.log(`🗑️ Deleted application revenue for ${applicationIds.length} applications`);
+                    // Use the cascade deletion utility for multiple applications
+                    const deleteResult = await cascadeDeleteMultipleApplications(client, applicationIds);
+                    console.log(`🗑️ Cascade deleted ${applicationIds.length} applications: ${deleteResult.totalRecordsDeleted} total records deleted`);
                 } catch (err) {
                     console.warn(`⚠️ Warning: Some related records could not be deleted:`, err.message);
                     // Continue with deletion even if some related records fail

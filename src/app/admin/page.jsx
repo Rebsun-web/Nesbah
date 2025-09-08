@@ -116,7 +116,7 @@ export default function AdminDashboard() {
     if (error) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 p-6">
-                <div className="max-w-4xl mx-auto">
+                <div className="w-full">
                     <div className="bg-white rounded-lg shadow-lg p-8">
                         <div className="text-center">
                             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
@@ -165,7 +165,7 @@ export default function AdminDashboard() {
                 
                 <main className="flex-1 p-4 sm:p-6 lg:p-8">
                     <div className="px-4 sm:px-6 lg:px-8 xl:px-12">
-                        <div className="mx-auto max-w-7xl">
+                        <div className="w-full">
                             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
                                 <div className="mb-6 sm:mb-8">
                                     <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">

@@ -13,7 +13,7 @@ import {
     ChartBarIcon
 } from '@heroicons/react/24/outline'
 import { ArrowUpIcon, CalendarIcon } from '@heroicons/react/24/outline'
-import { animatedNumber } from '@/components/animated-number'
+import { AnimatedNumber } from '@/components/animated-number'
 
 export default function OffersAnalytics() {
     const [data, setData] = useState(null)
@@ -84,12 +84,12 @@ export default function OffersAnalytics() {
     if (!data) return null
 
     const { 
-        summary, 
-        by_status, 
-        by_bank, 
-        by_business, 
-        trends, 
-        average_metrics, 
+        summary = {}, 
+        by_status = [], 
+        by_bank = [], 
+        by_business = [], 
+        trends = {}, 
+        average_metrics = {}, 
         offer_processing_time = {}, 
         bank_response_time = {}, 
         user_acceptance_time = {}, 
@@ -132,7 +132,7 @@ export default function OffersAnalytics() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-blue-100 text-sm font-medium">Total Offers</p>
-                            <p className="text-3xl font-bold">{animatedNumber(summary.total_offers)}</p>
+                            <p className="text-3xl font-bold"><AnimatedNumber start={0} end={Number(summary.total_offers) || 0} /></p>
                             <p className="text-blue-100 text-sm mt-1">
                                 +{summary.recent_offers} this month
                             </p>
@@ -145,7 +145,7 @@ export default function OffersAnalytics() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-100 text-sm font-medium">Won Deals</p>
-                            <p className="text-3xl font-bold">{animatedNumber(summary.total_won_offers)}</p>
+                            <p className="text-3xl font-bold"><AnimatedNumber start={0} end={Number(summary.total_won_offers) || 0} /></p>
                             <p className="text-green-100 text-sm mt-1">
                                 {summary.overall_win_rate}% win rate
                             </p>
@@ -158,7 +158,7 @@ export default function OffersAnalytics() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-red-100 text-sm font-medium">Lost Deals</p>
-                            <p className="text-3xl font-bold">{animatedNumber(summary.total_lost_offers)}</p>
+                            <p className="text-3xl font-bold"><AnimatedNumber start={0} end={Number(summary.total_lost_offers) || 0} /></p>
                             <p className="text-red-100 text-sm mt-1">
                                 {Math.round((summary.total_lost_offers / summary.total_offers) * 100)}% loss rate
                             </p>
@@ -171,7 +171,7 @@ export default function OffersAnalytics() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-yellow-100 text-sm font-medium">Pending</p>
-                            <p className="text-3xl font-bold">{animatedNumber(summary.total_pending_offers)}</p>
+                            <p className="text-3xl font-bold"><AnimatedNumber start={0} end={Number(summary.total_pending_offers) || 0} /></p>
                             <p className="text-yellow-100 text-sm mt-1">
                                 Awaiting response
                             </p>

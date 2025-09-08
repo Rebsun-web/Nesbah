@@ -311,6 +311,34 @@ const translations = {
   'newsletter.description': 'احصل على أحدث التحديثات حول خيارات التمويل ورؤى السوق.',
   'newsletter.placeholder': 'أدخل بريدك الإلكتروني',
   'newsletter.subscribe': 'اشترك',
+  
+  // Admin translations
+  'admin.applications': 'الطلبات',
+  'admin.businessInfo': 'معلومات الشركة',
+  'admin.posDetails': 'تفاصيل نقاط البيع',
+  'admin.financial': 'المالية',
+  'admin.statusTracking': 'الحالة والمتابعة',
+  'admin.actions': 'الإجراءات',
+  'admin.application': 'طلب',
+  'admin.financingAmount': 'مبلغ التمويل',
+  'admin.repaymentPeriod': 'فترة السداد',
+  'admin.monthlySales': 'المبيعات الشهرية',
+  'admin.posProvider': 'مزود نقاط البيع',
+  'admin.offers': 'العروض',
+  'admin.views': 'المشاهدات',
+  'admin.purchases': 'المشتريات',
+  'admin.submitted': 'تم الإرسال',
+  'admin.businessUser': 'مستخدم تجاري',
+  'admin.bankUser': 'مستخدم بنكي',
+  'admin.bankEmployee': 'موظف بنكي',
+  'admin.capital': 'رأس المال',
+  'admin.creditLimit': 'حد الائتمان',
+  'admin.contact': 'الاتصال',
+  'admin.phone': 'الهاتف',
+  'admin.lastLogin': 'آخر تسجيل دخول',
+  'admin.never': 'أبداً',
+  'admin.active': 'نشط',
+  'admin.inactive': 'غير نشط'
 }
 
 export default translations

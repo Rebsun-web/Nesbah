@@ -244,26 +244,26 @@ function BankLeadsPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="overflow-hidden">
-                                <table className="w-full divide-y divide-gray-200">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-40">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
                                                 Company & Business Info
                                             </th>
-                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-24">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
                                                 Contact
                                             </th>
-                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-24">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
                                                 Phone
                                             </th>
-                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-24">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
                                                 Email
                                             </th>
-                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-20">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
                                                 Date
                                             </th>
-                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider w-20">
+                                            <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
                                                 Actions
                                             </th>
                                         </tr>
@@ -271,23 +271,29 @@ function BankLeadsPage() {
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {currentItems.map((lead) => (
                                             <tr key={lead.application_id} className="hover:bg-gray-50">
-                                                <td className="px-3 py-3">
-                                                    <div className="text-xs font-medium text-gray-900 truncate" title={lead.trade_name}>{lead.trade_name}</div>
+                                                <td className="px-3 py-3 whitespace-nowrap">
+                                                    <div className="text-sm font-medium text-gray-900" title={lead.trade_name}>
+                                                        <div className="max-w-xs truncate">{lead.trade_name}</div>
+                                                    </div>
                                                     <div className="text-xs text-gray-500">ID: {lead.application_id}</div>
                                                 </td>
-                                                <td className="px-3 py-3">
-                                                    <div className="text-xs text-gray-900 truncate" title={lead.contact_person || 'Not provided'}>{lead.contact_person || 'Not provided'}</div>
+                                                <td className="px-3 py-3 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900" title={lead.contact_person || 'Not provided'}>
+                                                        {lead.contact_person || 'Not provided'}
+                                                    </div>
                                                 </td>
-                                                <td className="px-3 py-3">
-                                                    <div className="text-xs text-gray-900 truncate" title={lead.contact_person_number || 'Not provided'}>{lead.contact_person_number || 'Not provided'}</div>
+                                                <td className="px-3 py-3 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900" title={lead.contact_person_number || 'Not provided'}>
+                                                        {lead.contact_person_number || 'Not provided'}
+                                                    </div>
                                                 </td>
-                                                <td className="px-3 py-3">
-                                                    <div className="text-xs text-gray-900 truncate">business@nesbah.com</div>
+                                                <td className="px-3 py-3 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">business@nesbah.com</div>
                                                 </td>
-                                                <td className="px-3 py-3 text-xs text-gray-500">
+                                                <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
                                                     {new Date(lead.submitted_at).toLocaleDateString('en-GB')}
                                                 </td>
-                                                <td className="px-3 py-3 text-xs font-medium">
+                                                <td className="px-3 py-3 whitespace-nowrap text-sm font-medium">
                                                     <button
                                                         onClick={async () => {
                                                             try {
@@ -402,18 +408,6 @@ function BankLeadsPage() {
                                                                 {selectedLead.preferred_repayment_period_months ? `${selectedLead.preferred_repayment_period_months} months` : 'N/A'}
                                                             </span>
                                                         </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Number of POS Devices:</span>
-                                                            <span className="text-sm text-gray-900">{selectedLead.number_of_pos_devices || 'N/A'}</span>
-                                                        </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Own POS System:</span>
-                                                            <span className="text-sm text-gray-900">{selectedLead.own_pos_system ? 'Yes' : 'No'}</span>
-                                                        </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Has E-commerce:</span>
-                                                            <span className="text-sm text-gray-900">{selectedLead.has_ecommerce ? 'Yes' : 'No'}</span>
-                                                        </div>
                                                         {selectedLead.store_url && (
                                                             <div className="flex justify-between">
                                                                 <span className="text-sm font-medium text-gray-700">Store URL:</span>
@@ -445,30 +439,24 @@ function BankLeadsPage() {
                                                             <span className="text-sm text-gray-900">{selectedLead.cr_number || 'N/A'}</span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">City:</span>
-                                                            <span className="text-sm text-gray-900">{selectedLead.city_of_operation || selectedLead.city || 'N/A'}</span>
-                                                        </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Sector:</span>
-                                                            <div className="text-sm text-gray-900 text-right max-w-xs">
-                                                                {selectedLead.sector ? (
-                                                                    selectedLead.sector.split(',').map((item, index) => (
-                                                                        <div key={index} className="mb-1 last:mb-0">
-                                                                            {item.trim()}
-                                                                        </div>
-                                                                    ))
-                                                                ) : (
-                                                                    'N/A'
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex justify-between">
                                                             <span className="text-sm font-medium text-gray-700">Activities:</span>
-                                                            <span className="text-sm text-gray-900">
-                                                                {Array.isArray(selectedLead.activities) 
-                                                                    ? selectedLead.activities.slice(0, 3).join(', ') 
-                                                                    : selectedLead.activities || 'N/A'}
-                                                            </span>
+                                                             <div className="text-sm text-gray-900 text-right max-w-xs">
+                                                                 {selectedLead.activities ? (
+                                                                     Array.isArray(selectedLead.activities) 
+                                                                         ? selectedLead.activities.map((item, index) => (
+                                                                             <div key={index} className="mb-1 last:mb-0">
+                                                                                 {item.trim()}
+                                                                             </div>
+                                                                         ))
+                                                                         : selectedLead.activities.toString().split(',').map((item, index) => (
+                                                                             <div key={index} className="mb-1 last:mb-0">
+                                                                                 {item.trim()}
+                                                                             </div>
+                                                                         ))
+                                                                 ) : (
+                                                                     'N/A'
+                                                                 )}
+                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -481,39 +469,12 @@ function BankLeadsPage() {
                                                         <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                                         </svg>
-                                                        Submitted Offers ({selectedLead.offers.length})
+                                                        Submitted Offers
                                                     </h4>
                                                     <div className="space-y-3">
-                                                                                                                 {selectedLead.offers.map((offer, index) => {
-                                                             // Parse offer terms to extract individual values
-                                                             const parseOfferTerms = (terms) => {
-                                                                 if (!terms) return {};
-                                                                 const result = {};
-                                                                 
-                                                                 // Extract Approved Amount
-                                                                 const amountMatch = terms.match(/Approved Amount: ([^,]+)/);
-                                                                 if (amountMatch) result.approvedAmount = amountMatch[1].trim();
-                                                                 
-                                                                 // Extract Repayment Period
-                                                                 const repaymentMatch = terms.match(/Repayment Period: (\d+) months/);
-                                                                 if (repaymentMatch) result.repaymentPeriod = repaymentMatch[1];
-                                                                 
-                                                                 // Extract Interest Rate
-                                                                 const interestMatch = terms.match(/Interest Rate: ([\d.]+)%/);
-                                                                 if (interestMatch) result.interestRate = interestMatch[1];
-                                                                 
-                                                                 // Extract Monthly Installment
-                                                                 const installmentMatch = terms.match(/Monthly Installment: ([^,]+)/);
-                                                                 if (installmentMatch) result.monthlyInstallment = installmentMatch[1].trim();
-                                                                 
-                                                                 // Extract Grace Period
-                                                                 const graceMatch = terms.match(/Grace Period: (\d+) months/);
-                                                                 if (graceMatch) result.gracePeriod = graceMatch[1];
-                                                                 
-                                                                 return result;
-                                                             };
-                                                             
-                                                             const parsedTerms = parseOfferTerms(offer.offer_terms);
+                                                                 {selectedLead.offers.map((offer, index) => {
+                                                             // Debug: Log the offer data to see what fields are available
+                                                             console.log('🔍 Offer data:', offer);
                                                              
                                                              return (
                                                                  <div key={offer.offer_id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -528,55 +489,55 @@ function BankLeadsPage() {
                                                                          </span>
                                                                      </div>
                                                                      
-                                                                     {/* Offer Details Grid */}
-                                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-3">
-                                                                         <div className="flex justify-between">
-                                                                             <span className="font-medium text-gray-700">Approved Amount:</span>
-                                                                             <span className="text-gray-900">
-                                                                                 {parsedTerms.approvedAmount || (offer.offer_amount ? `SAR ${parseFloat(offer.offer_amount).toLocaleString()}` : 'N/A')}
-                                                                             </span>
-                                                                         </div>
-                                                                         <div className="flex justify-between">
-                                                                             <span className="font-medium text-gray-700">Repayment Period:</span>
-                                                                             <span className="text-gray-900">
-                                                                                 {parsedTerms.repaymentPeriod ? `${parsedTerms.repaymentPeriod} months` : 'N/A'}
-                                                                             </span>
-                                                                         </div>
-                                                                         <div className="flex justify-between">
-                                                                             <span className="font-medium text-gray-700">Interest Rate:</span>
-                                                                             <span className="text-gray-900">
-                                                                                 {parsedTerms.interestRate ? `${parsedTerms.interestRate}%` : 'N/A'}
-                                                                             </span>
-                                                                         </div>
-                                                                         <div className="flex justify-between">
-                                                                             <span className="text-sm font-medium text-gray-700">Monthly Installment:</span>
-                                                                             <span className="text-sm text-gray-900">
-                                                                                 {parsedTerms.monthlyInstallment || 'N/A'}
-                                                                             </span>
-                                                                         </div>
-                                                                         <div className="flex justify-between">
-                                                                             <span className="text-sm font-medium text-gray-700">Grace Period:</span>
-                                                                             <span className="text-sm text-gray-900">
-                                                                                 {parsedTerms.gracePeriod ? `${parsedTerms.gracePeriod} months` : 'N/A'}
-                                                                             </span>
-                                                                         </div>
-                                                                         <div className="flex justify-between">
-                                                                             <span className="text-sm font-medium text-gray-700">Submitted:</span>
-                                                                             <span className="text-sm text-gray-900">
-                                                                                 {new Date(offer.submitted_at).toLocaleDateString()}
-                                                                             </span>
-                                                                         </div>
-                                                                     </div>
+                                                                      {/* Offer Details Grid */}
+                                                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-3">
+                                                                          <div className="flex justify-between">
+                                                                              <span className="font-medium text-gray-700">Approved Amount:</span>
+                                                                              <span className="text-gray-900">
+                                                                                  {offer.approved_financing_amount ? `SAR ${parseFloat(offer.approved_financing_amount).toLocaleString()}` : 'N/A'}
+                                                                              </span>
+                                                                          </div>
+                                                                          <div className="flex justify-between">
+                                                                              <span className="font-medium text-gray-700">Repayment Period:</span>
+                                                                              <span className="text-gray-900">
+                                                                                  {offer.proposed_repayment_period_months ? `${offer.proposed_repayment_period_months} months` : 'N/A'}
+                                                                              </span>
+                                                                          </div>
+                                                                          <div className="flex justify-between">
+                                                                              <span className="font-medium text-gray-700">Interest Rate:</span>
+                                                                              <span className="text-gray-900">
+                                                                                  {offer.interest_rate ? `${offer.interest_rate}%` : 'N/A'}
+                                                                              </span>
+                                                                          </div>
+                                                                          <div className="flex justify-between">
+                                                                              <span className="text-sm font-medium text-gray-700">Monthly Installment:</span>
+                                                                              <span className="text-sm text-gray-900">
+                                                                                  {offer.monthly_installment_amount ? `SAR ${parseFloat(offer.monthly_installment_amount).toLocaleString()}` : 'N/A'}
+                                                                              </span>
+                                                                          </div>
+                                                                          <div className="flex justify-between">
+                                                                              <span className="text-sm font-medium text-gray-700">Grace Period:</span>
+                                                                              <span className="text-sm text-gray-900">
+                                                                                  {offer.grace_period_months ? `${offer.grace_period_months} months` : 'N/A'}
+                                                                              </span>
+                                                                          </div>
+                                                                          <div className="flex justify-between">
+                                                                              <span className="text-sm font-medium text-gray-700">Submitted:</span>
+                                                                              <span className="text-sm text-gray-900">
+                                                                                  {new Date(offer.submitted_at).toLocaleDateString()}
+                                                                              </span>
+                                                                          </div>
+                                                                      </div>
 
-                                                                     {/* Relationship Manager Details */}
-                                                                     {offer.bank_contact_person && (
-                                                                         <div className="border-t pt-3 mb-3">
-                                                                             <h6 className="text-sm font-medium text-gray-700 mb-2">Relationship Manager:</h6>
-                                                                             <div className="text-sm text-gray-900">
-                                                                                 {offer.bank_contact_person}
-                                                                             </div>
-                                                                         </div>
-                                                                     )}
+                                                                      {/* Relationship Manager Details */}
+                                                                      {offer.relationship_manager_name && (
+                                                                          <div className="border-t pt-3 mb-3">
+                                                                              <h6 className="text-sm font-medium text-gray-700 mb-2">Relationship Manager:</h6>
+                                                                              <div className="text-sm text-gray-900">
+                                                                                  {offer.relationship_manager_name}
+                                                                              </div>
+                                                                          </div>
+                                                                      )}
 
                                                                      {/* Offer Terms and Comments */}
                                                                      {offer.offer_terms && (

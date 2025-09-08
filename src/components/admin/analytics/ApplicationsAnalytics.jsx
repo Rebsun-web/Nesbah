@@ -12,7 +12,7 @@ import {
     CalendarIcon
 } from '@heroicons/react/24/outline'
 import { ArrowUpIcon } from '@heroicons/react/24/outline'
-import { animatedNumber } from '@/components/animated-number'
+import { AnimatedNumber } from '@/components/animated-number'
 
 export default function ApplicationsAnalytics() {
     const [data, setData] = useState(null)
@@ -83,11 +83,11 @@ export default function ApplicationsAnalytics() {
     if (!data) return null
 
     const { 
-        summary, 
-        by_status, 
-        by_city, 
-        by_sector, 
-        trends, 
+        summary = {}, 
+        by_status = [], 
+        by_city = [], 
+        by_sector = [], 
+        trends = {}, 
         processing_time = {}, 
         auction_time_windows = {}, 
         purchase_to_offer_time = {}, 
@@ -129,9 +129,9 @@ export default function ApplicationsAnalytics() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-blue-100 text-sm font-medium">Total Applications</p>
-                            <p className="text-3xl font-bold">{animatedNumber(summary.total_applications)}</p>
+                            <p className="text-3xl font-bold"><AnimatedNumber start={0} end={Number(summary.total_applications) || 0} /></p>
                             <p className="text-blue-100 text-sm mt-1">
-                                +{summary.recent_applications} this month
+                                +{summary.recent_applications || 0} this month
                             </p>
                         </div>
                         <DocumentTextIcon className="h-12 w-12 text-blue-200" />
@@ -142,9 +142,9 @@ export default function ApplicationsAnalytics() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-100 text-sm font-medium">Approved</p>
-                            <p className="text-3xl font-bold">{animatedNumber(summary.total_approved_applications)}</p>
+                            <p className="text-3xl font-bold"><AnimatedNumber start={0} end={Number(summary.total_approved_applications) || 0} /></p>
                             <p className="text-green-100 text-sm mt-1">
-                                {summary.overall_approval_rate}% approval rate
+                                {summary.overall_approval_rate || 0}% approval rate
                             </p>
                         </div>
                         <CheckCircleIcon className="h-12 w-12 text-green-200" />
@@ -155,9 +155,9 @@ export default function ApplicationsAnalytics() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-red-100 text-sm font-medium">Rejected</p>
-                            <p className="text-3xl font-bold">{animatedNumber(summary.total_rejected_applications)}</p>
+                            <p className="text-3xl font-bold"><AnimatedNumber start={0} end={Number(summary.total_rejected_applications) || 0} /></p>
                             <p className="text-red-100 text-sm mt-1">
-                                {Math.round((summary.total_rejected_applications / summary.total_applications) * 100)}% rejection rate
+                                {summary.total_applications ? Math.round((summary.total_rejected_applications / summary.total_applications) * 100) : 0}% rejection rate
                             </p>
                         </div>
                         <XCircleIcon className="h-12 w-12 text-red-200" />
@@ -168,7 +168,7 @@ export default function ApplicationsAnalytics() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-yellow-100 text-sm font-medium">Pending</p>
-                            <p className="text-3xl font-bold">{animatedNumber(summary.total_pending_applications)}</p>
+                            <p className="text-3xl font-bold"><AnimatedNumber start={0} end={Number(summary.total_pending_applications) || 0} /></p>
                             <p className="text-yellow-100 text-sm mt-1">
                                 Awaiting review
                             </p>
@@ -185,7 +185,7 @@ export default function ApplicationsAnalytics() {
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Application Status Distribution</h3>
                     <div className="space-y-4">
                         {by_status.map((status) => {
-                            const percentage = Math.round((status.count / summary.total_applications) * 100)
+                            const percentage = summary.total_applications ? Math.round((status.count / summary.total_applications) * 100) : 0
                             const color = status.status === 'completed' ? 'bg-green-500' :
                                          status.status === 'ignored' ? 'bg-red-500' :
                                          status.status === 'submitted' ? 'bg-yellow-500' : 'bg-gray-500'
@@ -365,22 +365,40 @@ export default function ApplicationsAnalytics() {
                         Top Business Sectors
                     </h3>
                     <div className="space-y-3">
-                        {by_sector.slice(0, 8).map((sector, index) => (
-                            <div key={sector.sector} className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                    <span className="text-sm font-medium text-gray-500 w-6">#{index + 1}</span>
-                                    <span className="text-sm font-medium text-gray-900">{sector.sector}</span>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <span className="text-sm text-gray-600">
-                                        {Math.round((sector.completed_applications / sector.total_applications) * 100)}% completion
-                                    </span>
-                                    <span className="text-sm font-semibold text-gray-900">
-                                        {sector.total_applications}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
+                        {by_sector.slice(0, 8).map((sector, index) => {
+                            try {
+                                return (
+                                    <div key={sector.sector || index} className="flex items-center justify-between">
+                                        <div className="flex items-center">
+                                            <span className="text-sm font-medium text-gray-500 w-6">#{index + 1}</span>
+                                            <span className="text-sm font-medium text-gray-900">{sector.sector || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex items-center space-x-4">
+                                            <span className="text-sm text-gray-600">
+                                                {sector.total_applications ? Math.round((sector.completed_applications / sector.total_applications) * 100) : 0}% completion
+                                            </span>
+                                            <span className="text-sm font-semibold text-gray-900">
+                                                {sector.total_applications || 0}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            } catch (error) {
+                                console.error('Error rendering sector:', error);
+                                return (
+                                    <div key={index} className="flex items-center justify-between">
+                                        <div className="flex items-center">
+                                            <span className="text-sm font-medium text-gray-500 w-6">#{index + 1}</span>
+                                            <span className="text-sm font-medium text-red-600">Error loading sector</span>
+                                        </div>
+                                        <div className="flex items-center space-x-4">
+                                            <span className="text-sm text-red-600">Error</span>
+                                            <span className="text-sm font-semibold text-red-600">0</span>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                        })}
                     </div>
                 </div>
             </div>

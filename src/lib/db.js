@@ -30,8 +30,8 @@ const pool = new Pool({
   max: process.env.NODE_ENV === 'production' ? 20 : 10, // Higher limit for production
   min: process.env.NODE_ENV === 'production' ? 3 : 2, // More baseline connections in production
   idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 60000 : 30000, // Longer idle time in production
-  connectionTimeoutMillis: 10000, // 10 seconds to establish connection
-  acquireTimeoutMillis: 20000, // 20 seconds to acquire connection (increased for production)
+  connectionTimeoutMillis: 30000, // 30 seconds to establish connection (increased for stability)
+  acquireTimeoutMillis: 45000, // 45 seconds to acquire connection (increased for stability)
   reapIntervalMillis: 1000, // Check for dead connections every second
   maxUses: process.env.NODE_ENV === 'production' ? 100 : 50, // More uses per connection in production
   allowExitOnIdle: process.env.NODE_ENV !== 'production', // Don't exit on idle in production
@@ -41,6 +41,7 @@ const pool = new Pool({
     checkServerIdentity: () => undefined, // Skip hostname verification
   }
 });
+
 
 // Add safeguard to prevent multiple pool.end() calls
 let isPoolEnding = false;
@@ -495,59 +496,6 @@ const exhaustionPrevention = {
   lastFailureTime: 0
 };
 
-const processConnectionQueue = async () => {
-  if (isProcessingQueue || connectionQueue.length === 0) return;
-  
-  isProcessingQueue = true;
-  
-  while (connectionQueue.length > 0) {
-    const { resolve, reject, maxRetries, delay, timestamp } = connectionQueue.shift();
-    
-    try {
-      const client = await pool.connectWithRetry(2, 1000, 'queue-processor');
-      const waitTime = Date.now() - timestamp;
-      
-      // Track the connection if taskName is available
-      if (taskName) {
-        const connectionId = trackConnection(client, taskName);
-        
-        // Add a custom release method that also untracks
-        const originalRelease = client.release;
-        let isReleased = false;
-        
-        client.release = () => {
-          if (!isReleased) {
-            isReleased = true;
-            releaseConnection(connectionId);
-            originalRelease.call(client);
-          }
-        };
-      }
-      
-      // Update queue metrics
-      queueMetrics.totalProcessed++;
-      queueMetrics.averageWaitTime = 
-        (queueMetrics.averageWaitTime * (queueMetrics.totalProcessed - 1) + waitTime) / queueMetrics.totalProcessed;
-      queueMetrics.maxWaitTime = Math.max(queueMetrics.maxWaitTime, waitTime);
-      
-      resolve(client);
-    } catch (error) {
-      if (pool.isRetryableError(error) && maxRetries > 0) {
-        console.warn(`⚠️ Connection pool exhausted, queuing retry in ${delay}ms`);
-        setTimeout(() => {
-          connectionQueue.push({ resolve, reject, maxRetries: maxRetries - 1, delay: delay * 2, timestamp });
-          processConnectionQueue();
-        }, delay);
-      } else {
-        console.error('❌ Database connection error:', error.message);
-        reject(error);
-      }
-    }
-  }
-  
-  isProcessingQueue = false;
-};
-
 // Enhanced connection retry wrapper with exhaustion prevention
 pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown') => {
   console.log('🔍 DEBUG: connectWithRetry called', {
@@ -569,13 +517,13 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
     throw new Error('Database pool has been closed or is invalid');
   }
   
-  // Circuit breaker check
+  // Check circuit breaker state
   if (exhaustionPrevention.circuitBreakerState === 'OPEN') {
     const timeSinceLastFailure = Date.now() - exhaustionPrevention.lastFailureTime;
     if (timeSinceLastFailure < exhaustionPrevention.circuitBreakerTimeout) {
-      throw new Error(`Circuit breaker is OPEN. Database connections are temporarily unavailable. Retry in ${Math.ceil((exhaustionPrevention.circuitBreakerTimeout - timeSinceLastFailure) / 1000)} seconds.`);
+      throw new Error(`Circuit breaker is OPEN. Too many consecutive failures (${exhaustionPrevention.consecutiveFailures}). Please try again later.`);
     } else {
-      // Move to half-open state
+      // Move to HALF_OPEN state
       exhaustionPrevention.circuitBreakerState = 'HALF_OPEN';
       console.log('🔧 Circuit breaker moved to HALF_OPEN state');
     }
@@ -640,6 +588,60 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
   
   throw lastError;
 };
+
+const processConnectionQueue = async () => {
+  if (isProcessingQueue || connectionQueue.length === 0) return;
+  
+  isProcessingQueue = true;
+  
+  while (connectionQueue.length > 0) {
+    const { resolve, reject, maxRetries, delay, timestamp } = connectionQueue.shift();
+    
+    try {
+      const client = await pool.connectWithRetry(2, 1000, 'queue-processor');
+      const waitTime = Date.now() - timestamp;
+      
+      // Track the connection if taskName is available
+      if (taskName) {
+        const connectionId = trackConnection(client, taskName);
+        
+        // Add a custom release method that also untracks
+        const originalRelease = client.release;
+        let isReleased = false;
+        
+        client.release = () => {
+          if (!isReleased) {
+            isReleased = true;
+            releaseConnection(connectionId);
+            originalRelease.call(client);
+          }
+        };
+      }
+      
+      // Update queue metrics
+      queueMetrics.totalProcessed++;
+      queueMetrics.averageWaitTime = 
+        (queueMetrics.averageWaitTime * (queueMetrics.totalProcessed - 1) + waitTime) / queueMetrics.totalProcessed;
+      queueMetrics.maxWaitTime = Math.max(queueMetrics.maxWaitTime, waitTime);
+      
+      resolve(client);
+    } catch (error) {
+      if (pool.isRetryableError(error) && maxRetries > 0) {
+        console.warn(`⚠️ Connection pool exhausted, queuing retry in ${delay}ms`);
+        setTimeout(() => {
+          connectionQueue.push({ resolve, reject, maxRetries: maxRetries - 1, delay: delay * 2, timestamp });
+          processConnectionQueue();
+        }, delay);
+      } else {
+        console.error('❌ Database connection error:', error.message);
+        reject(error);
+      }
+    }
+  }
+  
+  isProcessingQueue = false;
+};
+
 
 // Get queue metrics
 pool.getQueueMetrics = () => {

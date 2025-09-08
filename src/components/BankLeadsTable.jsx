@@ -72,7 +72,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
             // Create FormData for the API call
             const formData = new FormData()
             formData.append('leadId', selectedBusiness.application_id)
-            formData.append('bankUserId', JSON.parse(localStorage.getItem('user') || '{}').bank_user_id)
+            formData.append('bankUserId', JSON.parse(localStorage.getItem('user') || '{}').user_id)
             formData.append('approvedAmount', offerForm.approvedAmount)
             formData.append('repaymentPeriod', offerForm.repaymentPeriod)
             formData.append('interestRate', offerForm.interestRate)
