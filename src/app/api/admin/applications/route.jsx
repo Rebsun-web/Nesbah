@@ -377,7 +377,7 @@ export async function POST(req) {
 
             // Create POS application (same as business submission)
             const submitted_at = new Date();
-            const auction_end_time = new Date(submitted_at.getTime() + 48 * 60 * 60 * 1000); // 48 hours from submission
+            const auction_end_time = new Date(submitted_at.getTime() + (process.env.DEFAULT_AUCTION_HOURS || 48) * 60 * 60 * 1000); // Configured duration from submission
 
             const posAppResult = await client.query(
                 `INSERT INTO pos_application (

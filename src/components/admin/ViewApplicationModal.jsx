@@ -202,10 +202,6 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                                 <label className="text-sm font-medium text-gray-700">Views</label>
                                 <p className="text-sm text-gray-900">{openedInfo.display}</p>
                             </div>
-                            <div>
-                                <label className="text-sm font-medium text-gray-700">Purchases</label>
-                                <p className="text-sm text-gray-900">{purchasedInfo.display}</p>
-                            </div>
                             {application.auction_end_time && (
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">Auction End Time</label>
@@ -236,17 +232,12 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">City</label>
                                     <p className="text-sm text-gray-900 flex items-center">
-                                        <MapPinIcon className="h-4 w-4 mr-1" />
                                         {application.city || 'N/A'}
                                     </p>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">Legal Form</label>
                                     <p className="text-sm text-gray-900">{application.legal_form || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Registration Status</label>
-                                    <p className="text-sm text-gray-900">{application.registration_status || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">CR Capital</label>
@@ -304,22 +295,10 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                                     </p>
                                 </div>
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">Number of POS Devices</label>
-                                    <p className="text-sm text-gray-900">{application.number_of_pos_devices || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">City of Operation</label>
-                                    <p className="text-sm text-gray-900">{application.city_of_operation || 'N/A'}</p>
-                                </div>
-                                <div>
                                     <label className="text-sm font-medium text-gray-700">Average Monthly POS Sales</label>
                                     <p className="text-sm text-gray-900">
                                         {formatMoney(application.avg_monthly_pos_sales)}
                                     </p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Own POS System</label>
-                                    <p className="text-sm text-gray-900">{application.own_pos_system ? 'Yes' : 'No'}</p>
                                 </div>
                             </div>
                         </div>

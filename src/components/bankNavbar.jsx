@@ -69,6 +69,12 @@ export default function BankNavbar() {
     const handleNavigation = (item) => {
         if (item.action === 'logout') {
             localStorage.removeItem('user')
+            
+            // Ensure body is visible after logout
+            if (typeof document !== 'undefined') {
+                document.body.classList.add('hydrated')
+            }
+            
             router.push('/login')
         } else if (item.action === 'updateLogo') {
             setIsLogoUploadModalOpen(true)

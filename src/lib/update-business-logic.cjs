@@ -87,7 +87,7 @@ async function updateBusinessLogic() {
         // 4. Set auction end times for existing live_auction applications
         await client.query(`
             UPDATE submitted_applications sa
-            SET auction_end_time = pa.submitted_at + INTERVAL '48 hours'
+            SET auction_end_time = pa.submitted_at + INTERVAL '${process.env.DEFAULT_AUCTION_HOURS || 48} hours'
             FROM pos_application pa
             WHERE sa.application_id = pa.application_id 
             AND sa.status = 'live_auction'
@@ -96,7 +96,7 @@ async function updateBusinessLogic() {
 
         await client.query(`
             UPDATE pos_application 
-            SET auction_end_time = submitted_at + INTERVAL '48 hours'
+            SET auction_end_time = submitted_at + INTERVAL '${process.env.DEFAULT_AUCTION_HOURS || 48} hours'
             WHERE status = 'live_auction'
             AND auction_end_time IS NULL;
         `);

@@ -63,10 +63,21 @@ export function AdminAuthProvider({ children }) {
             // Clear state
             clearAdminUser()
             
+            // Ensure body is visible after logout
+            if (typeof document !== 'undefined') {
+                document.body.classList.add('hydrated')
+            }
+            
             // Redirect to login
             router.push('/login')
         } catch (error) {
             console.error('Logout error:', error)
+            
+            // Ensure body is visible even on error
+            if (typeof document !== 'undefined') {
+                document.body.classList.add('hydrated')
+            }
+            
             // Force redirect even on error
             router.push('/login')
         }

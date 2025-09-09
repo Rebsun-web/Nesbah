@@ -118,6 +118,12 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
             const data = await response.json();
 
             if (response.ok && data.success) {
+                // Show success message with password info if applicable
+                if (data.data.default_password) {
+                    alert(`Bank employee created successfully!\n\nDefault password: ${data.data.default_password}\n\nPlease share this with the employee - they should change it on first login.`);
+                } else {
+                    alert('Bank employee created successfully!');
+                }
                 onSuccess(data.data);
                 onClose();
             } else {

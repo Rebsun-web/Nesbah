@@ -4,7 +4,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import HydrationHandler from '@/components/HydrationHandler'
 
 // Auto-start background tasks when the server starts
-import '@/lib/auto-start-background-tasks'
+// import '@/lib/auto-start-background-tasks'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -13,11 +13,12 @@ export const metadata = {
     template: '%s - Nesbah',
     default: 'Nesbah - Grow your business with us',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({ children }) {

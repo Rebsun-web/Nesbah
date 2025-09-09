@@ -200,7 +200,7 @@ export default function ApplicationDetail() {
     const getAuctionStartTime = (endTime) => {
         if (!endTime) return null
         const end = new Date(endTime)
-        return new Date(end.getTime() - (48 * 60 * 60 * 1000)) // 48 hours before
+        return new Date(end.getTime() - ((process.env.DEFAULT_AUCTION_HOURS || 48) * 60 * 60 * 1000)) // Configured duration before
     }
 
     if (loading) {

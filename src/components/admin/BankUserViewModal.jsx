@@ -14,19 +14,31 @@ export default function BankUserViewModal({ user, isOpen, onClose }) {
     const fetchDetailedUserInfo = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/admin/users/${user.user_id}`);
+            console.log(`🔍 Fetching detailed user info for ID: ${user.user_id}, type: ${user.userType}`);
+            const userType = user.userType === 'employee' ? 'employee' : 'bank';
+            const response = await fetch(`/api/admin/users/${user.user_id}?user_type=${userType}`, {
+                credentials: 'include'
+            });
+            
+            console.log(`🔍 Response status: ${response.status} ${response.statusText}`);
+            
             if (response.ok) {
                 const result = await response.json();
+                console.log(`🔍 API response:`, result);
                 if (result.success) {
                     setDetailedUser(result.data);
                 } else {
                     console.error('API returned error:', result.error);
+                    setDetailedUser(null);
                 }
             } else {
-                console.error('HTTP error:', response.status, response.statusText);
+                const errorText = await response.text();
+                console.error('HTTP error:', response.status, response.statusText, errorText);
+                setDetailedUser(null);
             }
         } catch (error) {
             console.error('Error fetching detailed user info:', error);
+            setDetailedUser(null);
         } finally {
             setLoading(false);
         }
@@ -54,7 +66,7 @@ export default function BankUserViewModal({ user, isOpen, onClose }) {
                     {/* Header */}
                     <div className="flex items-center justify-between pb-4 border-b border-gray-200">
                         <h3 className="text-lg font-medium text-gray-900">
-                            Bank User Details
+                            {user.userType === 'employee' ? 'Bank Employee Details' : 'Bank User Details'}
                         </h3>
                         <button
                             onClick={onClose}
@@ -71,99 +83,64 @@ export default function BankUserViewModal({ user, isOpen, onClose }) {
                         </div>
                     ) : detailedUser ? (
                         <div className="mt-4 space-y-6">
-                            {/* Bank Logo */}
-                            <div className="text-center">
-                                {detailedUser.logo_url ? (
-                                    <img
-                                        src={detailedUser.logo_url}
-                                        alt={`${detailedUser.entity_name || 'Bank'} Logo`}
-                                        className="mx-auto h-24 w-24 object-contain rounded-lg border border-gray-200"
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                            e.target.nextSibling.style.display = 'block';
-                                        }}
-                                    />
-                                ) : null}
-                                {(!detailedUser.logo_url || detailedUser.logo_url === '') && (
-                                    <div className="mx-auto h-24 w-24 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
-                                        <PhotoIcon className="h-12 w-12 text-gray-400" />
-                                    </div>
-                                )}
-                            </div>
-
                             {/* Bank Information */}
                             <div className="bg-gray-50 rounded-lg p-4">
-                                <h4 className="text-md font-semibold text-gray-900 mb-3 border-b pb-2">Bank Information</h4>
-                                <div className="space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="flex items-start">
-                                        <BuildingOfficeIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Email</label>
+                                            <p className="text-sm text-gray-900">{detailedUser.email || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-start">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700">Bank Name</label>
                                             <p className="text-sm text-gray-900">{detailedUser.entity_name || 'N/A'}</p>
                                         </div>
                                     </div>
                                     
-                                    <div className="flex items-start">
-                                        <EnvelopeIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Email</label>
-                                            <p className="text-sm text-gray-900">{detailedUser.email || 'N/A'}</p>
-                                        </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Contact Person</label>
+                                        <p className="text-sm text-gray-900">{detailedUser.contact_person || 'N/A'}</p>
                                     </div>
-                                </div>
-                            </div>
-
-                            {/* Contact Information */}
-                            {(detailedUser.contact_person || detailedUser.contact_person_number) && (
-                                <div className="bg-gray-50 rounded-lg p-4">
-                                    <h4 className="text-md font-semibold text-gray-900 mb-3 border-b pb-2">Contact Information</h4>
-                                    <div className="space-y-3">
-                                        {detailedUser.contact_person && (
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">Contact Person</label>
-                                                <p className="text-sm text-gray-900">{detailedUser.contact_person}</p>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Contact Number</label>
+                                        <p className="text-sm text-gray-900">{detailedUser.contact_person_number || 'N/A'}</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Credit Limit</label>
+                                        <p className="text-sm text-gray-900">
+                                            {detailedUser.credit_limit ? 
+                                                `SAR ${parseFloat(detailedUser.credit_limit).toLocaleString()}` : 
+                                                'N/A'
+                                            }
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700">Logo</label>
+                                        {detailedUser.logo_url ? (
+                                            <div className="mt-2">
+                                                <img 
+                                                    src={detailedUser.logo_url} 
+                                                    alt="Bank Logo" 
+                                                    className="h-16 w-16 rounded object-cover border border-gray-200"
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.nextSibling.style.display = 'block';
+                                                    }}
+                                                />
+                                                <div className="hidden text-sm text-gray-500 mt-1">
+                                                    {detailedUser.logo_url}
+                                                </div>
                                             </div>
-                                        )}
-                                        {detailedUser.contact_person_number && (
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">Contact Number</label>
-                                                <p className="text-sm text-gray-900">{detailedUser.contact_person_number}</p>
-                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-gray-500">No logo uploaded</p>
                                         )}
                                     </div>
-                                </div>
-                            )}
-
-                            {/* Account Information */}
-                            <div className="bg-gray-50 rounded-lg p-4">
-                                <h4 className="text-md font-semibold text-gray-900 mb-3 border-b pb-2">Account Information</h4>
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">User ID</label>
-                                        <p className="text-sm text-gray-900">{detailedUser.user_id}</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Account Status</label>
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                            detailedUser.account_status === 'active' 
-                                                ? 'bg-green-100 text-green-800' 
-                                                : detailedUser.account_status === 'suspended'
-                                                ? 'bg-yellow-100 text-yellow-800'
-                                                : 'bg-red-100 text-red-800'
-                                        }`}>
-                                            {detailedUser.account_status || 'active'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Created</label>
-                                        <p className="text-sm text-gray-900">{formatDate(detailedUser.created_at)}</p>
-                                    </div>
-                                    {detailedUser.updated_at && detailedUser.updated_at !== detailedUser.created_at && (
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Last Updated</label>
-                                            <p className="text-sm text-gray-900">{formatDate(detailedUser.updated_at)}</p>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>

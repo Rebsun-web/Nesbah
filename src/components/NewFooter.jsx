@@ -1,5 +1,71 @@
 import { Link } from '@/components/link'
 import { Logo } from './logo'
+import { useState } from 'react'
+
+function NewsletterForm() {
+  const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!email || isSubmitting) return
+
+    setIsSubmitting(true)
+    setMessage('')
+
+    try {
+      // Import EmailJS dynamically for client-side usage
+      const emailjs = (await import('@emailjs/browser')).default
+      
+      // Initialize EmailJS
+      emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY)
+      
+      // Send email directly from client
+      const response = await emailjs.send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
+        process.env.NEXT_PUBLIC_EMAILJS_NEWSLETTER_TEMPLATE_ID,
+        {
+          email: email
+        }
+      )
+      
+      console.log('✅ Newsletter subscription email sent:', response)
+      setMessage('Thank you for subscribing! Please check your email for confirmation.')
+      setEmail('')
+    } catch (error) {
+      console.error('❌ Newsletter subscription error:', error)
+      setMessage('Something went wrong. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-6">
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Enter your email"
+        className="w-full rounded-md bg-white px-3 py-1.5 text-base text-black placeholder-gray-500 focus:ring-2 focus:ring-indigo-500"
+      />
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="mt-4 flex w-full items-center justify-center rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-400 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isSubmitting ? 'Subscribing...' : 'Subscribe'}
+      </button>
+      {message && (
+        <div className="mt-2 text-center text-sm text-white">
+          {message}
+        </div>
+      )}
+    </form>
+  )
+}
 
 function SocialIconX(props) {
   return (
@@ -73,20 +139,7 @@ export function NewFooter() {
             <p className="mt-2 text-sm text-gray-300">
               The latest news, articles, and resources, sent to your inbox weekly.
             </p>
-            <form className="mt-6">
-              <input
-                type="email"
-                required
-                placeholder="Enter your email"
-                className="w-full rounded-md bg-white px-3 py-1.5 text-base text-black placeholder-gray-500 focus:ring-2 focus:ring-indigo-500"
-              />
-              <button
-                type="submit"
-                className="mt-4 flex w-full items-center justify-center rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-400 focus:ring-2 focus:ring-indigo-500"
-              >
-                Subscribe
-              </button>
-            </form>
+            <NewsletterForm />
           </div>
 
         </div>

@@ -19,7 +19,7 @@ const links = [
   { href: '/contact', label: 'شركائنا' },
   { href: '/about', label: 'من نحن' },
   { href: '/calculator', label: 'الحاسبة' },
-  { href: 'https://news.nesbah.com.sa/', label: 'الاخبار' },
+  // { href: 'https://news.nesbah.com.sa/', label: 'الاخبار' },
 ]
 
 function DesktopNav() {

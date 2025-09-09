@@ -17,9 +17,9 @@ export async function POST(req) {
         } = body;
 
         // Validate required fields
-        if (!email || !password || !first_name || !last_name || !bank_user_id) {
+        if (!email || !first_name || !last_name || !bank_user_id) {
             return NextResponse.json(
-                { success: false, error: 'Email, password, first name, last name, and bank user ID are required' },
+                { success: false, error: 'Email, first name, last name, and bank user ID are required' },
                 { status: 400 }
             );
         }
@@ -75,9 +75,10 @@ export async function POST(req) {
                 );
             }
 
-            // 3. Hash the password
+            // 3. Generate a default password if none provided
+            const defaultPassword = password || 'TempPassword123!';
             const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(password, saltRounds);
+            const hashedPassword = await bcrypt.hash(defaultPassword, saltRounds);
 
             // 4. Create user record with user_type = 'bank_employee'
             const userRes = await client.query(
@@ -157,7 +158,9 @@ export async function POST(req) {
                     bank_user_id,
                     bank_entity_name: bankEntity.entity_name,
                     bank_logo_url: bankEntity.logo_url,
-                    created_at: new Date().toISOString()
+                    created_at: new Date().toISOString(),
+                    default_password: !password ? 'TempPassword123!' : null,
+                    password_note: !password ? 'A default password has been assigned. The employee should change it on first login.' : null
                 }
             });
 

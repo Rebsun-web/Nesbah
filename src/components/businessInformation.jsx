@@ -56,7 +56,12 @@ export function BusinessInformation({ businessInfo }) {
     if (value === null || value === undefined || value === '') {
       return <span className="text-gray-500 italic">{defaultValue}</span>;
     }
-    return value;
+    // Ensure we always return a string or JSX element, never an object
+    if (typeof value === 'object') {
+      console.error('🚨 displayValue received object:', value);
+      return <span className="text-gray-500 italic">Object data</span>;
+    }
+    return String(value);
   };
 
   // Handle edit mode
@@ -494,14 +499,18 @@ export function BusinessInformation({ businessInfo }) {
                           });
 
                         // Display each activity on a new line
-                        return activities.map((activity, index) => (
-                          <div key={index} className="flex items-start space-x-3">
-                            <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
-                            <span className="text-sm text-gray-700 leading-relaxed">
-                              {activity || 'N/A'}
-                            </span>
+                        return (
+                          <div>
+                            {activities.map((activity, index) => (
+                              <div key={index} className="flex items-start space-x-3">
+                                <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
+                                <span className="text-sm text-gray-700 leading-relaxed">
+                                  {activity || 'N/A'}
+                                </span>
+                              </div>
+                            ))}
                           </div>
-                        ));
+                        );
                       } catch (error) {
                         console.error('Error processing sector:', error);
                         return <span className="text-gray-500 italic">Error loading activities</span>;
@@ -561,11 +570,15 @@ export function BusinessInformation({ businessInfo }) {
                           }
                           
                           if (Array.isArray(parsedManagers) && parsedManagers.length > 0) {
-                            return parsedManagers.map((manager, index) => (
-                              <span key={index} className="block">
-                                {typeof manager === 'object' ? (manager.name || 'N/A') : (manager || 'N/A')}
-                              </span>
-                            ));
+                            return (
+                              <div>
+                                {parsedManagers.map((manager, index) => (
+                                  <span key={index} className="block">
+                                    {typeof manager === 'object' ? (manager.name || 'N/A') : (manager || 'N/A')}
+                                  </span>
+                                ))}
+                              </div>
+                            );
                           } else if (typeof parsedManagers === 'string' && parsedManagers.trim()) {
                             return <span>{parsedManagers}</span>;
                           }

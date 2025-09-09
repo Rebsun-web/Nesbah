@@ -409,8 +409,8 @@ export default function BankOffersDisplay({ userInfo, applicationStatus }) {
                                     </div>
                                 </div>
                             </div>
-                                );
-                            } catch (error) {
+                            );
+                        } catch (error) {
                                 console.error('Error rendering offer:', error);
                                 return (
                                     <div key={index} className="border border-red-200 rounded-lg overflow-hidden bg-red-50 p-4">

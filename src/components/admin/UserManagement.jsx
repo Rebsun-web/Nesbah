@@ -3,8 +3,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Container } from '@/components/container'
 import BusinessUserViewModal from './BusinessUserViewModal'
+import BankUserViewModal from './BankUserViewModal'
+import BankEmployeeViewModal from './BankEmployeeViewModal'
 import EditUserModal from './EditUserModal'
+import BankEmployeeEditModal from './BankEmployeeEditModal'
 import CreateBusinessUserForm from './CreateBusinessUserForm'
+import CreateBankUserForm from './CreateBankUserForm'
+import CreateBankEmployeeForm from './CreateBankEmployeeForm'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function UserManagement() {
@@ -91,6 +96,18 @@ export default function UserManagement() {
         setShowCreateBusinessForm(false)
         fetchAllUsers()
         alert('Business user created successfully!')
+    }
+
+    const handleBankUserCreated = (userData) => {
+        setShowCreateBankForm(false)
+        fetchAllUsers()
+        alert('Bank user created successfully!')
+    }
+
+    const handleBankEmployeeCreated = (userData) => {
+        setShowCreateEmployeeForm(false)
+        fetchAllUsers()
+        alert('Bank employee created successfully!')
     }
 
     const handleUserAction = async (userId, action, userType, updateData = {}) => {
@@ -247,7 +264,8 @@ export default function UserManagement() {
                 requestBody.user_id = editingUser.user_id
             } else if (editingUser.userType === 'employee') {
                 endpoint = '/api/admin/users/update-bank-employee'
-                requestBody.employee_id = editingUser.user_id
+                requestBody.employee_id = editingUser.employee_id
+                requestBody.user_type = 'employee'
             }
 
             const response = await fetch(endpoint, {
@@ -857,7 +875,6 @@ export default function UserManagement() {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bank</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
@@ -877,15 +894,6 @@ export default function UserManagement() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {employee.phone || 'N/A'}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                    employee.is_active 
-                                                        ? 'bg-green-100 text-green-800' 
-                                                        : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                    {employee.is_active ? t('admin.active') : t('admin.inactive')}
-                                                </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {employee.last_login_at ? 
@@ -1043,8 +1051,15 @@ export default function UserManagement() {
                     onSuccess={handleBusinessUserCreated}
                 />
 
-                {/* View User Modal */}
-                {showViewModal && selectedUser && (
+                {/* Create Bank User Form */}
+                <CreateBankUserForm
+                    isOpen={showCreateBankForm}
+                    onClose={() => setShowCreateBankForm(false)}
+                    onSuccess={handleBankUserCreated}
+                />
+
+                {/* View User Modal - Only for business users (bank and employee users have specialized modals) */}
+                {showViewModal && selectedUser && selectedUser.userType === 'business' && (
                     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
                         <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
                             <div className="mt-3">
@@ -1073,109 +1088,18 @@ export default function UserManagement() {
                                             <p className="text-sm text-gray-900 capitalize">{selectedUser.userType}</p>
                                         </div>
                                         
-                                        {selectedUser.userType === 'business' && (
-                                            <>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Trade Name</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.entity_name || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">CR Number</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.cr_number || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.city || 'N/A'}</p>
-                                                </div>
-                                            </>
-                                        )}
-                                        
-                                        {selectedUser.userType === 'bank' && (
-                                            <>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Entity Name</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.entity_name || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.email || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit</label>
-                                                    <p className="text-sm text-gray-900">
-                                                        {selectedUser.credit_limit ? 
-                                                            `SAR ${parseFloat(selectedUser.credit_limit).toLocaleString()}` : 
-                                                            'N/A'
-                                                        }
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.contact_person || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.contact_person_number || 'N/A'}</p>
-                                                </div>
-                                                <div className="md:col-span-2">
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.logo_url || 'N/A'}</p>
-                                                    {selectedUser.logo_url && (
-                                                        <img 
-                                                            src={selectedUser.logo_url} 
-                                                            alt="Bank Logo" 
-                                                            className="h-16 w-16 rounded object-cover mt-2"
-                                                            onError={(e) => {
-                                                                e.target.style.display = 'none';
-                                                            }}
-                                                        />
-                                                    )}
-                                                </div>
-                                            </>
-                                        )}
-                                        
-                                        {selectedUser.userType === 'employee' && (
-                                            <>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.first_name || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.last_name || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.position || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.phone || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Bank</label>
-                                                    <p className="text-sm text-gray-900">{selectedUser.bank_entity_name || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
-                                                    <p className="text-sm text-gray-900">
-                                                        {selectedUser.created_at ? 
-                                                            new Date(selectedUser.created_at).toLocaleDateString() : 
-                                                            'N/A'
-                                                        }
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Login</label>
-                                                    <p className="text-sm text-gray-900">
-                                                        {selectedUser.last_login_at ? 
-                                                            new Date(selectedUser.last_login_at).toLocaleDateString() : 
-                                                            'Never'
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </>
-                                        )}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Trade Name</label>
+                                            <p className="text-sm text-gray-900">{selectedUser.entity_name || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">CR Number</label>
+                                            <p className="text-sm text-gray-900">{selectedUser.cr_number || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                            <p className="text-sm text-gray-900">{selectedUser.city || 'N/A'}</p>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1377,18 +1301,50 @@ export default function UserManagement() {
                 )}
 
                 {/* Edit User Modal */}
-                <EditUserModal
-                    user={editingUser}
-                    isOpen={showEditModal}
-                    onClose={() => setShowEditModal(false)}
-                    onUpdate={handleUpdateUser}
-                />
+                {editingUser?.userType === 'employee' ? (
+                    <BankEmployeeEditModal
+                        user={editingUser}
+                        isOpen={showEditModal}
+                        onClose={() => setShowEditModal(false)}
+                        onUpdate={handleUpdateUser}
+                    />
+                ) : (
+                    <EditUserModal
+                        user={editingUser}
+                        isOpen={showEditModal}
+                        onClose={() => setShowEditModal(false)}
+                        onUpdate={handleUpdateUser}
+                    />
+                )}
 
-                {/* Business User View Modal */}
-                <BusinessUserViewModal
-                    user={selectedUser}
-                    isOpen={showViewModal}
-                    onClose={() => setShowViewModal(false)}
+                {/* Dynamic User View Modal based on user type */}
+                {selectedUser?.userType === 'business' && (
+                    <BusinessUserViewModal
+                        user={selectedUser}
+                        isOpen={showViewModal}
+                        onClose={() => setShowViewModal(false)}
+                    />
+                )}
+                {selectedUser?.userType === 'bank' && (
+                    <BankUserViewModal
+                        user={selectedUser}
+                        isOpen={showViewModal}
+                        onClose={() => setShowViewModal(false)}
+                    />
+                )}
+                {selectedUser?.userType === 'employee' && (
+                    <BankEmployeeViewModal
+                        user={selectedUser}
+                        isOpen={showViewModal}
+                        onClose={() => setShowViewModal(false)}
+                    />
+                )}
+
+                {/* Create Bank Employee Form */}
+                <CreateBankEmployeeForm
+                    isOpen={showCreateEmployeeForm}
+                    onClose={() => setShowCreateEmployeeForm(false)}
+                    onSuccess={handleBankEmployeeCreated}
                 />
             </div>
         </Container>

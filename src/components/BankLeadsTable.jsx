@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import BusinessInfoModal from './BusinessInfoModal'
+import { AUCTION_DURATION_MILLISECONDS } from '@/lib/config/auction-config'
 
 export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
     const [selectedBusiness, setSelectedBusiness] = useState(null)
@@ -132,8 +133,8 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
     }
 
     const formatCountdown = (submittedAt, auctionEndTime) => {
-        // If auction_end_time is available, use it; otherwise calculate 48 hours from submission
-        const endTime = auctionEndTime ? new Date(auctionEndTime) : new Date(new Date(submittedAt).getTime() + 48 * 60 * 60 * 1000);
+        // If auction_end_time is available, use it; otherwise calculate configured duration from submission
+        const endTime = auctionEndTime ? new Date(auctionEndTime) : new Date(new Date(submittedAt).getTime() + AUCTION_DURATION_MILLISECONDS);
         const now = new Date();
         const timeLeft = endTime - now;
 
@@ -158,8 +159,8 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
 
     const sortedData = [...data].sort((a, b) => {
         // Sort by countdown time (closest to expiry first)
-        const aEndTime = a.auction_end_time ? new Date(a.auction_end_time) : new Date(new Date(a.submitted_at).getTime() + 48 * 60 * 60 * 1000);
-        const bEndTime = b.auction_end_time ? new Date(b.auction_end_time) : new Date(new Date(b.submitted_at).getTime() + 48 * 60 * 60 * 1000);
+        const aEndTime = a.auction_end_time ? new Date(a.auction_end_time) : new Date(new Date(a.submitted_at).getTime() + AUCTION_DURATION_MILLISECONDS);
+        const bEndTime = b.auction_end_time ? new Date(b.auction_end_time) : new Date(new Date(b.submitted_at).getTime() + AUCTION_DURATION_MILLISECONDS);
         const now = new Date();
         
         const aTimeLeft = aEndTime - now;
@@ -213,7 +214,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {sortedData.map((lead) => {
                                     // Use the same logic as formatCountdown for consistency
-                                    const endTime = lead.auction_end_time ? new Date(lead.auction_end_time) : new Date(new Date(lead.submitted_at).getTime() + 48 * 60 * 60 * 1000);
+                                    const endTime = lead.auction_end_time ? new Date(lead.auction_end_time) : new Date(new Date(lead.submitted_at).getTime() + AUCTION_DURATION_MILLISECONDS);
                                     const now = new Date();
                                     const timeLeft = endTime - now;
                                     const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
@@ -259,7 +260,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
             {/* Mobile Cards */}
             <div className="lg:hidden mt-4 space-y-4">
                 {sortedData.map((lead) => {
-                    const endTime = lead.auction_end_time ? new Date(lead.auction_end_time) : new Date(new Date(lead.submitted_at).getTime() + 48 * 60 * 60 * 1000);
+                    const endTime = lead.auction_end_time ? new Date(lead.auction_end_time) : new Date(new Date(lead.submitted_at).getTime() + AUCTION_DURATION_MILLISECONDS);
                     const now = new Date();
                     const timeLeft = endTime - now;
                     const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));

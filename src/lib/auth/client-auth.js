@@ -59,6 +59,12 @@ export function logout() {
     localStorage.removeItem('user')
     localStorage.removeItem('adminUser')
     localStorage.removeItem('adminJWT')
+    
+    // Ensure body is visible after logout
+    if (typeof document !== 'undefined') {
+        document.body.classList.add('hydrated')
+    }
+    
     window.location.href = '/login'
 }
 

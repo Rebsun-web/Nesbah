@@ -4,8 +4,11 @@ import jwt from 'jsonwebtoken';
 export default class JWTUtils {
     static verifyToken(token) {
         try {
-            const secret = process.env.JWT_SECRET || 'fallback-secret';
-            console.log('🔧 JWTUtils: Using secret:', secret ? 'secret-set' : 'using-fallback');
+            const secret = process.env.JWT_SECRET;
+            if (!secret) {
+                throw new Error('JWT_SECRET environment variable is required');
+            }
+            console.log('🔧 JWTUtils: Using secret:', 'secret-set');
             const decoded = jwt.verify(token, secret);
             return { valid: true, payload: decoded };
         } catch (error) {
@@ -16,8 +19,12 @@ export default class JWTUtils {
     
     static generateToken(payload) {
         try {
-            return jwt.sign(payload, process.env.JWT_SECRET || 'fallback-secret', {
-                expiresIn: '24h'
+            const secret = process.env.JWT_SECRET;
+            if (!secret) {
+                throw new Error('JWT_SECRET environment variable is required');
+            }
+            return jwt.sign(payload, secret, {
+                expiresIn: process.env.JWT_EXPIRES_IN || '24h'
             });
         } catch (error) {
             console.error('Error generating token:', error);
@@ -40,8 +47,12 @@ export default class JWTUtils {
                 iat: Math.floor(Date.now() / 1000)
             };
             
-            return jwt.sign(payload, process.env.JWT_SECRET || 'fallback-secret', {
-                expiresIn: '24h'
+            const secret = process.env.JWT_SECRET;
+            if (!secret) {
+                throw new Error('JWT_SECRET environment variable is required');
+            }
+            return jwt.sign(payload, secret, {
+                expiresIn: process.env.JWT_EXPIRES_IN || '24h'
             });
         } catch (error) {
             console.error('Error generating admin token:', error);
@@ -59,8 +70,12 @@ export default class JWTUtils {
                 // Let JWT library handle exp automatically
             };
             
-            return jwt.sign(payload, process.env.JWT_SECRET || 'fallback-secret', {
-                expiresIn: '24h'
+            const secret = process.env.JWT_SECRET;
+            if (!secret) {
+                throw new Error('JWT_SECRET environment variable is required');
+            }
+            return jwt.sign(payload, secret, {
+                expiresIn: process.env.JWT_EXPIRES_IN || '24h'
             });
         } catch (error) {
             console.error('Error generating user token:', error);

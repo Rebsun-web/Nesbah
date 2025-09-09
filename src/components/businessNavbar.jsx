@@ -44,6 +44,12 @@ export default function BusinessNavbar() {
     const handleNavigation = (item) => {
         if (item.action === 'logout') {
             localStorage.removeItem('user')
+            
+            // Ensure body is visible after logout
+            if (typeof document !== 'undefined') {
+                document.body.classList.add('hydrated')
+            }
+            
             router.push('/login')
         } else if (item.href) {
             router.push(item.href)

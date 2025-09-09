@@ -18,7 +18,7 @@ class AnalyticsService {
             }
             
             const auctionEndTime = appQuery.rows[0].auction_end_time;
-            const auctionStartTime = new Date(auctionEndTime.getTime() - (48 * 60 * 60 * 1000)); // 48 hours before
+            const auctionStartTime = new Date(auctionEndTime.getTime() - ((process.env.DEFAULT_AUCTION_HOURS || 48) * 60 * 60 * 1000)); // Configured duration before
             const timeToOpenMinutes = (Date.now() - auctionStartTime.getTime()) / (1000 * 60);
             
             // Insert or update the view record

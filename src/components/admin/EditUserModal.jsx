@@ -4,6 +4,8 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
     const [formData, setFormData] = useState({});
     const [loading, setLoading] = useState(false);
+    const [logoFile, setLogoFile] = useState(null);
+    const [logoPreview, setLogoPreview] = useState(null);
 
     useEffect(() => {
         if (user && isOpen) {
@@ -40,7 +42,7 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
                     logo_url: user.logo_url || '',
                     contact_person: user.contact_person || '',
                     contact_person_number: user.contact_person_number || '',
-                    account_status: user.account_status || 'active'
+                    credit_limit: user.credit_limit || 10000
                 });
             } else if (user.userType === 'employee') {
                 setFormData({
@@ -62,7 +64,7 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
         let processedValue = value;
         
         // Handle numeric fields to prevent invalid values
-        if (['cr_capital', 'cash_capital', 'in_kind_capital', 'avg_capital'].includes(name)) {
+        if (['cr_capital', 'cash_capital', 'in_kind_capital', 'avg_capital', 'credit_limit'].includes(name)) {
             if (value === '' || value === null || value === undefined) {
                 processedValue = '';
             } else if (isNaN(parseFloat(value))) {
@@ -78,6 +80,23 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
         }));
     };
 
+    const handleLogoFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setLogoFile(file);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setLogoPreview(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const removeLogoFile = () => {
+        setLogoFile(null);
+        setLogoPreview(null);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -91,7 +110,7 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
             delete cleanFormData.cr_number;
             
             // Convert empty strings to null for numeric fields
-            const numericFields = ['cr_capital', 'cash_capital', 'in_kind_capital', 'avg_capital'];
+            const numericFields = ['cr_capital', 'cash_capital', 'in_kind_capital', 'avg_capital', 'credit_limit'];
             numericFields.forEach(field => {
                 if (cleanFormData[field] === '' || cleanFormData[field] === null || cleanFormData[field] === undefined) {
                     cleanFormData[field] = null;
@@ -99,6 +118,36 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
                     cleanFormData[field] = null;
                 }
             });
+
+            // Add user_type to the form data
+            cleanFormData.user_type = user.userType;
+
+            // Handle logo file upload for bank users
+            if (user.userType === 'bank' && logoFile) {
+                const formDataWithFile = new FormData();
+                formDataWithFile.append('logo', logoFile);
+                
+                // Add other form data
+                Object.keys(cleanFormData).forEach(key => {
+                    if (cleanFormData[key] !== null && cleanFormData[key] !== undefined) {
+                        formDataWithFile.append(key, cleanFormData[key]);
+                    }
+                });
+                
+                // Send file upload request
+                const response = await fetch('/api/admin/users/upload-bank-logo', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formDataWithFile
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.logo_url) {
+                        cleanFormData.logo_url = result.logo_url;
+                    }
+                }
+            }
 
             await onUpdate(cleanFormData);
             onClose();
@@ -318,73 +367,131 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
     );
 
     const renderBankUserForm = () => (
-        <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                    <input
-                        type="email"
-                        name="email"
-                        value={formData.email || ''}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+        <div className="space-y-6">
+            {/* Bank Information */}
+            <div>
+                <h4 className="text-md font-semibold text-gray-900 mb-3 border-b pb-2">Bank Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                        <input
+                            type="email"
+                            name="email"
+                            value={formData.email || ''}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
+                        <input
+                            type="text"
+                            name="entity_name"
+                            value={formData.entity_name || ''}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit (SAR)</label>
+                        <input
+                            type="number"
+                            name="credit_limit"
+                            value={formData.credit_limit || ''}
+                            onChange={handleInputChange}
+                            min="0"
+                            step="1000"
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="10000"
+                        />
+                    </div>
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
-                    <input
-                        type="text"
-                        name="entity_name"
-                        value={formData.entity_name || ''}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+            </div>
+
+            {/* Contact Information */}
+            <div>
+                <h4 className="text-md font-semibold text-gray-900 mb-3 border-b pb-2">Contact Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
+                        <input
+                            type="text"
+                            name="contact_person"
+                            value={formData.contact_person || ''}
+                            onChange={handleInputChange}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+                        <input
+                            type="text"
+                            name="contact_person_number"
+                            value={formData.contact_person_number || ''}
+                            onChange={handleInputChange}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
-                    <input
-                        type="url"
-                        name="logo_url"
-                        value={formData.logo_url || ''}
-                        onChange={handleInputChange}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="https://example.com/logo.png"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
-                    <input
-                        type="text"
-                        name="contact_person"
-                        value={formData.contact_person || ''}
-                        onChange={handleInputChange}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
-                    <input
-                        type="text"
-                        name="contact_person_number"
-                        value={formData.contact_person_number || ''}
-                        onChange={handleInputChange}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Account Status</label>
-                    <select
-                        name="account_status"
-                        value={formData.account_status || 'active'}
-                        onChange={handleInputChange}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="active">Active</option>
-                        <option value="suspended">Suspended</option>
-                        <option value="deactivated">Deactivated</option>
-                    </select>
+            </div>
+
+            {/* Bank Logo */}
+            <div>
+                <h4 className="text-md font-semibold text-gray-900 mb-3 border-b pb-2">Bank Logo</h4>
+                <div className="space-y-4">
+                    {/* Current Logo Display */}
+                    {formData.logo_url && !logoPreview && (
+                        <div className="text-center">
+                            <p className="text-sm text-gray-600 mb-2">Current Logo:</p>
+                            <img
+                                src={formData.logo_url}
+                                alt="Current Bank Logo"
+                                className="mx-auto h-24 w-24 object-contain rounded-lg border border-gray-200"
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+                        </div>
+                    )}
+                    
+                    {/* Logo Preview */}
+                    {logoPreview && (
+                        <div className="text-center">
+                            <p className="text-sm text-gray-600 mb-2">New Logo Preview:</p>
+                            <img
+                                src={logoPreview}
+                                alt="New Bank Logo Preview"
+                                className="mx-auto h-24 w-24 object-contain rounded-lg border border-gray-200"
+                            />
+                        </div>
+                    )}
+                    
+                    {/* File Upload Section */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Upload New Logo</label>
+                        <div className="flex items-center space-x-3">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleLogoFileChange}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            />
+                            {logoFile && (
+                                <button
+                                    type="button"
+                                    onClick={removeLogoFile}
+                                    className="px-3 py-2 text-sm text-red-600 hover:text-red-800 border border-red-300 rounded-md hover:bg-red-50"
+                                >
+                                    Remove
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Upload a new logo image file (PNG, JPG, JPEG, GIF). Leave empty to keep current logo.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 
-// Constants
-const APPLICATION_TIMEOUT_SECONDS = 48 * 60 * 60; // 48 hours in seconds
+// Import auction configuration
+import { AUCTION_DURATION_SECONDS } from '@/lib/config/auction-config';
 
 function formatDuration(seconds) {
   const hrs = Math.floor(seconds / 3600);
@@ -79,7 +79,7 @@ export default function IncomingOffer({ user }) {
                   </span>
                                 );
                               } else {
-                                // Countdown has expired (48 hours have passed)
+                                // Countdown has expired (configured duration has passed)
                                 console.log(`App #${app.application_id}: Countdown expired, hiding timer`);
                                 return null;
                               }

@@ -106,14 +106,40 @@ export async function GET(req, { params }) {
                         bu.credit_limit,
                         bu.contact_person,
                         bu.contact_person_number,
-                        bu.created_at,
-                        bu.updated_at,
+                        bu.logo_url,
+                        u.created_at,
+                        u.updated_at,
                         'bank' as user_type,
                         false as has_sent_application,
                         NULL as last_application_date
                     FROM bank_users bu
                     JOIN users u ON bu.user_id = u.user_id
                     WHERE bu.user_id = $1
+                `;
+            } else if (user_type === 'employee') {
+                query = `
+                    SELECT 
+                        be.employee_id,
+                        be.user_id,
+                        u.email,
+                        be.first_name,
+                        be.last_name,
+                        be.first_name || ' ' || be.last_name as entity_name,
+                        be.position,
+                        be.phone,
+                        be.created_at,
+                        be.last_login_at,
+                        u.account_status as registration_status,
+                        u.entity_name as bank_entity_name,
+                        be.bank_user_id,
+                        bu.logo_url as bank_logo_url,
+                        'employee' as user_type,
+                        false as has_sent_application,
+                        NULL as last_application_date
+                    FROM bank_employees be
+                    JOIN users u ON be.user_id = u.user_id
+                    LEFT JOIN bank_users bu ON be.bank_user_id = bu.user_id
+                    WHERE be.employee_id = $1
                 `;
             } else {
                 return NextResponse.json(

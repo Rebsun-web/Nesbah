@@ -14,19 +14,30 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
     const fetchDetailedUserInfo = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/admin/users/business/${user.user_id}`);
+            console.log(`🔍 Fetching detailed user info for ID: ${user.user_id}`);
+            const response = await fetch(`/api/admin/users/business/${user.user_id}`, {
+                credentials: 'include'
+            });
+            
+            console.log(`🔍 Response status: ${response.status} ${response.statusText}`);
+            
             if (response.ok) {
                 const result = await response.json();
+                console.log(`🔍 API response:`, result);
                 if (result.success) {
                     setDetailedUser(result.data);
                 } else {
                     console.error('API returned error:', result.error);
+                    setDetailedUser(null);
                 }
             } else {
-                console.error('HTTP error:', response.status, response.statusText);
+                const errorText = await response.text();
+                console.error('HTTP error:', response.status, response.statusText, errorText);
+                setDetailedUser(null);
             }
         } catch (error) {
             console.error('Error fetching detailed user info:', error);
+            setDetailedUser(null);
         } finally {
             setLoading(false);
         }
@@ -158,19 +169,19 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Email</label>
-                                    <p className="text-sm text-gray-900">{user.email || 'N/A'}</p>
+                                    <p className="text-sm text-gray-900">{detailedUser?.email || user?.email || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Trade Name</label>
-                                    <p className="text-sm text-gray-900">{user.trade_name || 'N/A'}</p>
+                                    <p className="text-sm text-gray-900">{detailedUser?.trade_name || user?.trade_name || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">CR National Number</label>
-                                    <p className="text-sm text-gray-900">{user.cr_national_number || 'N/A'}</p>
+                                    <p className="text-sm text-gray-900">{detailedUser?.cr_national_number || user?.cr_national_number || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">CR Number</label>
-                                    <p className="text-sm text-gray-900">{user.cr_number || 'N/A'}</p>
+                                    <p className="text-sm text-gray-900">{detailedUser?.cr_number || user?.cr_number || 'N/A'}</p>
                                 </div>
                             </div>
                         </div>
@@ -181,15 +192,15 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Legal Form</label>
-                                    <p className="text-sm text-gray-900">{user.legal_form || 'N/A'}</p>
+                                    <p className="text-sm text-gray-900">{detailedUser?.legal_form || user?.legal_form || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Issue Date</label>
-                                    <p className="text-sm text-gray-900">{formatDate(user.issue_date_gregorian)}</p>
+                                    <p className="text-sm text-gray-900">{formatDate(detailedUser?.issue_date_gregorian || user?.issue_date_gregorian)}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Confirmation Date</label>
-                                    <p className="text-sm text-gray-900">{formatDate(user.confirmation_date_gregorian)}</p>
+                                    <p className="text-sm text-gray-900">{formatDate(detailedUser?.confirmation_date_gregorian || user?.confirmation_date_gregorian)}</p>
                                 </div>
                             </div>
                         </div>
@@ -200,7 +211,7 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">City</label>
-                                    <p className="text-sm text-gray-900">{user.city || user.headquarter_city_name || 'N/A'}</p>
+                                    <p className="text-sm text-gray-900">{detailedUser?.city || detailedUser?.headquarter_city_name || user?.city || user?.headquarter_city_name || 'N/A'}</p>
                                 </div>
                             </div>
                         </div>
@@ -212,7 +223,7 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700">Activities</label>
                                     <div className="text-sm text-gray-900">
-                                        {formatActivities(user.activities)}
+                                        {formatActivities(detailedUser?.activities || user?.activities)}
                                     </div>
                                 </div>
                             </div>
@@ -224,7 +235,7 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">CR Capital</label>
-                                    <p className="text-sm text-gray-900">{formatCapital(user.cr_capital)}</p>
+                                    <p className="text-sm text-gray-900">{formatCapital(detailedUser?.cr_capital || user?.cr_capital)}</p>
                                 </div>
 
                             </div>
@@ -237,7 +248,7 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Has E-commerce</label>
                                     <p className="text-sm text-gray-900">
-                                        {user.has_ecommerce ? 'Yes' : 'No'}
+                                        {(detailedUser?.has_ecommerce ?? user?.has_ecommerce) ? 'Yes' : 'No'}
                                     </p>
                                 </div>
                             </div>
@@ -249,11 +260,11 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Management Structure</label>
-                                    <p className="text-sm text-gray-900">{user.management_structure || 'N/A'}</p>
+                                    <p className="text-sm text-gray-900">{detailedUser?.management_structure || user?.management_structure || 'N/A'}</p>
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700">Managers</label>
-                                    <p className="text-sm text-gray-900">{formatArray(user.management_managers)}</p>
+                                    <p className="text-sm text-gray-900">{formatArray(detailedUser?.management_managers || user?.management_managers)}</p>
                                 </div>
                             </div>
                         </div>
@@ -326,8 +337,8 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
                                             <p className="text-sm text-gray-600">No application submitted yet</p>
                                         </div>
                                     ) : (
-                                        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-                                            <p className="text-sm text-yellow-700">Unable to load application details</p>
+                                        <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                                            <p className="text-sm text-red-600">Error loading user details. User may not exist in the database.</p>
                                         </div>
                                     )}
                                 </div>
@@ -341,20 +352,20 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Verification Status</label>
                                     <p className="text-sm text-gray-900">
-                                        {user.is_verified ? 'Verified' : 'Not Verified'}
+                                        {(detailedUser?.is_verified ?? user?.is_verified) ? 'Verified' : 'Not Verified'}
                                     </p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Verification Date</label>
-                                    <p className="text-sm text-gray-900">{formatDate(user.verification_date)}</p>
+                                    <p className="text-sm text-gray-900">{formatDate(detailedUser?.verification_date || user?.verification_date)}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Created At</label>
-                                    <p className="text-sm text-gray-900">{formatDate(user.created_at)}</p>
+                                    <p className="text-sm text-gray-900">{formatDate(detailedUser?.created_at || user?.created_at)}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Last Updated</label>
-                                    <p className="text-sm text-gray-900">{formatDate(user.updated_at)}</p>
+                                    <p className="text-sm text-gray-900">{formatDate(detailedUser?.updated_at || user?.updated_at)}</p>
                                 </div>
                             </div>
                         </div>

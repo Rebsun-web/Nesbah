@@ -1,0 +1,253 @@
+import React, { useState, useEffect } from 'react';
+import { XMarkIcon, UserIcon, BuildingOfficeIcon, PhoneIcon, BriefcaseIcon, EnvelopeIcon, ClockIcon } from '@heroicons/react/24/outline';
+
+export default function BankEmployeeViewModal({ user, isOpen, onClose }) {
+    const [detailedUser, setDetailedUser] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && user?.employee_id) {
+            fetchDetailedUserInfo();
+        }
+    }, [isOpen, user?.employee_id]);
+
+    const fetchDetailedUserInfo = async () => {
+        setLoading(true);
+        try {
+            console.log(`🔍 Fetching detailed bank employee info for ID: ${user.employee_id}`);
+            const response = await fetch(`/api/admin/users/${user.employee_id}?user_type=employee`, {
+                credentials: 'include'
+            });
+            
+            console.log(`🔍 Response status: ${response.status} ${response.statusText}`);
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log(`🔍 API response:`, result);
+                if (result.success) {
+                    setDetailedUser(result.data);
+                } else {
+                    console.error('API returned error:', result.error);
+                    setDetailedUser(null);
+                }
+            } else {
+                const errorText = await response.text();
+                console.error('HTTP error:', response.status, response.statusText, errorText);
+                setDetailedUser(null);
+            }
+        } catch (error) {
+            console.error('Error fetching detailed bank employee info:', error);
+            setDetailedUser(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!isOpen || !user) return null;
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'Never';
+        try {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch {
+            return dateString;
+        }
+    };
+
+    const formatDateTime = (dateString) => {
+        if (!dateString) return 'N/A';
+        try {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch {
+            return dateString;
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+                <div className="mt-3">
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+                        <h3 className="text-lg font-medium text-gray-900">
+                            Bank Employee Details
+                        </h3>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600"
+                        >
+                            <XMarkIcon className="h-6 w-6" />
+                        </button>
+                    </div>
+
+                    {loading ? (
+                        <div className="flex items-center justify-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <span className="ml-2 text-gray-600">Loading...</span>
+                        </div>
+                    ) : detailedUser ? (
+                        <div className="mt-4 space-y-6">
+                            {/* Employee Information */}
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center">
+                                    <UserIcon className="h-5 w-5 mr-2 text-blue-600" />
+                                    Employee Information
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex items-start">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700">First Name</label>
+                                            <p className="text-sm text-gray-900">{detailedUser.first_name || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-start">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                                            <p className="text-sm text-gray-900">{detailedUser.last_name || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-start">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700">Email</label>
+                                            <p className="text-sm text-gray-900 flex items-center">
+                                                <EnvelopeIcon className="h-4 w-4 mr-1 text-gray-400" />
+                                                {detailedUser.email || 'N/A'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-start">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700">Position</label>
+                                            <p className="text-sm text-gray-900 flex items-center">
+                                                <BriefcaseIcon className="h-4 w-4 mr-1 text-gray-400" />
+                                                {detailedUser.position || 'N/A'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-start">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700">Phone</label>
+                                            <p className="text-sm text-gray-900 flex items-center">
+                                                <PhoneIcon className="h-4 w-4 mr-1 text-gray-400" />
+                                                {detailedUser.phone || 'N/A'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-start">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700">Last Login</label>
+                                            <p className="text-sm text-gray-900 flex items-center">
+                                                <ClockIcon className="h-4 w-4 mr-1 text-gray-400" />
+                                                {formatDate(detailedUser.last_login_at)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Bank Information */}
+                            <div className="bg-blue-50 rounded-lg p-4">
+                                <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center">
+                                    <BuildingOfficeIcon className="h-5 w-5 mr-2 text-blue-600" />
+                                    Bank Information
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex items-start">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700">Bank Name</label>
+                                            <p className="text-sm text-gray-900">{detailedUser.bank_entity_name || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-start">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700">Bank Logo</label>
+                                            {detailedUser.bank_logo_url ? (
+                                                <div className="mt-1">
+                                                    <img 
+                                                        src={detailedUser.bank_logo_url} 
+                                                        alt="Bank Logo" 
+                                                        className="h-12 w-12 rounded object-cover border border-gray-200"
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                            e.target.nextSibling.style.display = 'block';
+                                                        }}
+                                                    />
+                                                    <div className="hidden text-sm text-gray-500 mt-1">
+                                                        {detailedUser.bank_logo_url}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-gray-500">No logo available</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Account Information */}
+                            <div className="bg-green-50 rounded-lg p-4">
+                                <h4 className="text-md font-medium text-gray-900 mb-4">Account Information</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex items-start">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700">Employee ID</label>
+                                            <p className="text-sm text-gray-900 font-mono">{detailedUser.employee_id || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-start">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700">User ID</label>
+                                            <p className="text-sm text-gray-900 font-mono">{detailedUser.user_id || 'N/A'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700">Created At</label>
+                                            <p className="text-sm text-gray-900">{formatDateTime(detailedUser.created_at)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-4 text-center py-8">
+                            <div className="text-gray-500">
+                                <p>No detailed information available</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Footer */}
+                    <div className="mt-6 flex justify-end">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

@@ -7,20 +7,18 @@ const isBuildEnvironment = process.env.NODE_ENV === 'production' && process.env.
 // Use DATABASE_URL if available, otherwise use direct connection parameters
 const poolConfig = process.env.DATABASE_URL ? {
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('34.166.77.134') ? {
+  ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false,
-  } : (process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false,
-  } : false),
+  } : false,
 } : {
-  host: '34.166.77.134',
-  port: 5432,
-  database: 'postgres',
-  user: 'postgres',
-  password: 'Riyadh123!@#',
-  ssl: {
+  host: process.env.PGHOST,
+  port: process.env.PGPORT || 5432,
+  database: process.env.PGDATABASE,
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false,
-  },
+  } : false,
 };
 
 const pool = new Pool({

@@ -14,8 +14,8 @@ import {
     CheckCircleIcon
 } from '@heroicons/react/24/outline'
 
-// Constants
-const APPLICATION_TIMEOUT_SECONDS = 48 * 60 * 60; // 48 hours in seconds
+// Import auction configuration
+import { AUCTION_DURATION_SECONDS } from '@/lib/config/auction-config';
 
 function formatDuration(seconds) {
   const hrs = Math.floor(seconds / 3600);
@@ -30,6 +30,11 @@ export default function YourApplication({ user }) {
   const { t } = useLanguage()
   const [applications, setApplications] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Safety check to prevent React error #31
+  if (!user || !user.user_id) {
+    return <div className="text-center py-8">Loading user information...</div>;
+  }
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -109,7 +114,7 @@ export default function YourApplication({ user }) {
           {applications && Array.isArray(applications) ? applications.map((app, index) => {
             try {
               return (
-            <div key={app.application_id} className="mb-6 last:mb-0">
+                <div key={app.application_id} className="mb-6 last:mb-0">
               {/* Application Header */}
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 space-y-3 sm:space-y-0">
                 <div className="flex items-center space-x-3">
@@ -131,8 +136,8 @@ export default function YourApplication({ user }) {
                   </div>
                 </div>
                 {(() => {
-                  // Use auction_end_time if available, otherwise fall back to submitted_at + 48 hours
-                  const auctionEndTime = app.auction_end_time ? new Date(app.auction_end_time) : new Date(new Date(app.submitted_at).getTime() + APPLICATION_TIMEOUT_SECONDS * 1000);
+                  // Use auction_end_time if available, otherwise fall back to submitted_at + configured duration
+                  const auctionEndTime = app.auction_end_time ? new Date(app.auction_end_time) : new Date(new Date(app.submitted_at).getTime() + AUCTION_DURATION_SECONDS * 1000);
                   const remainingSeconds = Math.floor((auctionEndTime - currentTime) / 1000);
                   
                   // Debug information (can be removed in production)
@@ -276,7 +281,7 @@ export default function YourApplication({ user }) {
                   </div>
                 </div>
               )}
-            </div>
+                </div>
               );
             } catch (error) {
               console.error('Error rendering application:', error);

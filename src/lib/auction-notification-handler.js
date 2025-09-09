@@ -1,5 +1,5 @@
 import pool from './db.js';
-import { sendAuctionCompletionEmail, areEmailNotificationsDisabled } from './email/emailNotifications.js';
+import { sendAuctionExpirationEmail, areEmailNotificationsDisabled } from './email/emailNotifications.js';
 
 class AuctionNotificationHandler {
     constructor() {
@@ -118,10 +118,10 @@ class AuctionNotificationHandler {
                             continue;
                         }
 
-                        // Send auction completion email to business
+                        // Send auction expiration email to business
                         if (application.business_email) {
                             const offersCount = application.offers_count || 0;
-                            const emailResult = await sendAuctionCompletionEmail(
+                            const emailResult = await sendAuctionExpirationEmail(
                                 application.business_email,
                                 application,
                                 offersCount

@@ -1,10 +1,5 @@
-import emailjs from '@emailjs/nodejs'
-
-// Initialize EmailJS
-emailjs.init({
-    publicKey: process.env.EMAILJS_PUBLIC_KEY,
-    privateKey: process.env.EMAILJS_PRIVATE_KEY,
-});
+// EmailJS client-side approach (works from browser)
+import emailjs from '@emailjs/browser';
 
 // Check if email notifications are disabled
 const isEmailDisabled = process.env.DISABLE_EMAIL_NOTIFICATIONS === 'true';
@@ -120,7 +115,7 @@ export async function sendNewApplicationNotificationToBanks(bankEmails, applicat
             try {
                 const response = await emailjs.send(
                     process.env.EMAILJS_SERVICE_ID,
-                    process.env.EMAILJS_NEW_LEAD_TEMPLATE_ID,
+                    process.env.EMAILJS_NEW_APPLICATION_LEAD_TEMPLATE_ID,
                     {
                         to_email: bankEmail,
                         business_name: applicationData.trade_name,
@@ -245,6 +240,116 @@ export async function sendApplicationStatusUpdateEmail(businessEmail, applicatio
  */
 export function areEmailNotificationsDisabled() {
     return isEmailDisabled;
+}
+
+/**
+ * Send newsletter subscription confirmation email
+ */
+export async function sendNewsletterSubscriptionEmail(userEmail) {
+    if (isEmailDisabled) {
+        console.log(`📧 Email notifications disabled - skipping newsletter subscription email to ${userEmail}`);
+        return { success: true, disabled: true, message: 'Email notifications are currently disabled' };
+    }
+
+    try {
+        console.log(`📤 Sending newsletter subscription confirmation to ${userEmail}`);
+        
+        // Initialize EmailJS with public key
+        emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY);
+        
+        const response = await emailjs.send(
+            process.env.EMAILJS_SERVICE_ID,
+            process.env.EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID,
+            {
+                email: userEmail
+            }
+        );
+        
+        console.log(`✅ Newsletter subscription email sent to ${userEmail}. Response:`, response);
+        return { success: true, response };
+    } catch (error) {
+        console.error(`❌ Failed to send newsletter subscription email to ${userEmail}. Error:`, error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send business user registration welcome email
+ */
+export async function sendBusinessRegistrationEmail(userEmail, businessData) {
+    if (isEmailDisabled) {
+        console.log(`📧 Email notifications disabled - skipping business registration email to ${userEmail}`);
+        return { success: true, disabled: true, message: 'Email notifications are currently disabled' };
+    }
+
+    try {
+        console.log(`📤 Sending business registration welcome email to ${userEmail}`);
+        
+        const response = await emailjs.send(
+            process.env.EMAILJS_SERVICE_ID,
+            process.env.EMAILJS_BUSINESS_REGISTRATION_TEMPLATE_ID,
+            {
+                user_email: userEmail,
+                business_name: businessData.trade_name || businessData.entity_name || 'Business User',
+                cr_number: businessData.cr_number || businessData.cr_national_number || 'N/A',
+                registration_status: businessData.registration_status || 'active'
+            }
+        );
+        
+        console.log(`✅ Business registration email sent to ${userEmail}. Response:`, response);
+        return { success: true, response };
+    } catch (error) {
+        console.error(`❌ Failed to send business registration email to ${userEmail}. Error:`, error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send auction expiration notification email
+ */
+export async function sendAuctionExpirationEmail(businessEmail, applicationData, offersCount) {
+    if (isEmailDisabled) {
+        console.log(`📧 Email notifications disabled - skipping auction expiration email to ${businessEmail}`);
+        return { success: true, disabled: true, message: 'Email notifications are currently disabled' };
+    }
+
+    try {
+        console.log(`📤 Sending auction expiration notification to ${businessEmail}`);
+        
+        const response = await emailjs.send(
+            process.env.EMAILJS_SERVICE_ID,
+            process.env.EMAILJS_AUCTION_EXPIRATION_TEMPLATE_ID,
+            {
+                to_email: businessEmail,
+                business_name: applicationData.trade_name,
+                application_id: applicationData.application_id,
+                submitted_date: new Date(applicationData.submitted_at).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                auction_end_date: new Date(applicationData.auction_end_time).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                requested_amount: applicationData.requested_financing_amount,
+                offers_received: offersCount,
+                has_offers: offersCount > 0,
+                city_of_operation: applicationData.city_of_operation
+            }
+        );
+        
+        console.log(`✅ Auction expiration email sent to ${businessEmail}. Response:`, response);
+        return { success: true, response };
+    } catch (error) {
+        console.error(`❌ Failed to send auction expiration email to ${businessEmail}. Error:`, error);
+        return { success: false, error: error.message };
+    }
 }
 
 /**

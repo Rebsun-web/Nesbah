@@ -11,6 +11,78 @@ import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react
 import { MinusSmallIcon, PlusSmallIcon } from '@heroicons/react/24/outline'
 import { useLanguage } from '@/contexts/LanguageContext'
 
+function NewsletterForm() {
+  const { t } = useLanguage()
+  const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!email || isSubmitting) return
+
+    setIsSubmitting(true)
+    setMessage('')
+
+    try {
+      // Import EmailJS dynamically for client-side usage
+      const emailjs = (await import('@emailjs/browser')).default
+      
+      // Initialize EmailJS
+      emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY)
+      
+      // Send email directly from client
+      const response = await emailjs.send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
+        process.env.NEXT_PUBLIC_EMAILJS_NEWSLETTER_TEMPLATE_ID,
+        {
+          email: email
+        }
+      )
+      
+      console.log('✅ Newsletter subscription email sent:', response)
+      setMessage('Thank you for subscribing! Please check your email for confirmation.')
+      setEmail('')
+    } catch (error) {
+      console.error('❌ Newsletter subscription error:', error)
+      setMessage('Something went wrong. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mx-auto mt-10 flex max-w-md gap-x-4">
+      <label htmlFor="email-address" className="sr-only">
+        Email address
+      </label>
+      <input
+        id="email-address"
+        name="email"
+        type="email"
+        autoComplete="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="min-w-0 flex-auto rounded-md border-0 bg-white/10 px-4 py-3 text-white shadow-sm ring-1 ring-inset ring-white/20 focus:ring-2 focus:ring-inset focus:ring-white sm:text-sm sm:leading-6 placeholder-gray-400"
+        placeholder={t('newsletter.placeholder')}
+      />
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="flex-none rounded-md bg-white px-4 py-3 text-sm font-semibold text-[#1E1851] shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isSubmitting ? 'Subscribing...' : t('newsletter.subscribe')}
+      </button>
+      {message && (
+        <div className="mt-4 text-center text-sm text-white">
+          {message}
+        </div>
+      )}
+    </form>
+  )
+}
+
 function Hero() {
   const { t } = useLanguage()
   
@@ -260,26 +332,7 @@ function Newsletter() {
         <p className="mx-auto mt-4 max-w-xl text-lg leading-8 text-gray-300 lg:text-xl">
           {t('newsletter.description')}
         </p>
-        <form className="mx-auto mt-10 flex max-w-md gap-x-4">
-          <label htmlFor="email-address" className="sr-only">
-            Email address
-          </label>
-          <input
-            id="email-address"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="min-w-0 flex-auto rounded-md border-0 bg-white/10 px-4 py-3 text-white shadow-sm ring-1 ring-inset ring-white/20 focus:ring-2 focus:ring-inset focus:ring-white sm:text-sm sm:leading-6 placeholder-gray-400"
-            placeholder={t('newsletter.placeholder')}
-          />
-          <button
-            type="submit"
-            className="flex-none rounded-md bg-white px-4 py-3 text-sm font-semibold text-[#1E1851] shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors duration-200"
-          >
-            {t('newsletter.subscribe')}
-          </button>
-        </form>
+        <NewsletterForm />
       </div>
     </div>
   )

@@ -7,9 +7,15 @@ import { useLanguage } from '@/contexts/LanguageContext'
 
 export function PosApplication({ user, onSuccess}) {
   const { t } = useLanguage()
-  const crNationalNumber = user?.business?.cr_national_number || '';
-  const tradeName = user?.business?.trade_name || '';
-  const email = user?.email || '';
+  
+  // Safety checks to prevent React error #31
+  if (!user || !user.business) {
+    return <div className="text-center py-8">Loading business information...</div>;
+  }
+  
+  const crNationalNumber = user.business.cr_national_number || '';
+  const tradeName = user.business.trade_name || '';
+  const email = user.email || '';
 
   const [notes, setNotes] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -155,7 +161,7 @@ export function PosApplication({ user, onSuccess}) {
             console.log('📤 Attempting to send email to', email);
             await emailjs.send(
               process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
-              process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+              process.env.NEXT_PUBLIC_EMAILJS_NEWSLETTER_TEMPLATE_ID,
               {
                 to_email: email,
               },

@@ -8,7 +8,8 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
         password: '',
         logo_url: '',
         contact_person: '',
-        contact_person_number: ''
+        contact_person_number: '',
+        credit_limit: 10000
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -126,7 +127,8 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
             password: '',
             logo_url: '',
             contact_person: '',
-            contact_person_number: ''
+            contact_person_number: '',
+            credit_limit: 10000
         });
         setLogoFile(null);
         setLogoPreview(null);
@@ -228,6 +230,51 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
                                     <p className="text-xs text-gray-500 mt-1">
                                         Password must be at least 8 characters long
                                     </p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit (SAR)</label>
+                                    <input
+                                        type="number"
+                                        name="credit_limit"
+                                        value={formData.credit_limit}
+                                        onChange={handleInputChange}
+                                        min="0"
+                                        step="1000"
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="10000"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Default credit limit for this bank
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Contact Information */}
+                        <div>
+                            <h4 className="text-md font-semibold text-gray-900 mb-3 border-b pb-2">Contact Information</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
+                                    <input
+                                        type="text"
+                                        name="contact_person"
+                                        value={formData.contact_person}
+                                        onChange={handleInputChange}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Contact Person Name"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+                                    <input
+                                        type="tel"
+                                        name="contact_person_number"
+                                        value={formData.contact_person_number}
+                                        onChange={handleInputChange}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="+966 50 123 4567"
+                                    />
                                 </div>
                             </div>
                         </div>

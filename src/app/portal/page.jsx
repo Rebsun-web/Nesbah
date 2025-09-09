@@ -10,15 +10,15 @@ import { PosApplication } from '@/components/posApplication'
 import { ApplicationLimit } from '@/components/ApplicationLimit'
 import YourApplication from '@/components/YourApplication'
 
-import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import ApplicationSubmittedModal from '@/components/ApplicationSubmittedModal'
 import { makeAuthenticatedRequest } from '@/lib/auth/client-auth'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { calculateApplicationStatus, getStatusInfo } from '@/lib/application-status'
 
-// Lazy load heavy components
-const LazyYourApplication = lazy(() => import('@/components/YourApplication'))
-const LazyPosApplication = lazy(() => import('@/components/posApplication').then(module => ({ default: module.PosApplication })))
+// Temporarily disable lazy loading to debug the issue
+// const LazyYourApplication = lazy(() => import('@/components/YourApplication'))
+// const LazyPosApplication = lazy(() => import('@/components/posApplication').then(module => ({ default: module.PosApplication })))
 
 const tabs = [
     { name: 'POS finance', value: 'pos' },
@@ -71,7 +71,8 @@ function BusinessPortal() {
         return {
             ...baseStatusInfo,
             label: localizedLabels[calculatedStatus] || baseStatusInfo.label,
-            description: localizedDescriptions[calculatedStatus] || baseStatusInfo.description
+            description: localizedDescriptions[calculatedStatus] || baseStatusInfo.description,
+            icon: '⏳' // Use string icon instead of React component
         };
     }, [applicationData, t]);
 
@@ -143,10 +144,12 @@ function BusinessPortal() {
     const renderForm = useCallback(() => {
         switch (activeTab) {
             case 'pos':
+                // Only render if we have both userInfo and businessInfo
+                if (!userInfo || !businessInfo) {
+                    return <div className="text-center py-8">Loading application form...</div>;
+                }
                 return (
-                    <Suspense fallback={<div className="text-center py-8">Loading application form...</div>}>
-                        <LazyPosApplication user={{ ...userInfo, business: businessInfo }} onSuccess={() => setIsSubmitted(true)} />
-                    </Suspense>
+                    <PosApplication user={{ ...userInfo, business: businessInfo }} onSuccess={() => setIsSubmitted(true)} />
                 );
             case 'account':
                 return <div className="text-gray-600">My Account form goes here.</div>;
@@ -392,11 +395,9 @@ function BusinessPortal() {
                   )}
                   
                   {/* Only show application-related components if user has submitted an application */}
-                  {hasApplication && (
+                  {hasApplication && userInfo && (
                     <div className="space-y-8">
-                      <Suspense fallback={<div className="text-center py-8">Loading application details...</div>}>
-                        <LazyYourApplication user={userInfo} />
-                      </Suspense>
+                      <YourApplication user={userInfo} />
                     </div>
                   )}
 
@@ -464,7 +465,7 @@ function BusinessPortal() {
             </main>
           </div>
         </div>
-        <NewFooter className="mt-auto" />
+        <NewFooter />
       </div>
     )
 }

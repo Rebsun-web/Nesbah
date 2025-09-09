@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import bcrypt from 'bcrypt';
+import { sendBusinessRegistrationEmail } from '@/lib/email/emailNotifications';
 
 export async function POST(req) {
     try {
@@ -150,6 +151,22 @@ export async function POST(req) {
             );
 
             await client.query('COMMIT');
+
+            // Send welcome email to business user
+            try {
+                const businessData = {
+                    trade_name,
+                    cr_number,
+                    cr_national_number,
+                    registration_status: registration_status || 'active'
+                };
+                
+                await sendBusinessRegistrationEmail(email, businessData);
+                console.log(`✅ Business registration welcome email sent to ${email}`);
+            } catch (emailError) {
+                console.error(`❌ Failed to send business registration email to ${email}:`, emailError);
+                // Don't fail the registration if email fails
+            }
             
             return NextResponse.json({ 
                 success: true, 

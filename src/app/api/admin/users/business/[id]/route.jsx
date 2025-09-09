@@ -25,6 +25,7 @@ export async function GET(req, { params }) {
         }
 
         const { id } = await params;
+        console.log(`🔍 Business User API: Fetching details for user ID: ${id}`);
         const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_business_[id]_route.jsx_GET');
         
         try {
@@ -54,8 +55,10 @@ export async function GET(req, { params }) {
             `;
             
             const result = await client.query(query, [id]);
+            console.log(`🔍 Business User API: Query result for ID ${id}:`, { rowCount: result.rowCount, rows: result.rows });
             
             if (result.rowCount === 0) {
+                console.log(`❌ Business User API: No user found with ID ${id}`);
                 return NextResponse.json(
                     { success: false, error: 'Business user not found' },
                     { status: 404 }

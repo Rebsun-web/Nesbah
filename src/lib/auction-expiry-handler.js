@@ -24,12 +24,12 @@ class AuctionExpiryHandler {
                     pa.status,
                     ${STATUS_CALCULATION_SQL},
                     EXTRACT(EPOCH FROM (
-                        COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') - NOW()
+                        COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${process.env.DEFAULT_AUCTION_HOURS || 48} hours') - NOW()
                     ))/3600 as hours_expired
                 FROM pos_application pa
                 WHERE pa.status = 'live_auction'
-                AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') <= NOW()
-                ORDER BY COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') ASC
+                AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${process.env.DEFAULT_AUCTION_HOURS || 48} hours') <= NOW()
+                ORDER BY COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${process.env.DEFAULT_AUCTION_HOURS || 48} hours') ASC
             `);
 
             if (expiredApplications.rows.length === 0) {
@@ -176,13 +176,13 @@ class AuctionExpiryHandler {
                     pa.trade_name,
                     pa.status,
                     EXTRACT(EPOCH FROM (
-                        COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') - NOW()
+                        COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${process.env.DEFAULT_AUCTION_HOURS || 48} hours') - NOW()
                     ))/3600 as hours_until_expiry
                 FROM pos_application pa
                 WHERE pa.status = 'live_auction'
-                AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') > NOW()
-                AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') <= NOW() + INTERVAL '2 hours'
-                ORDER BY COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '48 hours') ASC
+                AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${process.env.DEFAULT_AUCTION_HOURS || 48} hours') > NOW()
+                AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${process.env.DEFAULT_AUCTION_HOURS || 48} hours') <= NOW() + INTERVAL '2 hours'
+                ORDER BY COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${process.env.DEFAULT_AUCTION_HOURS || 48} hours') ASC
             `);
 
             return urgentResult.rows;

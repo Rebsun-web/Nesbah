@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
+
 import { cascadeDeleteApplication } from '@/lib/cascade-deletion';
 
 // GET - Get specific application by ID
@@ -293,7 +294,7 @@ export async function PUT(req, { params }) {
                 
                 // Always reset timer when status is live_auction (whether changing or staying the same)
                 const newEndTime = new Date();
-                newEndTime.setHours(newEndTime.getHours() + 48); // 48 hours from now
+                newEndTime.setHours(newEndTime.getHours() + (process.env.DEFAULT_AUCTION_HOURS || 48)); // Configured duration from now
                 
                 await client.query(
                     'UPDATE pos_application SET auction_end_time = $1 WHERE application_id = $2',

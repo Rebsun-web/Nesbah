@@ -29,6 +29,8 @@ export async function POST(req) {
         const { 
             cr_national_number, 
             trade_name, 
+            email,
+            password,
             // Optional fields that can be provided manually or fetched from Wathiq
             cr_number,
             address,
