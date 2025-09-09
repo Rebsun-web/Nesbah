@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Container } from '@/components/container'
 import BusinessUserViewModal from './BusinessUserViewModal'
 import BankUserViewModal from './BankUserViewModal'
 import BankEmployeeViewModal from './BankEmployeeViewModal'
@@ -365,8 +364,7 @@ export default function UserManagement() {
     }
 
     return (
-        <Container>
-            <div className="py-8">
+        <div className="space-y-6">
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
@@ -475,7 +473,7 @@ export default function UserManagement() {
                         
                         {/* Desktop Table */}
                         <div className="hidden lg:block overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
+                            <table className="w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
@@ -673,7 +671,7 @@ export default function UserManagement() {
                         
                         {/* Desktop Table */}
                         <div className="hidden lg:block overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
+                            <table className="w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bank</th>
@@ -868,7 +866,7 @@ export default function UserManagement() {
                         
                         {/* Desktop Table */}
                         <div className="hidden lg:block overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
+                            <table className="w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
@@ -1346,7 +1344,6 @@ export default function UserManagement() {
                     onClose={() => setShowCreateEmployeeForm(false)}
                     onSuccess={handleBankEmployeeCreated}
                 />
-            </div>
-        </Container>
+        </div>
     )
 }

@@ -63,7 +63,7 @@ gcloud run deploy nesbah-portal \
   --set-env-vars="PGPASSWORD=Riyadh123!@#" \
   --set-env-vars="NODE_ENV=production" \
   --set-env-vars="PORT=8080" \
-  --set-env-vars="WATHQ_API_KEY=vFRBMGAv78vRdCAnbXhVJMcN6AaxLn34" \
+  --set-env-vars="WATHIQ_API_KEY=vFRBMGAv78vRdCAnbXhVJMcN6AaxLn34" \
   --set-env-vars="DEFAULT_AUCTION_HOURS=48" \
   --set-env-vars="JWT_SECRET=5f45fca69e952df8e813d8bcf8d3e5aa6e4887ee482adfb5e8d435a7d2e99966df067687881f2c21fbfdc640bd5109e99f7241a96e8326c9fb506c2dd1434abc" \
   --set-env-vars="JWT_EXPIRES_IN=8h" \

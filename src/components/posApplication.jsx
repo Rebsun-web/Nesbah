@@ -8,15 +8,6 @@ import { useLanguage } from '@/contexts/LanguageContext'
 export function PosApplication({ user, onSuccess}) {
   const { t } = useLanguage()
   
-  // Safety checks to prevent React error #31
-  if (!user || !user.business) {
-    return <div className="text-center py-8">Loading business information...</div>;
-  }
-  
-  const crNationalNumber = user.business.cr_national_number || '';
-  const tradeName = user.business.trade_name || '';
-  const email = user.email || '';
-
   const [notes, setNotes] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
   const [base64File, setBase64File] = useState(null);
@@ -31,6 +22,15 @@ export function PosApplication({ user, onSuccess}) {
   const [avgMonthlyPosSales, setAvgMonthlyPosSales] = useState('');
   const [requestedFinancingAmount, setRequestedFinancingAmount] = useState('');
   const [preferredRepaymentPeriod, setPreferredRepaymentPeriod] = useState('');
+
+  // Safety checks to prevent React error #31 - moved after all hooks
+  if (!user || !user.business) {
+    return <div className="text-center py-8">Loading business information...</div>;
+  }
+  
+  const crNationalNumber = user.business.cr_national_number || '';
+  const tradeName = user.business.trade_name || '';
+  const email = user.email || '';
 
   const clearUploadedFile = () => {
     setUploadedFile(null);

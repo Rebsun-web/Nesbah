@@ -15,7 +15,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 // Import auction configuration
-import { AUCTION_DURATION_SECONDS } from '@/lib/config/auction-config';
+import { AUCTION_DURATION_MILLISECONDS } from '@/lib/config/auction-config';
 
 function formatDuration(seconds) {
   const hrs = Math.floor(seconds / 3600);
@@ -30,11 +30,6 @@ export default function YourApplication({ user }) {
   const { t } = useLanguage()
   const [applications, setApplications] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
-
-  // Safety check to prevent React error #31
-  if (!user || !user.user_id) {
-    return <div className="text-center py-8">Loading user information...</div>;
-  }
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -62,6 +57,11 @@ export default function YourApplication({ user }) {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Safety check to prevent React error #31 - moved after all hooks
+  if (!user || !user.user_id) {
+    return <div className="text-center py-8">Loading user information...</div>;
+  }
 
   if (!applications.length) return null;
 
@@ -137,7 +137,7 @@ export default function YourApplication({ user }) {
                 </div>
                 {(() => {
                   // Use auction_end_time if available, otherwise fall back to submitted_at + configured duration
-                  const auctionEndTime = app.auction_end_time ? new Date(app.auction_end_time) : new Date(new Date(app.submitted_at).getTime() + AUCTION_DURATION_SECONDS * 1000);
+                  const auctionEndTime = app.auction_end_time ? new Date(app.auction_end_time) : new Date(new Date(app.submitted_at).getTime() + AUCTION_DURATION_MILLISECONDS);
                   const remainingSeconds = Math.floor((auctionEndTime - currentTime) / 1000);
                   
                   // Debug information (can be removed in production)
