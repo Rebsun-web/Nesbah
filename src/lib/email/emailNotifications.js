@@ -41,6 +41,10 @@ export async function sendApplicationSubmissionEmail(businessEmail, applicationD
                 number_of_pos_devices: applicationData.number_of_pos_devices,
                 requested_amount: applicationData.requested_financing_amount,
                 repayment_period: applicationData.preferred_repayment_period_months
+            },
+            {
+                publicKey: process.env.EMAILJS_PUBLIC_KEY,
+                privateKey: process.env.EMAILJS_PRIVATE_KEY
             }
         );
         
@@ -254,14 +258,18 @@ export async function sendNewsletterSubscriptionEmail(userEmail) {
     try {
         console.log(`📤 Sending newsletter subscription confirmation to ${userEmail}`);
         
-        // Initialize EmailJS with public key
-        emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY);
+        // Use server-side EmailJS
+        const emailjs = await import('@emailjs/nodejs');
         
         const response = await emailjs.send(
             process.env.EMAILJS_SERVICE_ID,
             process.env.EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID,
             {
                 email: userEmail
+            },
+            {
+                publicKey: process.env.EMAILJS_PUBLIC_KEY,
+                privateKey: process.env.EMAILJS_PRIVATE_KEY
             }
         );
         

@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import BusinessInfoModal from './BusinessInfoModal'
+import OfferSuccessModal from './OfferSuccessModal'
 import { AUCTION_DURATION_MILLISECONDS } from '@/lib/config/auction-config'
 
 export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
     const [selectedBusiness, setSelectedBusiness] = useState(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [showOfferModal, setShowOfferModal] = useState(false)
+    const [showSuccessModal, setShowSuccessModal] = useState(false)
     const [offerForm, setOfferForm] = useState({
         approvedAmount: '',
         repaymentPeriod: '',
@@ -99,12 +101,12 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
             const result = await response.json()
 
             if (result.success) {
-                // Show success message with navigation guidance
-                alert('Offer submitted successfully! The lead has been moved to approved leads. You can view it in the "Leads" section.')
-                
-                // Close the modal
+                // Close the offer modal
                 setShowOfferModal(false)
                 setSelectedBusiness(null)
+                
+                // Show success modal
+                setShowSuccessModal(true)
                 
                 // Reset the form
                 setOfferForm({
@@ -527,6 +529,19 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                     </div>
                 </div>
             )}
+
+            {/* Success Modal */}
+            <OfferSuccessModal 
+                isOpen={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                onViewLeads={() => {
+                    setShowSuccessModal(false)
+                    // Navigate to leads section or refresh data
+                    if (onLeadSubmitSuccess) {
+                        onLeadSubmitSuccess()
+                    }
+                }}
+            />
         </>
     )
 }

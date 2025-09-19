@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { ArrowDownTrayIcon, ChevronLeftIcon, ChevronRightIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline'
 import UnmaskedContactInfo from '@/components/UnmaskedContactInfo'
+import OfferSuccessModal from '@/components/OfferSuccessModal'
 
 function BankLeadsPage() {
     const [purchasedLeads, setPurchasedLeads] = useState([])
@@ -14,6 +15,7 @@ function BankLeadsPage() {
     const [selectedLead, setSelectedLead] = useState(null)
     const [showUnmaskedInfo, setShowUnmaskedInfo] = useState(false)
     const [showOfferModal, setShowOfferModal] = useState(false)
+    const [showSuccessModal, setShowSuccessModal] = useState(false)
     const [offerForm, setOfferForm] = useState({
         approvedAmount: '',
         repaymentPeriod: '',
@@ -122,8 +124,8 @@ function BankLeadsPage() {
             if (response.ok) {
                 const result = await response.json()
                 if (result.success) {
-                    alert('Offer submitted successfully!')
                     setShowOfferModal(false)
+                    setShowSuccessModal(true)
                     setOfferForm({
                         approvedAmount: '',
                         repaymentPeriod: '',
@@ -939,6 +941,17 @@ function BankLeadsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Success Modal */}
+            <OfferSuccessModal 
+                isOpen={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                onViewLeads={() => {
+                    setShowSuccessModal(false)
+                    // Refresh the leads data
+                    fetchPurchasedLeads()
+                }}
+            />
         </div>
     )
 }

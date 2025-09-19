@@ -605,7 +605,15 @@ export function BusinessInformation({ businessInfo }) {
               <div>
                 <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 sm:mb-2">{t('business.needToUpdateInformation')}</h4>
                 <p className="text-xs sm:text-sm text-gray-600">
-                  {t('business.wrongInformationContact')}
+                  {t('business.wrongInformationContact')}{' '}
+                  <a 
+                    href="https://wa.me/966538559910" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-indigo-600 hover:text-indigo-500 font-medium underline"
+                  >
+                    {t('business.whatsappContact')}
+                  </a>
                 </p>
               </div>
             </div>

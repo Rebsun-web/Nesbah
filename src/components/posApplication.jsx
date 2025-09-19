@@ -319,7 +319,7 @@ export function PosApplication({ user, onSuccess}) {
                     value={posProviderName}
                     onChange={(e) => setPosProviderName(e.target.value)}
                     className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-2 sm:pr-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                    placeholder="e.g., Verifone, Ingenico, PAX"
+                    placeholder="e.g., Neoleap, Gedia, Rajhi, etc."
                   />
                 </div>
               </div>
