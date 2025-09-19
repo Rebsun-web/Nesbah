@@ -288,7 +288,7 @@ export async function POST(req) {
                 offer_comment || null,
                 offer_terms || null,
                 bankName,
-                'submitted',
+                'live_auction',
                 new Date(),
                 new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
                 admin_notes || null,

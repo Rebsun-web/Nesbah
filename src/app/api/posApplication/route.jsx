@@ -54,6 +54,33 @@ export async function POST(req) {
 
             const business = businessResult.rows[0];
 
+            // CRITICAL: Check if this business user already has a submitted application
+            const existingApplicationQuery = `
+                SELECT COUNT(*) as count, application_id, status, submitted_at
+                FROM pos_application 
+                WHERE user_id = $1 
+                AND status IN ('live_auction', 'completed', 'ignored')
+                ORDER BY submitted_at DESC
+                LIMIT 1
+            `;
+            
+            const existingApplicationResult = await client.query(existingApplicationQuery, [user_id]);
+            const hasExistingApplication = parseInt(existingApplicationResult.rows[0].count) > 0;
+
+            if (hasExistingApplication) {
+                await client.query('ROLLBACK');
+                const existingApp = existingApplicationResult.rows[0];
+                return NextResponse.json({ 
+                    success: false, 
+                    error: 'You already have a submitted application. Only one application per business is allowed.',
+                    details: {
+                        existing_application_id: existingApp.application_id,
+                        status: existingApp.status,
+                        submitted_at: existingApp.submitted_at
+                    }
+                }, { status: 400 });
+            }
+
             // Note: Removed problematic JSON fields (activities, contact_info, management_managers) 
             // to avoid JSON parsing errors. These fields are not essential for POS application submission.
 

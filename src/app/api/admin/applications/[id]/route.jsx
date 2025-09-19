@@ -457,7 +457,9 @@ export async function DELETE(req, { params }) {
             await client.query('BEGIN');
 
             // Use the cascade deletion utility
+            console.log(`🔧 Starting cascade deletion for application ${applicationId}...`);
             const result = await cascadeDeleteApplication(client, applicationId, false);
+            console.log(`🔧 Cascade deletion result:`, result);
             
             if (!result.success) {
                 await client.query('ROLLBACK');
@@ -477,6 +479,7 @@ export async function DELETE(req, { params }) {
 
         } catch (error) {
             await client.query('ROLLBACK');
+            console.error('Error during cascade deletion:', error);
             throw error;
         } finally {
             client.release();

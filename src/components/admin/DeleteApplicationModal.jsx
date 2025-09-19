@@ -20,8 +20,15 @@ export default function DeleteApplicationModal({ isOpen, onClose, application, o
         try {
             const response = await fetch(`/api/admin/applications/${application.application_id}`, {
                 method: 'DELETE',
-                credentials: 'include'
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             })
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
             
             const data = await response.json()
             
@@ -32,7 +39,8 @@ export default function DeleteApplicationModal({ isOpen, onClose, application, o
                 setError(data.error || 'Failed to delete application')
             }
         } catch (err) {
-            setError('Network error while deleting application')
+            console.error('Delete application error:', err)
+            setError(err.message || 'Network error while deleting application')
         } finally {
             setLoading(false)
         }

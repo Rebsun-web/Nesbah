@@ -1,4 +1,5 @@
 import backgroundConnectionManager from './background-connection-manager.js'
+import StatusSynchronizer from './status-synchronizer.js'
 
 class BackgroundTaskManager {
     constructor() {
@@ -13,6 +14,20 @@ class BackgroundTaskManager {
         this.connectionTimeout = 30000 // 30 seconds max for any database operation
         this.maxRetries = 3
         this.retryDelay = 5000 // 5 seconds between retries
+        
+        // Persistent timer tracking to prevent resets
+        this.lastRunTimes = {
+            statusTransitions: 0,
+            auctionMonitor: 0,
+            statusConsistency: 0,
+            healthCheck: 0
+        }
+        
+        // Use global timers to persist across reinitializations
+        this.globalTimers = global.backgroundTaskTimers || {}
+        if (!global.backgroundTaskTimers) {
+            global.backgroundTaskTimers = this.globalTimers
+        }
     }
 
     // Start all background tasks
@@ -22,44 +37,17 @@ class BackgroundTaskManager {
             return
         }
 
+        // Additional safety check - clear any existing intervals
+        if (Object.keys(this.tasks).length > 0) {
+            console.log('🧹 Cleaning up existing tasks before starting...')
+            this.stop()
+        }
+
         console.log('🚀 Starting Background Task Manager...')
         this.isRunning = true
 
-        // Start status transition monitoring with better connection management
-        this.tasks.statusTransitions = setInterval(async () => {
-            try {
-                await this.executeWithConnectionRetry('statusTransitions', () => this.checkStatusTransitions())
-            } catch (error) {
-                console.error('❌ Error in status transitions task:', error)
-            }
-        }, this.taskIntervals.statusTransitions)
-
-        // Start auction monitoring
-        this.tasks.auctionMonitor = setInterval(async () => {
-            try {
-                await this.executeWithConnectionRetry('auctionMonitor', () => this.checkAuctionStatus())
-            } catch (error) {
-                console.error('❌ Error in auction monitoring task:', error)
-            }
-        }, this.taskIntervals.auctionMonitor)
-
-        // Start status consistency monitoring
-        this.tasks.statusConsistency = setInterval(async () => {
-            try {
-                await this.executeWithConnectionRetry('statusConsistency', () => this.checkStatusConsistency())
-            } catch (error) {
-                console.error('❌ Error in status consistency task:', error)
-            }
-        }, this.taskIntervals.statusConsistency)
-
-        // Start health checks
-        this.tasks.healthCheck = setInterval(async () => {
-            try {
-                await this.executeWithConnectionRetry('healthCheck', () => this.performHealthChecks())
-            } catch (error) {
-                console.error('❌ Error in health check task:', error)
-            }
-        }, this.taskIntervals.healthCheck)
+        // Use persistent timers that don't reset on reinitialization
+        this.startPersistentTimers()
 
         console.log('✅ Background Task Manager started successfully')
         console.log('📊 Active tasks:')
@@ -68,6 +56,85 @@ class BackgroundTaskManager {
         console.log('   - Status Consistency: ACTIVE (every 30 minutes) - Check for inconsistencies')
         console.log('   - Health Checks: ACTIVE (every 60 minutes) - System health monitoring')
         console.log('🔧 Connection management: Enhanced with dedicated connection manager')
+    }
+
+    // Start persistent timers that don't reset on reinitialization
+    startPersistentTimers() {
+        const now = Date.now()
+        
+        // Start status transition monitoring with persistent timing
+        this.startPersistentTimer('statusTransitions', async () => {
+            try {
+                await this.executeWithConnectionRetry('statusTransitions', () => this.checkStatusTransitions())
+            } catch (error) {
+                console.error('❌ Error in status transitions task:', error)
+            }
+        }, this.taskIntervals.statusTransitions, now)
+
+        // Start auction monitoring
+        this.startPersistentTimer('auctionMonitor', async () => {
+            try {
+                await this.executeWithConnectionRetry('auctionMonitor', () => this.checkAuctionStatus())
+            } catch (error) {
+                console.error('❌ Error in auction monitoring task:', error)
+            }
+        }, this.taskIntervals.auctionMonitor, now)
+
+        // Start status consistency monitoring
+        this.startPersistentTimer('statusConsistency', async () => {
+            try {
+                await this.executeWithConnectionRetry('statusConsistency', () => this.checkStatusConsistency())
+            } catch (error) {
+                console.error('❌ Error in status consistency task:', error)
+            }
+        }, this.taskIntervals.statusConsistency, now)
+
+        // Start health checks
+        this.startPersistentTimer('healthCheck', async () => {
+            try {
+                await this.executeWithConnectionRetry('healthCheck', () => this.performHealthChecks())
+            } catch (error) {
+                console.error('❌ Error in health check task:', error)
+            }
+        }, this.taskIntervals.healthCheck, now)
+    }
+
+    // Start a persistent timer that doesn't reset on reinitialization
+    startPersistentTimer(taskName, taskFunction, interval, startTime) {
+        // Clear any existing timer for this task
+        if (this.globalTimers[taskName]) {
+            clearInterval(this.globalTimers[taskName])
+        }
+
+        // Calculate when the next run should be based on the last run time
+        const lastRun = this.lastRunTimes[taskName] || startTime
+        const timeSinceLastRun = startTime - lastRun
+        const timeUntilNextRun = Math.max(0, interval - (timeSinceLastRun % interval))
+        
+        console.log(`⏰ ${taskName}: Next run in ${Math.round(timeUntilNextRun / 1000)}s (interval: ${interval / 1000}s)`)
+
+        // Set up the timer
+        const timer = setInterval(async () => {
+            if (this.isRunning) {
+                this.lastRunTimes[taskName] = Date.now()
+                await taskFunction()
+            }
+        }, interval)
+
+        // Store the timer globally so it persists across reinitializations
+        this.globalTimers[taskName] = timer
+        this.tasks[taskName] = timer
+
+        // Run immediately if it's been too long since last run
+        if (timeSinceLastRun >= interval) {
+            console.log(`🚀 ${taskName}: Running immediately (overdue by ${Math.round(timeSinceLastRun / 1000)}s)`)
+            setTimeout(async () => {
+                if (this.isRunning) {
+                    this.lastRunTimes[taskName] = Date.now()
+                    await taskFunction()
+                }
+            }, 1000) // Small delay to ensure everything is ready
+        }
     }
 
     // Stop all background tasks
@@ -87,24 +154,42 @@ class BackgroundTaskManager {
             }
         })
 
+        // Clear global timers
+        Object.values(this.globalTimers).forEach(interval => {
+            if (interval) {
+                clearInterval(interval)
+            }
+        })
+
         // Release all active connections but don't close the pool
         backgroundConnectionManager.releaseAllConnections()
 
-        // Reset tasks
+        // Reset tasks but keep last run times for persistence
         this.tasks = {}
+        // Don't reset lastRunTimes to maintain timing continuity
 
         console.log('✅ Background Task Manager stopped')
     }
 
     // Get task status
     getStatus() {
+        const now = Date.now()
         return {
             isRunning: this.isRunning,
-            tasks: Object.keys(this.tasks).map(taskName => ({
-                name: taskName,
-                isActive: !!this.tasks[taskName],
-                interval: this.taskIntervals[taskName]
-            })),
+            tasks: Object.keys(this.taskIntervals).map(taskName => {
+                const lastRun = this.lastRunTimes[taskName] || 0
+                const timeSinceLastRun = now - lastRun
+                const timeUntilNextRun = Math.max(0, this.taskIntervals[taskName] - (timeSinceLastRun % this.taskIntervals[taskName]))
+                
+                return {
+                    name: taskName,
+                    isActive: !!this.tasks[taskName],
+                    interval: this.taskIntervals[taskName],
+                    lastRun: lastRun ? new Date(lastRun).toISOString() : 'Never',
+                    timeSinceLastRun: Math.round(timeSinceLastRun / 1000),
+                    timeUntilNextRun: Math.round(timeUntilNextRun / 1000)
+                }
+            }),
             connectionSettings: {
                 maxRetries: this.maxRetries,
                 retryDelay: this.retryDelay,
@@ -148,10 +233,16 @@ class BackgroundTaskManager {
         try {
             console.log('⏰ Checking status transitions...')
             
-            // Use the dedicated AuctionExpiryHandler for consistent status transitions
-            const { AuctionExpiryHandler } = await import('./auction-expiry-handler.js')
+            // First, synchronize all application statuses to ensure consistency
+            console.log('🔄 Synchronizing application statuses...')
+            const syncResult = await StatusSynchronizer.synchronizeAllApplicationStatuses(client)
             
-            // Handle expired auctions using the dedicated handler
+            if (syncResult.synchronized > 0) {
+                console.log(`✅ Status synchronization: ${syncResult.synchronized} applications updated`)
+            }
+            
+            // Then handle any expired auctions that need processing
+            const { AuctionExpiryHandler } = await import('./auction-expiry-handler.js')
             const result = await AuctionExpiryHandler.handleExpiredAuctions()
             
             if (result.processed > 0) {
@@ -312,6 +403,42 @@ class BackgroundTaskManager {
             console.error('❌ Force cleanup error:', error)
         }
     }
+
+    // Get monitoring statistics
+    getMonitoringStats() {
+        return {
+            isRunning: this.isRunning,
+            activeTasks: Object.keys(this.tasks).length,
+            lastRunTimes: { ...this.lastRunTimes },
+            taskIntervals: { ...this.taskIntervals },
+            connectionTimeout: this.connectionTimeout,
+            maxRetries: this.maxRetries,
+            retryDelay: this.retryDelay
+        }
+    }
+
+    // Get performance metrics
+    getPerformanceMetrics() {
+        const now = Date.now()
+        const metrics = {}
+        
+        Object.keys(this.lastRunTimes).forEach(taskName => {
+            const lastRun = this.lastRunTimes[taskName]
+            const interval = this.taskIntervals[taskName]
+            const nextRun = lastRun + interval
+            const timeUntilNext = Math.max(0, nextRun - now)
+            
+            metrics[taskName] = {
+                lastRun: lastRun ? new Date(lastRun).toISOString() : 'Never',
+                nextRun: new Date(nextRun).toISOString(),
+                timeUntilNext: timeUntilNext,
+                isOverdue: timeUntilNext === 0 && lastRun > 0,
+                interval: interval
+            }
+        })
+        
+        return metrics
+    }
 }
 
 // Export singleton instance
@@ -323,6 +450,11 @@ if (typeof window === 'undefined') {
     // Only log on server side
     console.log('🚀 Background Task Manager ready (auto-start enabled)')
     console.log('⏳ Background tasks will start automatically when the server is ready')
+    
+    // Prevent multiple instances in development
+    if (!global.backgroundTaskManagerInstance) {
+        global.backgroundTaskManagerInstance = backgroundTaskManager
+    }
 }
 
 export default backgroundTaskManager

@@ -7,7 +7,6 @@ import AdminSidebar from '@/components/admin/AdminSidebar'
 import ProtectedRoute from '@/components/admin/ProtectedRoute'
 import { useAdminAuth } from '@/contexts/AdminAuthContext'
 import ApplicationsAnalytics from '@/components/admin/analytics/ApplicationsAnalytics'
-import OffersAnalytics from '@/components/admin/analytics/OffersAnalytics'
 import { 
     DocumentTextIcon, 
     BuildingOfficeIcon
@@ -25,12 +24,6 @@ export default function AnalyticsDashboard() {
             name: 'Applications Analytics',
             icon: DocumentTextIcon,
             description: 'Comprehensive application metrics and trends'
-        },
-        {
-            id: 'offers',
-            name: 'Offers Analytics',
-            icon: BuildingOfficeIcon,
-            description: 'Bank offer performance and conversion rates'
         }
     ]
 
@@ -38,8 +31,6 @@ export default function AnalyticsDashboard() {
         switch (activeTab) {
             case 'applications':
                 return <ApplicationsAnalytics />
-            case 'offers':
-                return <OffersAnalytics />
             default:
                 return <ApplicationsAnalytics />
         }

@@ -4,7 +4,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import HydrationHandler from '@/components/HydrationHandler'
 
 // Auto-start background tasks when the server starts
-// import '@/lib/auto-start-background-tasks'
+import '@/lib/auto-start-background-tasks'
 
 const inter = Inter({ subsets: ['latin'] })
 

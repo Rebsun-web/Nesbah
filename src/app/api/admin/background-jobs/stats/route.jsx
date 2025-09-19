@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import AdminAuth from '@/lib/auth/admin-auth'
-import backgroundJobManager from '@/lib/cron/background-job-manager'
+import backgroundTaskManager from '@/lib/background-tasks'
 
 export async function GET(req) {
     try {
@@ -24,8 +24,8 @@ export async function GET(req) {
         // Get admin user from session (no database query needed)
         const adminUser = sessionValidation.adminUser;
 
-        const monitoringStats = await backgroundJobManager.getMonitoringStats()
-        const performanceMetrics = await backgroundJobManager.getPerformanceMetrics()
+        const monitoringStats = backgroundTaskManager.getMonitoringStats()
+        const performanceMetrics = backgroundTaskManager.getPerformanceMetrics()
         
         return NextResponse.json({
             success: true,

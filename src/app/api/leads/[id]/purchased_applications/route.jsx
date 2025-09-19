@@ -84,6 +84,19 @@ export async function POST(req, { params }) {
           );
 
           if (result.rowCount > 0) {
+            // Check if this bank has already submitted an offer for this application
+            const existingOfferCheck = await pool.query(`
+                SELECT offer_id FROM application_offers 
+                WHERE submitted_application_id = $1 AND bank_user_id = $2
+            `, [applicationId, bankUserId]);
+            
+            if (existingOfferCheck.rows.length > 0) {
+                return NextResponse.json(
+                    { success: false, message: 'You have already submitted an offer for this application' },
+                    { status: 400 }
+                );
+            }
+            
             const submittedApplicationId = applicationId; // Use application_id directly
 
             const offerResult = await pool.query(
@@ -115,7 +128,7 @@ export async function POST(req, { params }) {
                 uploadedDocument,
                 uploadedMimetype,
                 uploadedFilename,
-                'submitted',
+                'live_auction',
                 new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
               ]
             );

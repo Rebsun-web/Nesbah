@@ -14,7 +14,7 @@ export default function LeadsHistoryTable({ data }) {
     }, []);
 
     const handleRowClick = (applicationId) => {
-        router.push(`/leads/${applicationId}/history`);
+        router.push(`/bankPortal/leads/${applicationId}/history`);
     };
 
     if (!data) {

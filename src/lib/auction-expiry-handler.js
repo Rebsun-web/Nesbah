@@ -192,4 +192,4 @@ class AuctionExpiryHandler {
     }
 }
 
-module.exports = { AuctionExpiryHandler };
+export { AuctionExpiryHandler };

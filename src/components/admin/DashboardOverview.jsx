@@ -47,20 +47,17 @@ export default function DashboardOverview({ data, loading }) {
     const fetchAnalyticsData = async () => {
         try {
             setAnalyticsLoading(true);
-            const [applicationsResponse, offersResponse, timeMetricsResponse] = await Promise.all([
+            const [applicationsResponse, timeMetricsResponse] = await Promise.all([
                 fetch('/api/admin/applications/analytics', { credentials: 'include' }),
-                fetch('/api/admin/offers/analytics', { credentials: 'include' }),
                 fetch(`/api/admin/time-metrics?date=${selectedDate}`, { credentials: 'include' })
             ]);
             
             const applicationsResult = await applicationsResponse.json();
-            const offersResult = await offersResponse.json();
             const timeMetricsResult = await timeMetricsResponse.json();
             
-            if (applicationsResult.success && offersResult.success && timeMetricsResult.success) {
+            if (applicationsResult.success && timeMetricsResult.success) {
                 setAnalyticsData({
                     applications: applicationsResult.data,
-                    offers: offersResult.data,
                     timeMetrics: timeMetricsResult.data
                 });
             }
@@ -71,12 +68,6 @@ export default function DashboardOverview({ data, loading }) {
         }
     };
 
-    const calculateConversionRate = () => {
-        if (!analyticsData) return 0;
-        const totalApplications = analyticsData.applications?.summary?.total_applications || 0;
-        const totalOffers = analyticsData.offers?.summary?.total_offers || 0;
-        return totalApplications > 0 ? ((totalOffers / totalApplications) * 100).toFixed(1) : 0;
-    };
 
     const getAverageResponseTime = () => {
         if (!analyticsData?.timeMetrics) return 0;
@@ -179,12 +170,12 @@ export default function DashboardOverview({ data, loading }) {
                         <div className="ml-4">
                             <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
                             <p className="text-2xl font-bold text-gray-900">
-                                {calculateConversionRate()}%
+                                0%
                             </p>
                         </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
-                        Offers submitted / Total applications
+                        Application conversion rate
                     </p>
                 </div>
 

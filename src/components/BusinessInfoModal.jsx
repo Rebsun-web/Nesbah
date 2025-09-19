@@ -345,7 +345,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                                             Offer #{offer.offer_id || 'N/A'} by {offer.bank_name || 'Unknown Bank'}
                                                                         </h5>
                                                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                                            offer.status === 'submitted' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                                                                            offer.status === 'live_auction' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                                                                         }`}>
                                                                             {offer.status || 'N/A'}
                                                                         </span>

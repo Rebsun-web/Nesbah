@@ -34,9 +34,13 @@ export async function GET(req, { params }) {
         console.log('🔍 API: Authenticated user:', user);
         
         const { user_id } = await params;
+        const userIdInt = parseInt(user_id);
+
+        console.log('🔍 API: User ID from params:', user_id, 'Parsed:', userIdInt);
+        console.log('🔍 API: Authenticated user ID:', user.user_id);
 
         // Ensure user can only access their own applications
-        if (user.user_id !== parseInt(user_id)) {
+        if (user.user_id !== userIdInt) {
             console.log('🔍 API: Access denied - user ID mismatch');
             return NextResponse.json(
                 { success: false, error: 'Access denied' },
@@ -48,8 +52,8 @@ export async function GET(req, { params }) {
     
         try {
             const result = await client.query(
-                'SELECT * FROM pos_application WHERE user_id = $1 ORDER BY submitted_at DESC',
-                [user_id]
+                'SELECT * FROM pos_application WHERE user_id = $1 AND status IN ($2, $3) ORDER BY submitted_at DESC',
+                [userIdInt, 'live_auction', 'completed']
             );
 
             const applications = result.rows.map(app => ({

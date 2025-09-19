@@ -17,6 +17,7 @@ import {
     ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
 import { calculateApplicationStatus, getStatusInfo, formatCountdown, safeTextFormat } from '@/lib/application-status'
+import { getCorrectStatus, needsSynchronization, checkStatusUpdates, synchronizeStatuses, getApplicationStatusInfo } from '@/lib/client-status-utils'
 import NewApplicationModal from './NewApplicationModal'
 import ViewApplicationModal from './ViewApplicationModal'
 import EditApplicationModal from './EditApplicationModal'
@@ -88,26 +89,16 @@ export default function ApplicationsTable() {
         }
     }
 
-    const checkStatusUpdates = async () => {
+    const checkStatusUpdatesLocal = async () => {
         try {
-            const response = await fetch('/api/admin/applications/update-status', {
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
+            const data = await checkStatusUpdates()
             
-            if (response.ok) {
-                const data = await response.json()
-                if (data.success && data.data && data.data.needs_update > 0) {
-                    setStatusUpdateInfo({
-                        needsUpdate: data.data.needs_update,
-                        applications: data.data.applications_needing_update || []
-                    })
-                    setShowStatusUpdateModal(true)
-                }
-            } else {
-                console.warn('Status update check failed:', response.status, response.statusText)
+            if (data.success && data.data && data.data.need_synchronization > 0) {
+                setStatusUpdateInfo({
+                    needsUpdate: data.data.need_synchronization,
+                    applications: data.data.applications_needing_sync || []
+                })
+                setShowStatusUpdateModal(true)
             }
         } catch (err) {
             console.error('Error checking status updates:', err)
@@ -121,23 +112,15 @@ export default function ApplicationsTable() {
             
             const applicationIds = statusUpdateInfo.applications.map(app => app.application_id)
             
-            const response = await fetch('/api/admin/applications/update-status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ application_ids: applicationIds }),
-                credentials: 'include'
-            })
+            const data = await synchronizeStatuses(applicationIds)
             
-            if (response.ok) {
-                const data = await response.json()
-                if (data.success) {
-                    alert(`Successfully updated ${data.data.updated_count} application statuses`)
-                    setShowStatusUpdateModal(false)
-                    setStatusUpdateInfo(null)
-                    fetchApplications() // Refresh the list
-                }
+            if (data.success) {
+                alert(`Successfully updated ${data.data.synchronized} application statuses`)
+                setShowStatusUpdateModal(false)
+                setStatusUpdateInfo(null)
+                fetchApplications() // Refresh the list
+            } else {
+                alert('Failed to update application statuses: ' + (data.error || 'Unknown error'))
             }
         } catch (err) {
             console.error('Error updating application statuses:', err)
@@ -147,7 +130,7 @@ export default function ApplicationsTable() {
 
     useEffect(() => {
         fetchApplications()
-        checkStatusUpdates()
+        checkStatusUpdatesLocal()
     }, [currentPage, searchTerm, statusFilter, sortBy, sortOrder])
 
     const handleNewApplicationSuccess = (newApplication) => {
@@ -198,9 +181,10 @@ export default function ApplicationsTable() {
         }
     }
 
-    const getApplicationStatusInfo = (application) => {
-        const calculatedStatus = calculateApplicationStatus(application);
-        return getStatusInfo(calculatedStatus);
+    const getApplicationStatusInfoLocal = (application) => {
+        // Always use the correct calculated status - there should be only one status
+        const correctStatus = getCorrectStatus(application);
+        return getStatusInfo(correctStatus);
     }
 
     // formatCountdown is now imported from application-status.js
@@ -327,7 +311,7 @@ export default function ApplicationsTable() {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {applications.map((application) => {
-                                const statusInfo = getApplicationStatusInfo(application)
+                                const statusInfo = getApplicationStatusInfoLocal(application)
                                 const openedInfo = getArrayInfo(application.opened_by, 'view')
                                 const purchasedInfo = getArrayInfo(application.purchased_by, 'offer')
                                 
@@ -447,7 +431,7 @@ export default function ApplicationsTable() {
             {/* Mobile Cards */}
             <div className="lg:hidden space-y-4">
                 {applications.map((application) => {
-                    const statusInfo = getApplicationStatusInfo(application)
+                    const statusInfo = getApplicationStatusInfoLocal(application)
                     const openedInfo = getArrayInfo(application.opened_by, 'view')
                     const purchasedInfo = getArrayInfo(application.purchased_by, 'offer')
                     

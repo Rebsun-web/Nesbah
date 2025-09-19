@@ -16,6 +16,13 @@ export function autoStartBackgroundTasks() {
         return
     }
 
+    // Check if background task manager is already running
+    if (backgroundTaskManager.isRunning) {
+        console.log('⚠️  Background task manager is already running, skipping auto-start')
+        isAutoStarted = true
+        return
+    }
+
     try {
         console.log('🚀 Auto-starting background tasks...')
         
@@ -44,10 +51,17 @@ export function autoStartBackgroundTasks() {
 
 // Auto-start when this module is imported (server-side only)
 if (typeof window === 'undefined') {
-    // Small delay to ensure the server is fully ready
-    setTimeout(() => {
-        autoStartBackgroundTasks()
-    }, 5000) // 5 second delay to ensure everything is ready
+    // Use a global flag to prevent multiple starts
+    if (!global.backgroundTasksAutoStarted) {
+        global.backgroundTasksAutoStarted = true;
+        
+        // Small delay to ensure the server is fully ready
+        setTimeout(() => {
+            autoStartBackgroundTasks()
+        }, 5000) // 5 second delay to ensure everything is ready
+    } else {
+        console.log('⚠️  Background tasks auto-start already initiated, skipping...')
+    }
 }
 
 export default autoStartBackgroundTasks

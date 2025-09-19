@@ -15,6 +15,24 @@ function NewsletterForm() {
     setMessage('')
 
     try {
+      // Debug environment variables
+      console.log('Environment variables:', {
+        serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
+        publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY ? '***configured***' : 'not set',
+        templateId: process.env.NEXT_PUBLIC_EMAILJS_NEWSLETTER_TEMPLATE_ID
+      })
+      
+      // Validate required environment variables
+      if (!process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID) {
+        throw new Error('NEXT_PUBLIC_EMAILJS_SERVICE_ID is not configured')
+      }
+      if (!process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY) {
+        throw new Error('NEXT_PUBLIC_EMAILJS_PUBLIC_KEY is not configured')
+      }
+      if (!process.env.NEXT_PUBLIC_EMAILJS_NEWSLETTER_TEMPLATE_ID) {
+        throw new Error('NEXT_PUBLIC_EMAILJS_NEWSLETTER_TEMPLATE_ID is not configured')
+      }
+      
       // Import EmailJS dynamically for client-side usage
       const emailjs = (await import('@emailjs/browser')).default
       
@@ -26,7 +44,9 @@ function NewsletterForm() {
         process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
         process.env.NEXT_PUBLIC_EMAILJS_NEWSLETTER_TEMPLATE_ID,
         {
-          email: email
+          email: email,
+          user_email: email,
+          from_email: 'devadmin@nesbah.com.sa'
         }
       )
       
@@ -35,7 +55,24 @@ function NewsletterForm() {
       setEmail('')
     } catch (error) {
       console.error('❌ Newsletter subscription error:', error)
-      setMessage('Something went wrong. Please try again.')
+      console.error('Error details:', {
+        message: error.message,
+        status: error.status,
+        text: error.text,
+        fullError: error
+      })
+      
+      // Better error message handling
+      let errorMessage = 'Something went wrong. Please try again.'
+      if (error.message) {
+        errorMessage = error.message
+      } else if (error.text) {
+        errorMessage = error.text
+      } else if (error.status) {
+        errorMessage = `Error ${error.status}: Please check your email configuration`
+      }
+      
+      setMessage(errorMessage)
     } finally {
       setIsSubmitting(false)
     }

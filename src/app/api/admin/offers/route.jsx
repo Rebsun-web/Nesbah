@@ -206,6 +206,19 @@ export async function POST(req) {
                 );
             }
             
+            // Check if this bank has already submitted an offer for this application
+            const existingOfferCheck = await client.query(`
+                SELECT offer_id FROM application_offers 
+                WHERE submitted_application_id = $1 AND bank_user_id = $2
+            `, [body.application_id, body.bank_user_id]);
+            
+            if (existingOfferCheck.rows.length > 0) {
+                return NextResponse.json(
+                    { success: false, error: 'This bank has already submitted an offer for this application' },
+                    { status: 400 }
+                );
+            }
+            
             // Calculate deal value
             const setupFee = parseFloat(body.offer_device_setup_fee) || 0;
             const madaFee = parseFloat(body.offer_transaction_fee_mada) || 0;
@@ -264,7 +277,7 @@ export async function POST(req) {
                 body.offer_comment || '',
                 body.offer_terms || '',
                 body.offer_validity_days || 30,
-                body.status || 'submitted',
+                body.status || 'live_auction',
                 body.bank_name || '',
                 body.bank_contact_person || '',
                 body.bank_contact_email || '',

@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server'
-import AdminAuth from '@/lib/auth/admin-auth'
-import backgroundJobManager from '@/lib/cron/background-job-manager'
+import { NextResponse } from 'next/server';
+import backgroundTaskManager from '@/lib/background-tasks';
+import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function GET(req) {
     try {
@@ -21,21 +21,24 @@ export async function GET(req) {
             }, { status: 401 });
         }
 
-        // Get admin user from session (no database query needed)
-        const adminUser = sessionValidation.adminUser;
-
-        const jobStatus = backgroundJobManager.getJobStatus()
+        // Get current status
+        const status = backgroundTaskManager.getStatus();
         
         return NextResponse.json({
             success: true,
-            data: jobStatus
-        })
+            data: {
+                status,
+                timestamp: new Date().toISOString(),
+                uptime: process.uptime(),
+                memory: process.memoryUsage()
+            }
+        });
     } catch (error) {
-        console.error('Error fetching background job status:', error)
+        console.error('❌ Error getting background job status:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to fetch background job status' },
+            { success: false, error: 'Failed to get background job status' },
             { status: 500 }
-        )
+        );
     }
 }
 
@@ -58,64 +61,44 @@ export async function POST(req) {
             }, { status: 401 });
         }
 
-        // Get admin user from session (no database query needed)
-        const adminUser = sessionValidation.adminUser;
-
-        const body = await req.json()
-        const { action, jobName, config } = body
-
-        let result
-
-        switch (action) {
-            case 'start':
-                await backgroundJobManager.start()
-                result = { message: 'Background jobs started successfully' }
-                break
-            case 'stop':
-                await backgroundJobManager.stop()
-                result = { message: 'Background jobs stopped successfully' }
-                break
-            case 'restart':
-                if (!jobName) {
-                    return NextResponse.json(
-                        { success: false, error: 'Job name is required for restart action' },
-                        { status: 400 }
-                    )
+        const { action } = await req.json();
+        
+        if (action === 'restart') {
+            console.log('🔄 Admin requested background task restart...');
+            
+            // Stop if running
+            if (backgroundTaskManager.isRunning) {
+                backgroundTaskManager.stop();
+                // Wait a moment for cleanup
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            // Start again
+            backgroundTaskManager.start();
+            
+            const status = backgroundTaskManager.getStatus();
+            
+            return NextResponse.json({
+                success: true,
+                message: 'Background tasks restarted successfully',
+                data: {
+                    status,
+                    restartedBy: sessionValidation.adminUser.email,
+                    timestamp: new Date().toISOString()
                 }
-                await backgroundJobManager.restartJob(jobName)
-                result = { message: `Job ${jobName} restarted successfully` }
-                break
-            case 'update_config':
-                if (!jobName || !config) {
-                    return NextResponse.json(
-                        { success: false, error: 'Job name and config are required for update action' },
-                        { status: 400 }
-                    )
-                }
-                backgroundJobManager.updateJobConfig(jobName, config)
-                result = { message: `Job ${jobName} configuration updated successfully` }
-                break
-            case 'manual_check':
-                const checkType = body.checkType || 'all'
-                await backgroundJobManager.triggerManualCheck(checkType)
-                result = { message: `Manual check ${checkType} triggered successfully` }
-                break
-            default:
-                return NextResponse.json(
-                    { success: false, error: 'Invalid action' },
-                    { status: 400 }
-                )
+            });
         }
-
+        
         return NextResponse.json({
-            success: true,
-            data: result
-        })
+            success: false,
+            error: 'Invalid action. Use "restart" to restart background tasks.'
+        }, { status: 400 });
+        
     } catch (error) {
-        console.error('Error controlling background jobs:', error)
+        console.error('❌ Error managing background jobs:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to control background jobs' },
+            { success: false, error: 'Failed to manage background jobs' },
             { status: 500 }
-        )
+        );
     }
 }

@@ -8,20 +8,20 @@ const isBuildEnvironment = process.env.NODE_ENV === 'production' && process.env.
 // Use DATABASE_URL if available, otherwise use direct connection parameters
 const poolConfig = process.env.DATABASE_URL ? {
   connectionString: process.env.DATABASE_URL,
-  ssl: {
+  ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false,
     checkServerIdentity: () => undefined, // Skip hostname verification
-  },
+  } : false, // Disable SSL in development
 } : {
   host: process.env.PGHOST,
   port: process.env.PGPORT || 5432,
   database: process.env.PGDATABASE,
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
-  ssl: {
+  ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false,
     checkServerIdentity: () => undefined, // Skip hostname verification
-  },
+  } : false, // Disable SSL in development
 };
 
 const pool = new Pool({
@@ -36,10 +36,7 @@ const pool = new Pool({
   maxUses: process.env.NODE_ENV === 'production' ? 100 : 50, // More uses per connection in production
   allowExitOnIdle: process.env.NODE_ENV !== 'production', // Don't exit on idle in production
   // Enhanced SSL configuration
-  ssl: {
-    ...poolConfig.ssl,
-    checkServerIdentity: () => undefined, // Skip hostname verification
-  }
+  ssl: poolConfig.ssl
 });
 
 
@@ -458,10 +455,7 @@ pool.emergencyReset = async () => {
       acquireTimeoutMillis: 5000,
       maxUses: 10,
       allowExitOnIdle: true,
-      ssl: {
-        ...poolConfig.ssl,
-        checkServerIdentity: () => undefined,
-      }
+      ssl: poolConfig.ssl
     });
     
     // Copy all methods and properties to the new pool

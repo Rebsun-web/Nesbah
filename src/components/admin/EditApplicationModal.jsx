@@ -16,6 +16,8 @@ import {
     DocumentTextIcon
 } from '@heroicons/react/24/outline'
 import BankLogo from '@/components/BankLogo'
+import { calculateApplicationStatus } from '@/lib/application-status'
+import { getCorrectStatus } from '@/lib/client-status-utils'
 
 export default function EditApplicationModal({ isOpen, onClose, application, onSave }) {
     const [fullApplication, setFullApplication] = useState(null)
@@ -73,8 +75,19 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
             // Fetch full application data
             fetchFullApplication(application.application_id).then(fullApp => {
                 if (fullApp) {
+                    // Always use the correct calculated status - there should be only one status
+                    const correctStatus = getCorrectStatus(fullApp);
+                    console.log('EditApplicationModal: Status synchronization:', {
+                        rawStatus: fullApp.status,
+                        currentStatus: fullApp.current_application_status,
+                        correctStatus: correctStatus,
+                        auctionEndTime: fullApp.auction_end_time,
+                        offersCount: fullApp.offers_count,
+                        needsSync: correctStatus !== (fullApp.current_application_status || fullApp.status)
+                    });
+                    
                     setFormData({
-                        status: fullApp.status || '',
+                        status: correctStatus || '',
                         admin_notes: fullApp.admin_notes || '',
                         trade_name: fullApp.trade_name || '',
                         cr_number: fullApp.cr_number || '',
@@ -92,7 +105,7 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                     })
                     console.log('EditApplicationModal: Full application data loaded:', fullApp)
                     console.log('EditApplicationModal: Form data set:', {
-                        status: fullApp.status || '',
+                        status: correctStatus || '',
                         admin_notes: fullApp.admin_notes || '',
                         trade_name: fullApp.trade_name || '',
                         cr_number: fullApp.cr_number || '',
@@ -388,13 +401,41 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                 )}
 
                 {/* Warning for live auction applications */}
-                {fullApplication && fullApplication.status === 'live_auction' && (
+                {fullApplication && formData.status === 'live_auction' && (
                     <div className="bg-orange-50 border border-orange-200 rounded-md p-4 mb-6">
                         <div className="flex">
                             <ExclamationTriangleIcon className="h-5 w-5 text-orange-400" />
                             <div className="ml-3">
                                 <p className="text-sm text-orange-600">
                                     <strong>Warning:</strong> This is a live auction application. Editing any details will remove all previous offers, reset the auction timer, and clean tracking arrays.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Warning for completed applications */}
+                {fullApplication && formData.status === 'completed' && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+                        <div className="flex">
+                            <ExclamationTriangleIcon className="h-5 w-5 text-blue-400" />
+                            <div className="ml-3">
+                                <p className="text-sm text-blue-600">
+                                    <strong>Info:</strong> This application is completed. Changing the status to "Live Auction" will reset the auction timer to 48 hours and remove all existing offers. Changing to "Ignored" will mark it as expired with no offers.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Warning for ignored applications */}
+                {fullApplication && formData.status === 'ignored' && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-md p-4 mb-6">
+                        <div className="flex">
+                            <ExclamationTriangleIcon className="h-5 w-5 text-gray-400" />
+                            <div className="ml-3">
+                                <p className="text-sm text-gray-600">
+                                    <strong>Info:</strong> This application is ignored (expired with no offers). Changing the status to "Live Auction" will reset the auction timer to 48 hours and allow new offers. Changing to "Completed" will mark it as having offers.
                                 </p>
                             </div>
                         </div>

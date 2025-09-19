@@ -22,7 +22,6 @@ import { AnimatedNumber } from '@/components/animated-number'
 
 export default function EnhancedAnalytics() {
     const [applicationsData, setApplicationsData] = useState(null)
-    const [offersData, setOffersData] = useState(null)
     const [timeMetricsData, setTimeMetricsData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -37,11 +36,8 @@ export default function EnhancedAnalytics() {
             setLoading(true)
             setError(null)
             
-            const [applicationsResponse, offersResponse, timeMetricsResponse] = await Promise.all([
+            const [applicationsResponse, timeMetricsResponse] = await Promise.all([
                 fetch('/api/admin/applications/analytics', { 
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('adminJWT')}` }
-                }),
-                fetch('/api/admin/offers/analytics', { 
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('adminJWT')}` }
                 }),
                 fetch(`/api/admin/time-metrics?date=${selectedDate}`, { 
@@ -50,22 +46,19 @@ export default function EnhancedAnalytics() {
             ])
             
             const applicationsResult = await applicationsResponse.json()
-            const offersResult = await offersResponse.json()
             const timeMetricsResult = await timeMetricsResponse.json()
             
             console.log('🔍 EnhancedAnalytics: API Responses:', {
                 applications: applicationsResult,
-                offers: offersResult,
                 timeMetrics: timeMetricsResult
             })
             
-            if (applicationsResult.success && offersResult.success && timeMetricsResult.success) {
+            if (applicationsResult.success && timeMetricsResult.success) {
                 console.log('✅ EnhancedAnalytics: All APIs successful, setting data')
                 setApplicationsData(applicationsResult.data)
-                setOffersData(offersResult.data)
                 setTimeMetricsData(timeMetricsResult.data)
             } else {
-                const errorMessage = applicationsResult.error || offersResult.error || timeMetricsResult.error || 'Failed to fetch analytics data'
+                const errorMessage = applicationsResult.error || timeMetricsResult.error || 'Failed to fetch analytics data'
                 console.error('❌ EnhancedAnalytics: API errors:', errorMessage)
                 setError(errorMessage)
             }
@@ -77,21 +70,6 @@ export default function EnhancedAnalytics() {
         }
     }
 
-    const calculateConversionRate = () => {
-        console.log('🔍 EnhancedAnalytics: calculateConversionRate called with:', {
-            applicationsData: applicationsData,
-            offersData: offersData
-        })
-        if (!applicationsData || !offersData) return 0
-        const totalApplications = applicationsData.summary?.total_applications || 0
-        const totalOffers = offersData.summary?.total_offers || 0
-        console.log('🔍 EnhancedAnalytics: Conversion rate calculation:', {
-            totalApplications,
-            totalOffers,
-            result: totalApplications > 0 ? ((totalOffers / totalApplications) * 100).toFixed(1) : 0
-        })
-        return totalApplications > 0 ? ((totalOffers / totalApplications) * 100).toFixed(1) : 0
-    }
 
     const getAverageResponseTime = () => {
         if (!timeMetricsData) return 0
@@ -146,7 +124,6 @@ export default function EnhancedAnalytics() {
 
     console.log('🔍 EnhancedAnalytics: Rendering with state:', {
         applicationsData,
-        offersData,
         timeMetricsData,
         loading,
         error
@@ -399,19 +376,6 @@ export default function EnhancedAnalytics() {
                 <div className="bg-white rounded-lg shadow p-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Performance Insights</h3>
                     <div className="space-y-3">
-                        <div key="insight-total-offers" className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Total Offers Submitted</span>
-                            <span className="text-sm font-medium text-gray-900">
-                                {offersData?.summary?.total_offers || 0}
-                            </span>
-                        </div>
-                        <div key="insight-avg-offers" className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Average Offers per Application</span>
-                            <span className="text-sm font-medium text-gray-900">
-                                {applicationsData?.summary?.total_applications > 0 ? 
-                                    (offersData?.summary?.total_offers / applicationsData?.summary?.total_applications).toFixed(1) : 0}
-                            </span>
-                        </div>
                         <div key="insight-active-banks" className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Active Banks</span>
                             <span className="text-sm font-medium text-gray-900">

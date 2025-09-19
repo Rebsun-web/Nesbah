@@ -188,7 +188,7 @@ export default function ApplicationsAnalytics() {
                             const percentage = summary.total_applications ? Math.round((status.count / summary.total_applications) * 100) : 0
                             const color = status.status === 'completed' ? 'bg-green-500' :
                                          status.status === 'ignored' ? 'bg-red-500' :
-                                         status.status === 'submitted' ? 'bg-yellow-500' : 'bg-gray-500'
+                                         status.status === 'live_auction' ? 'bg-yellow-500' : 'bg-gray-500'
                             
                             return (
                                 <div key={status.status} className="flex items-center justify-between">

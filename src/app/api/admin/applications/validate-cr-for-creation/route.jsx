@@ -82,7 +82,7 @@ export async function GET(req) {
                 SELECT COUNT(*) as count
                 FROM pos_application 
                 WHERE user_id = $1 
-                AND status IN ('submitted', 'live_auction', 'pending_offers')
+                AND status IN ('live_auction', 'completed', 'ignored')
             `;
             
             const existingApplicationResult = await client.query(existingApplicationQuery, [businessUser.user_id]);

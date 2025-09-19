@@ -62,7 +62,7 @@ export default function StackedCard({ userId }) {
     }, [userId]);
 
     const handleClick = (id) => {
-        router.push(`/leads/${id}`);
+        router.push(`/bankPortal/leads/${id}`);
     };
 
     return (

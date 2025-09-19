@@ -115,7 +115,7 @@ export function PosApplication({ user, onSuccess}) {
       user_id: user.user_id,
       cr_national_number: user.business.cr_national_number,
       city: user.business.address,
-      status: 'submitted',
+      status: 'live_auction',
       notes: notes,
       uploaded_document: base64File?.data || null,
       uploaded_filename: base64File?.name || null,

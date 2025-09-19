@@ -16,6 +16,7 @@ import {
     InformationCircleIcon
 } from '@heroicons/react/24/outline'
 import { calculateApplicationStatus, getStatusInfo, formatCountdown, safeTextFormat } from '@/lib/application-status'
+import { getCorrectStatus } from '@/lib/client-status-utils'
 import NewApplicationModal from './NewApplicationModal'
 import ViewApplicationModal from './ViewApplicationModal'
 import EditApplicationModal from './EditApplicationModal'
@@ -189,8 +190,9 @@ export default function AdminApplicationsDashboard() {
     }
 
     const getApplicationStatusInfo = (application) => {
-        const calculatedStatus = calculateApplicationStatus(application);
-        return getStatusInfo(calculatedStatus);
+        // Always use the correct calculated status - there should be only one status
+        const correctStatus = getCorrectStatus(application);
+        return getStatusInfo(correctStatus);
     }
 
     // formatCountdown is now imported from application-status.js

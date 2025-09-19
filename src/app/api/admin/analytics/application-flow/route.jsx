@@ -104,8 +104,6 @@ export async function GET(req) {
                 completed_percentage: 0,
                 ignored: 0,
                 ignored_percentage: 0,
-                expired: 0,
-                expired_percentage: 0,
                 total: 0
             };
 
@@ -141,10 +139,6 @@ export async function GET(req) {
                         statusData.ignored = count;
                         statusData.ignored_percentage = percentage;
                         break;
-                    case 'expired':
-                        statusData.expired = count;
-                        statusData.expired_percentage = percentage;
-                        break;
                 }
             });
 
@@ -164,11 +158,11 @@ export async function GET(req) {
             const abandonmentRateQuery = `
                 SELECT 
                     COUNT(*) as total_applications,
-                    COUNT(CASE WHEN COALESCE(current_application_status, status) = 'expired' AND offers_count = 0 THEN 1 END) as abandoned_applications,
-                    ROUND((COUNT(CASE WHEN COALESCE(current_application_status, status) = 'expired' AND offers_count = 0 THEN 1 END) * 100.0 / COUNT(*)), 2) as abandonment_rate
+                    COUNT(CASE WHEN COALESCE(current_application_status, status) = 'ignored' AND offers_count = 0 THEN 1 END) as abandoned_applications,
+                    ROUND((COUNT(CASE WHEN COALESCE(current_application_status, status) = 'ignored' AND offers_count = 0 THEN 1 END) * 100.0 / COUNT(*)), 2) as abandonment_rate
                 FROM pos_application 
                 WHERE submitted_at >= $1 AND submitted_at <= $2
-                AND COALESCE(current_application_status, status) IN ('expired', 'completed', 'ignored')
+                AND COALESCE(current_application_status, status) IN ('live_auction', 'completed', 'ignored')
             `;
             const abandonmentRate = await client.query(abandonmentRateQuery, [startDate, endDate]);
 

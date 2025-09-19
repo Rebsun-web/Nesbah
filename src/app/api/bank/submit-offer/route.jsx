@@ -73,6 +73,16 @@ export async function POST(req) {
             
             const bankName = bankInfo.rows[0].entity_name;
             
+            // Check if this bank has already submitted an offer for this application
+            const existingOfferCheck = await client.query(`
+                SELECT offer_id FROM application_offers 
+                WHERE submitted_application_id = $1 AND bank_user_id = $2
+            `, [leadId, bankUserIdInt]);
+            
+            if (existingOfferCheck.rows.length > 0) {
+                throw new Error('You have already submitted an offer for this application');
+            }
+            
             // Insert offer into application_offers table
             const offerResult = await client.query(`
                 INSERT INTO application_offers (
@@ -104,7 +114,7 @@ export async function POST(req) {
                 relationshipManagerContact || null,
                 comment || null,
                 bankName,
-                'submitted',
+                'live_auction',
                 new Date(),
                 new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
             ]);

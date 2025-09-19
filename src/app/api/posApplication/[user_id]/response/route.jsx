@@ -8,9 +8,14 @@ export async function GET(req, { params }) {
   try {
     client = await pool.connectWithRetry(2, 1000, 'app_api_posApplication_[user_id]_response_route.jsx_route');
 
-    // Get business user's application ID directly from pos_application
+    // Get business user's ACTIVE application ID (only applications that are currently active)
     const { rows: applicationRows } = await client.query(
-      `SELECT application_id, status, offers_count, purchased_by FROM pos_application WHERE user_id = $1 ORDER BY submitted_at DESC LIMIT 1`,
+      `SELECT application_id, status, offers_count, purchased_by, submitted_at 
+       FROM pos_application 
+       WHERE user_id = $1 
+       AND status IN ('live_auction', 'completed', 'ignored')
+       ORDER BY submitted_at DESC 
+       LIMIT 1`,
       [userId]
     );
 
@@ -21,10 +26,10 @@ export async function GET(req, { params }) {
     const application = applicationRows[0];
     const applicationId = application.application_id;
 
-    // Get all application offers using application_offers table
+    // Get all application offers using application_offers table (with deduplication)
     const { rows: offers } = await client.query(
       `
-      SELECT 
+      SELECT DISTINCT ON (ao.bank_user_id, ao.approved_financing_amount, ao.proposed_repayment_period_months, ao.interest_rate)
         ao.*,
         u.entity_name AS bank_name,
         bu.contact_person AS bank_contact_person,
@@ -42,7 +47,7 @@ export async function GET(req, { params }) {
       JOIN bank_users bu ON ao.bank_user_id = bu.user_id
       JOIN users u ON bu.user_id = u.user_id
       WHERE ao.submitted_application_id = $1
-      ORDER BY ao.submitted_at DESC
+      ORDER BY ao.bank_user_id, ao.approved_financing_amount, ao.proposed_repayment_period_months, ao.interest_rate, ao.submitted_at DESC
       `,
       [applicationId]
     );
