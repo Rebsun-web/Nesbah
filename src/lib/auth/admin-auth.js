@@ -1,5 +1,6 @@
 import JWTUtils from './jwt-utils.js'
 import pool from '../db.js'
+import MFAUtils from './mfa-utils.js'
 
 export class AdminAuth {
     // Generate JWT token for admin user (using JWTUtils)
@@ -325,6 +326,245 @@ export class AdminAuth {
         } catch (error) {
             console.error('Admin verification error:', error);
             return null;
+        }
+    }
+
+    // ===== MFA METHODS =====
+
+    /**
+     * Setup MFA for an admin user
+     * @param {number} adminId - Admin user ID
+     * @param {string} email - Admin email
+     * @returns {Promise<object>} - MFA setup data including QR code
+     */
+    static async setupMFA(adminId, email) {
+        try {
+            // Generate MFA setup data
+            const mfaSetup = await MFAUtils.createMFASetup(email, 'Nesbah Admin Portal');
+            
+            // Store the secret in database (temporarily disabled until verified)
+            const client = await pool.connectWithRetry();
+            
+            try {
+                await client.query(
+                    `UPDATE users SET 
+                        mfa_secret = $1, 
+                        mfa_enabled = false,
+                        updated_at = NOW()
+                     WHERE user_id = $2 AND user_type = 'admin_user'`,
+                    [mfaSetup.secret, adminId]
+                );
+                
+                return {
+                    success: true,
+                    qrCodeDataURL: mfaSetup.qrCodeDataURL,
+                    backupCodes: mfaSetup.backupCodes
+                };
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            console.error('Error setting up MFA:', error);
+            throw new Error('Failed to setup MFA');
+        }
+    }
+
+    /**
+     * Verify MFA setup with initial token
+     * @param {number} adminId - Admin user ID
+     * @param {string} token - 6-digit verification token
+     * @returns {Promise<object>} - Verification result
+     */
+    static async verifyMFASetup(adminId, token) {
+        const client = await pool.connectWithRetry();
+        
+        try {
+            // Get the user's temporary MFA secret
+            const result = await client.query(
+                'SELECT mfa_secret FROM users WHERE user_id = $1 AND user_type = $2',
+                [adminId, 'admin_user']
+            );
+            
+            if (result.rows.length === 0 || !result.rows[0].mfa_secret) {
+                return { success: false, error: 'MFA setup not found' };
+            }
+            
+            const secret = result.rows[0].mfa_secret;
+            
+            // Verify the token
+            const isValid = MFAUtils.verifyToken(token, secret);
+            
+            if (isValid) {
+                // Enable MFA for the user
+                await client.query(
+                    `UPDATE users SET 
+                        mfa_enabled = true,
+                        updated_at = NOW()
+                     WHERE user_id = $1 AND user_type = 'admin_user'`,
+                    [adminId]
+                );
+                
+                return { success: true, message: 'MFA enabled successfully' };
+            } else {
+                return { success: false, error: 'Invalid verification token' };
+            }
+        } catch (error) {
+            console.error('Error verifying MFA setup:', error);
+            return { success: false, error: 'Failed to verify MFA setup' };
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Verify MFA token during login
+     * @param {number} adminId - Admin user ID
+     * @param {string} token - 6-digit MFA token
+     * @returns {Promise<boolean>} - True if token is valid
+     */
+    static async verifyMFAToken(adminId, token) {
+        const client = await pool.connectWithRetry();
+        
+        try {
+            const result = await client.query(
+                'SELECT mfa_secret, mfa_enabled FROM users WHERE user_id = $1 AND user_type = $2',
+                [adminId, 'admin_user']
+            );
+            
+            if (result.rows.length === 0) {
+                return false;
+            }
+            
+            const { mfa_secret, mfa_enabled } = result.rows[0];
+            
+            if (!mfa_enabled || !mfa_secret) {
+                return false;
+            }
+            
+            return MFAUtils.verifyToken(token, mfa_secret);
+        } catch (error) {
+            console.error('Error verifying MFA token:', error);
+            return false;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Check if admin user has MFA enabled
+     * @param {number} adminId - Admin user ID
+     * @returns {Promise<boolean>} - True if MFA is enabled
+     */
+    static async isMFAEnabled(adminId) {
+        const client = await pool.connectWithRetry();
+        
+        try {
+            const result = await client.query(
+                'SELECT mfa_enabled FROM users WHERE user_id = $1 AND user_type = $2',
+                [adminId, 'admin_user']
+            );
+            
+            return result.rows.length > 0 && result.rows[0].mfa_enabled === true;
+        } catch (error) {
+            console.error('Error checking MFA status:', error);
+            return false;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Enhanced admin validation with MFA support
+     * @param {string} email - Admin email
+     * @param {string} password - Admin password
+     * @param {string} mfaToken - Optional MFA token
+     * @returns {Promise<object>} - Validation result
+     */
+    static async validateCredentialsWithMFA(email, password, mfaToken = null) {
+        // First validate basic credentials
+        const basicValidation = await this.validateCredentials(email, password);
+        
+        if (!basicValidation.valid) {
+            return basicValidation;
+        }
+        
+        const adminUser = basicValidation.adminUser;
+        
+        // Check if MFA is enabled for this user
+        const mfaEnabled = await this.isMFAEnabled(adminUser.user_id);
+        
+        if (mfaEnabled) {
+            if (!mfaToken) {
+                return { 
+                    valid: false, 
+                    error: 'MFA token required', 
+                    requiresMFA: true,
+                    adminUser: {
+                        user_id: adminUser.user_id,
+                        email: adminUser.email
+                    }
+                };
+            }
+            
+            // Verify MFA token
+            const mfaValid = await this.verifyMFAToken(adminUser.user_id, mfaToken);
+            
+            if (!mfaValid) {
+                return { 
+                    valid: false, 
+                    error: 'Invalid MFA token', 
+                    requiresMFA: true,
+                    adminUser: {
+                        user_id: adminUser.user_id,
+                        email: adminUser.email
+                    }
+                };
+            }
+        }
+        
+        return { valid: true, adminUser, mfaVerified: mfaEnabled };
+    }
+
+    /**
+     * Disable MFA for an admin user
+     * @param {number} adminId - Admin user ID
+     * @returns {Promise<object>} - Success/error result
+     */
+    static async disableMFA(adminId) {
+        const client = await pool.connectWithRetry();
+        
+        try {
+            // Check if MFA is currently enabled
+            const mfaEnabled = await this.isMFAEnabled(adminId);
+            
+            if (!mfaEnabled) {
+                return {
+                    success: false,
+                    error: 'MFA is not enabled for this account'
+                };
+            }
+            
+            // Disable MFA by setting mfa_enabled to false and clearing the secret
+            await client.query(
+                'UPDATE users SET mfa_enabled = false, mfa_secret = NULL WHERE user_id = $1 AND user_type = $2',
+                [adminId, 'admin_user']
+            );
+            
+            console.log(`✅ MFA disabled for admin user ${adminId}`);
+            
+            return {
+                success: true,
+                message: 'MFA has been successfully disabled for your account'
+            };
+            
+        } catch (error) {
+            console.error('Error disabling MFA:', error);
+            return {
+                success: false,
+                error: 'Failed to disable MFA'
+            };
+        } finally {
+            client.release();
         }
     }
 }

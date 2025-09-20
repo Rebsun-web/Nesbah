@@ -22,8 +22,10 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaToken, setMfaToken] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [requiresMFA, setRequiresMFA] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
 
   const handleLogin = async (e) => {
@@ -46,7 +48,8 @@ export default function Login() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           email, 
-          password
+          password,
+          mfaToken: requiresMFA ? mfaToken : undefined
         }),
       });
 
@@ -100,6 +103,11 @@ export default function Login() {
           localStorage.setItem('user', JSON.stringify(user));
           router.push(data.redirect || '/portal');
         }
+      } else if (data?.requiresMFA) {
+        // MFA is required
+        console.log('🔐 MFA required, showing MFA input field');
+        setRequiresMFA(true);
+        // Don't show modal, just show the MFA field directly in the form
       } else {
         // Login failed
         setModalMessage(data.error || t('auth.invalidCredentials'));
@@ -126,6 +134,14 @@ export default function Login() {
           <form onSubmit={handleLogin} className="p-7">
             <h1 className="pt-4 text-base/6 font-medium">{t('auth.welcome')}</h1>
             <p className="mt-1 text-sm/5 text-gray-600">{t('auth.loginToContinue')}</p>
+            
+            {requiresMFA && (
+              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                <span className="text-sm font-medium text-green-800">
+                  ✓ Credentials verified. Complete login with MFA token.
+                </span>
+              </div>
+            )}
 
             <Field className="mt-8 space-y-3">
               <Label className="text-sm/5 font-medium">{t('auth.email')}</Label>
@@ -135,7 +151,8 @@ export default function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder={t('auth.email')}
-                  className="block w-full rounded-lg border shadow ring-1 ring-black/10 px-4 py-2"
+                  className={`block w-full rounded-lg border shadow ring-1 ring-black/10 px-4 py-2 ${requiresMFA ? 'bg-gray-100 text-gray-500' : ''}`}
+                  disabled={requiresMFA}
               />
             </Field>
 
@@ -148,7 +165,8 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     placeholder={t('auth.password')}
-                    className="block w-full rounded-lg border px-4 py-2 pr-12 shadow ring-1 ring-black/10"
+                    className={`block w-full rounded-lg border px-4 py-2 pr-12 shadow ring-1 ring-black/10 ${requiresMFA ? 'bg-gray-100 text-gray-500' : ''}`}
+                    disabled={requiresMFA}
                 />
                 <button
                     type="button"
@@ -163,6 +181,33 @@ export default function Login() {
                 </button>
               </div>
             </Field>
+
+            {requiresMFA && (
+              <Field className="pt-4 space-y-3">
+                <Label className="text-sm/5 font-medium">MFA Token</Label>
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="flex items-center mb-3">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                    <span className="text-sm font-medium text-purple-800">
+                      Two-Factor Authentication Required
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={mfaToken}
+                    onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    required
+                    placeholder="000000"
+                    className="block w-full rounded-lg border px-4 py-2 shadow ring-1 ring-black/10 text-center text-lg font-mono"
+                    maxLength={6}
+                    autoFocus
+                  />
+                  <p className="text-xs text-purple-600 mt-1 text-center">
+                    Enter the 6-digit code from your authenticator app
+                  </p>
+                </div>
+              </Field>
+            )}
 
             <div className="mt-8 flex items-center justify-between text-sm/5">
               <Field className="flex items-center gap-3">
@@ -189,7 +234,7 @@ export default function Login() {
                   disabled={isLoading}
                   className="mt-4 w-full rounded-full bg-gradient-to-r from-[#1E1851] to-[#4436B7] px-6 py-3 text-white transition duration-200 ease-in-out hover:bg-opacity-50 hover:shadow-lg hover:shadow-gray-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? t('auth.loggingIn') : t('auth.login')}
+                {isLoading ? t('auth.loggingIn') : (requiresMFA ? 'Verify MFA' : t('auth.login'))}
               </button>
             </div>
           </form>

@@ -81,10 +81,23 @@ async function handleAdminLogin(userData, password, mfaToken) {
     try {
         console.log('🔐 Processing admin login for:', userData.email);
         
-        // Validate admin credentials using the updated AdminAuth class
-        const authResult = await AdminAuth.validateCredentials(userData.email, password);
+        // Validate admin credentials with MFA support
+        const authResult = await AdminAuth.validateCredentialsWithMFA(userData.email, password, mfaToken);
         
         if (!authResult.valid) {
+            // Check if MFA is required
+            if (authResult.requiresMFA) {
+                return NextResponse.json(
+                    { 
+                        success: false, 
+                        error: authResult.error,
+                        requiresMFA: true,
+                        user: authResult.adminUser
+                    },
+                    { status: 401 }
+                );
+            }
+            
             return NextResponse.json(
                 { success: false, error: authResult.error },
                 { status: 401 }

@@ -120,6 +120,8 @@ export default function AdminLogin() {
 
             const adminData = await adminResponse.json()
             console.log('Admin login attempt:', adminResponse.status, adminData)
+            console.log('🔍 Checking for requiresMFA flag:', adminData?.requiresMFA)
+            console.log('🔍 Response success flag:', adminData?.success)
 
             if (adminResponse.ok && adminData?.success) {
                 console.log('✅ Admin login successful, using AdminAuthContext')
@@ -131,11 +133,14 @@ export default function AdminLogin() {
                     setIsModalOpen(true)
                 }
             } else if (adminData?.requiresMFA) {
+                console.log('🔐 MFA required, showing MFA input field')
+                console.log('🔐 Full adminData response:', adminData)
                 setRequiresMFA(true)
                 setModalMessage('MFA token required. Please enter your 6-digit code.')
                 setIsModalOpen(true)
             } else {
-                setModalMessage('Invalid email or password')
+                console.log('❌ Login failed:', adminData)
+                setModalMessage(adminData?.error || 'Invalid email or password')
                 setIsModalOpen(true)
             }
         } catch (error) {
@@ -203,6 +208,14 @@ export default function AdminLogin() {
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-4">
+                        {requiresMFA && (
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                <span className="text-sm font-medium text-green-800">
+                                    ✓ Credentials verified. Complete login with MFA token.
+                                </span>
+                            </div>
+                        )}
+                        
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Email Address
@@ -213,7 +226,7 @@ export default function AdminLogin() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                                 placeholder="admin@example.com"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${requiresMFA ? 'bg-gray-100 text-gray-500' : ''}`}
                                 disabled={requiresMFA}
                             />
                         </div>
@@ -229,7 +242,7 @@ export default function AdminLogin() {
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
                                     placeholder="Enter your password"
-                                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${requiresMFA ? 'bg-gray-100 text-gray-500' : ''}`}
                                     disabled={requiresMFA}
                                 />
                                 <button
@@ -248,7 +261,13 @@ export default function AdminLogin() {
                         </div>
 
                         {requiresMFA && (
-                            <div>
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="flex items-center mb-3">
+                                    <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                                    <span className="text-sm font-medium text-blue-800">
+                                        Two-Factor Authentication Required
+                                    </span>
+                                </div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     MFA Token
                                 </label>
@@ -260,8 +279,9 @@ export default function AdminLogin() {
                                     placeholder="000000"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-lg font-mono"
                                     maxLength={6}
+                                    autoFocus
                                 />
-                                <p className="text-xs text-gray-500 mt-1 text-center">
+                                <p className="text-xs text-blue-600 mt-1 text-center">
                                     Enter the 6-digit code from your authenticator app
                                 </p>
                             </div>

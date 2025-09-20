@@ -10,6 +10,7 @@ import UserManagement from '@/components/admin/UserManagement'
 import UserStats from '@/components/admin/UserStats'
 import BankOffersPage from '@/components/admin/BankOffersPage'
 import AnalyticsPage from '@/components/admin/AnalyticsPage'
+import MFASettings from '@/components/admin/MFASettings'
 import { ChartBarIcon } from '@heroicons/react/24/outline'
 
 export default function AdminDashboard() {
@@ -107,6 +108,8 @@ export default function AdminDashboard() {
                 return <BankOffersPage />
             case 'analytics':
                 return <AnalyticsPage />
+            case 'mfa-settings':
+                return <MFASettings />
             default:
                 return <AnalyticsPage />
         }
