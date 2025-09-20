@@ -105,6 +105,15 @@ pool.on('error', (err, client) => {
 pool.on('connect', (client) => {
   console.log(`🔗 New database connection established. Pool status: ${pool.totalCount}/${pool.idleCount}/${pool.waitingCount}`);
   
+  // Set timezone to Riyadh for all new connections
+  client.query("SET timezone = 'Asia/Riyadh'")
+    .then(() => {
+      console.log('🕐 Database timezone set to Asia/Riyadh');
+    })
+    .catch((err) => {
+      console.warn('⚠️ Failed to set database timezone:', err.message);
+    });
+  
   // Set up client error handling
   client.on('error', (err) => {
     console.error('❌ Database client error:', {

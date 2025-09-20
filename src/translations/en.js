@@ -90,7 +90,7 @@ const translations = {
   'faq.posFinancing.title': 'What is POS Financing?',
   'faq.posFinancing.content': 'POS Financing allows merchants to obtain financing for POS terminal equipment and related services through competitive offers from multiple banks.',
   'faq.howItWorks.title': 'How does the process work?',
-  'faq.howItWorks.content': 'Submit your application, receive competitive offers from banks within 48 hours, and choose the best financing option for your business.',
+  'faq.howItWorks.content': 'Submit your application, receive competitive offers from banks within {AUCTION_HOURS} hours, and choose the best financing option for your business.',
   'faq.requirements.title': 'What are the requirements?',
   'faq.requirements.content': 'You need a valid CR number, business information, and supporting documents. Our system will automatically fetch your business details.',
   
@@ -105,7 +105,7 @@ const translations = {
   'portal.submitted': 'Submitted',
   'portal.applyForService': 'Apply for Service',
   'portal.liveAuction': 'Live Auction Active',
-  'portal.liveAuctionDesc': 'Banks bid and offer deals for your request. The auction ends within 48 hours.',
+  'portal.liveAuctionDesc': 'Banks bid and offer deals for your request. The auction ends within {AUCTION_HOURS} hours.',
   'portal.dealCompleted': 'Deal Completed',
   'portal.dealCompletedDesc': 'Your request has been processed successfully.',
   'portal.applicationIgnored': 'Application Ignored',
@@ -184,7 +184,7 @@ const translations = {
   'offers.refresh': 'Refresh',
   'offers.liveAuction': 'Live Auction',
   'offers.liveAuctionActive': 'Live Auction Active',
-  'offers.liveAuctionDescription': 'Service providers bid on your request and offered deals during the auction period which lasts 48 hours.',
+  'offers.liveAuctionDescription': 'Service providers bid on your request and offered deals during the auction period which lasts {AUCTION_HOURS} hours.',
   'offers.bankOffersReceived': 'Offers Received',
   'offers.offer': 'Offer',
   'offers.liveAuctionMessage': 'The following service providers offered deals during the live auction. More offers might come before the auction ends.',
@@ -300,7 +300,7 @@ const translations = {
   
   // Modal
   'modal.applicationSubmitted': 'Application Submitted',
-  'modal.responseTime': 'You will receive a response within 48 hours',
+  'modal.responseTime': 'You will receive a response within {AUCTION_HOURS} hours',
   
   // Language switcher
   'language.arabic': 'العربية',
@@ -317,7 +317,7 @@ const translations = {
   'faq.posFinancing.title': 'What is POS Financing?',
   'faq.posFinancing.content': 'POS Financing allows merchants to obtain financing for POS terminal equipment and related services through competitive offers from multiple banks.',
   'faq.howItWorks.title': 'How does the process work?',
-  'faq.howItWorks.content': 'Submit your application, receive competitive offers from banks within 48 hours, and choose the best financing option for your business.',
+  'faq.howItWorks.content': 'Submit your application, receive competitive offers from banks within {AUCTION_HOURS} hours, and choose the best financing option for your business.',
   'faq.requirements.title': 'What are the requirements?',
   'faq.requirements.content': 'You need a valid CR number, business information, and supporting documents. Our system will automatically fetch your business details.',
   

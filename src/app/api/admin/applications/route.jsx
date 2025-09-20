@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
 import { STATUS_CALCULATION_SQL, STATUS_FILTER_SQL } from '@/lib/application-status';
+import { auctionConfig } from '@/lib/config/auction-config';
 
 // GET - List applications with filtering, sorting, and pagination
 export async function GET(req) {
@@ -377,7 +378,7 @@ export async function POST(req) {
 
             // Create POS application (same as business submission)
             const submitted_at = new Date();
-            const auction_end_time = new Date(submitted_at.getTime() + (process.env.DEFAULT_AUCTION_HOURS || 48) * 60 * 60 * 1000); // Configured duration from submission
+            const auction_end_time = new Date(submitted_at.getTime() + auctionConfig.durationMilliseconds); // Configured duration from submission
 
             const posAppResult = await client.query(
                 `INSERT INTO pos_application (

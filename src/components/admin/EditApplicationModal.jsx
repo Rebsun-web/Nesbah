@@ -18,6 +18,7 @@ import {
 import BankLogo from '@/components/BankLogo'
 import { calculateApplicationStatus } from '@/lib/application-status'
 import { getCorrectStatus } from '@/lib/client-status-utils'
+import { auctionConfig } from '@/lib/config/auction-config'
 
 export default function EditApplicationModal({ isOpen, onClose, application, onSave }) {
     const [fullApplication, setFullApplication] = useState(null)
@@ -421,7 +422,7 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                             <ExclamationTriangleIcon className="h-5 w-5 text-blue-400" />
                             <div className="ml-3">
                                 <p className="text-sm text-blue-600">
-                                    <strong>Info:</strong> This application is completed. Changing the status to "Live Auction" will reset the auction timer to 48 hours and remove all existing offers. Changing to "Ignored" will mark it as expired with no offers.
+                                    <strong>Info:</strong> This application is completed. Changing the status to "Live Auction" will reset the auction timer to {auctionConfig.durationHours} hours and remove all existing offers. Changing to "Ignored" will mark it as expired with no offers.
                                 </p>
                             </div>
                         </div>
@@ -435,7 +436,7 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                             <ExclamationTriangleIcon className="h-5 w-5 text-gray-400" />
                             <div className="ml-3">
                                 <p className="text-sm text-gray-600">
-                                    <strong>Info:</strong> This application is ignored (expired with no offers). Changing the status to "Live Auction" will reset the auction timer to 48 hours and allow new offers. Changing to "Completed" will mark it as having offers.
+                                    <strong>Info:</strong> This application is ignored (expired with no offers). Changing the status to "Live Auction" will reset the auction timer to {auctionConfig.durationHours} hours and allow new offers. Changing to "Completed" will mark it as having offers.
                                 </p>
                             </div>
                         </div>
@@ -469,7 +470,7 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                                     {formData.status === 'live_auction' && fullApplication && (
                                         <div className="mt-1 space-y-1">
                                             <p className="text-sm text-blue-600">
-                                                ℹ️ Live Auction status will reset the auction timer to 48 hours
+                                                ℹ️ Live Auction status will reset the auction timer to {auctionConfig.durationHours} hours
                                             </p>
                                             <p className="text-sm text-orange-600">
                                                 ⚠️ Editing this application will remove all previous offers and clean tracking data

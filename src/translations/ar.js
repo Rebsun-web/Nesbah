@@ -93,7 +93,7 @@ const translations = {
   'faq.posFinancing.title': 'ما هو تمويل نقاط البيع؟',
   'faq.posFinancing.content': 'يتيح تمويل نقاط البيع للتجار الحصول على تمويل لمعدات نقاط البيع والخدمات ذات الصلة من خلال عروض تنافسية من عدة بنوك.',
   'faq.howItWorks.title': 'كيف تعمل العملية؟',
-  'faq.howItWorks.content': 'قدم طلبك، واحصل على عروض تنافسية من البنوك خلال 48 ساعة، واختر أفضل خيار تمويل لعملك.',
+  'faq.howItWorks.content': 'قدم طلبك، واحصل على عروض تنافسية من البنوك خلال {AUCTION_HOURS} ساعة، واختر أفضل خيار تمويل لعملك.',
   'faq.requirements.title': 'ما هي المتطلبات؟',
   'faq.requirements.content': 'تحتاج إلى رقم سجل تجاري صحيح، ومعلومات العمل، ومستندات داعمة. سيقوم نظامنا بجلب تفاصيل عملك تلقائياً.',
   
@@ -108,7 +108,7 @@ const translations = {
   'portal.submitted': 'تم الإرسال',
   'portal.applyForService': 'تقدم لخدمة',
   'portal.liveAuction': 'مزاد حي نشط',
-  'portal.liveAuctionDesc': 'البنوك تطلع وتقدم عروض لطلبك. ينتهي المزاد خلال 48 ساعة.',
+  'portal.liveAuctionDesc': 'البنوك تطلع وتقدم عروض لطلبك. ينتهي المزاد خلال {AUCTION_HOURS} ساعة.',
   'portal.dealCompleted': 'تم إنجاز الصفقة',
   'portal.dealCompletedDesc': 'تم معالجة طلبك بنجاح.',
   'portal.applicationIgnored': 'تم تجاهل الطلب',
@@ -187,7 +187,7 @@ const translations = {
   'offers.refresh': 'تحديث',
   'offers.liveAuction': 'طلب نشط ',
   'offers.liveAuctionActive': 'المزاد الحي نشط',
-  'offers.liveAuctionDescription': 'البنوك تطلع على طلبك وقد تقدم عروض خلال فترة المزاد التي تستمر 48 ساعة.',
+  'offers.liveAuctionDescription': 'البنوك تطلع على طلبك وقد تقدم عروض خلال فترة المزاد التي تستمر {AUCTION_HOURS} ساعة.',
   'offers.bankOffersReceived': 'العروض المستلمة',
   'offers.offer': 'عرض',
   'offers.liveAuctionMessage': 'قدمت البنوك التالية عروض خلال المزاد الحي. قد تأتي المزيد من العروض قبل انتهاء المزاد.',
@@ -303,7 +303,7 @@ const translations = {
   
   // Modal
   'modal.applicationSubmitted': 'تم إرسال الطلب',
-  'modal.responseTime': 'ستتلقى ردًا خلال 48 ساعة',
+  'modal.responseTime': 'ستتلقى ردًا خلال {AUCTION_HOURS} ساعة',
   
   // Language switcher
   'language.arabic': 'العربية',

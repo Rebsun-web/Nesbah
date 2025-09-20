@@ -13,6 +13,7 @@ import {
     ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
 import ProtectedRoute from '@/components/admin/ProtectedRoute'
+import { auctionConfig } from '@/lib/config/auction-config'
 
 export default function ApplicationDetail() {
     const params = useParams()
@@ -200,7 +201,7 @@ export default function ApplicationDetail() {
     const getAuctionStartTime = (endTime) => {
         if (!endTime) return null
         const end = new Date(endTime)
-        return new Date(end.getTime() - ((process.env.DEFAULT_AUCTION_HOURS || 48) * 60 * 60 * 1000)) // Configured duration before
+        return new Date(end.getTime() - auctionConfig.durationMilliseconds) // Configured duration before
     }
 
     if (loading) {

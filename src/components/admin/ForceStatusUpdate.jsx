@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ExclamationTriangleIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
+import { auctionConfig } from '@/lib/config/auction-config'
 
 export default function ForceStatusUpdate() {
     const [applicationId, setApplicationId] = useState('')
@@ -152,7 +153,7 @@ export default function ForceStatusUpdate() {
                     <div className="text-sm text-blue-800">
                         <p className="font-medium mb-1">⚠️ Important Notes:</p>
                         <ul className="list-disc list-inside space-y-1">
-                            <li>This will force update applications stuck in &apos;live_auction&apos; status beyond 48 hours</li>
+                            <li>This will force update applications stuck in &apos;live_auction&apos; status beyond {auctionConfig.durationHours} hours</li>
                             <li>Applications with offers will transition to &apos;completed&apos;</li>
                             <li>Applications without offers will transition to &apos;ignored&apos;</li>
                             <li>This action cannot be undone automatically</li>

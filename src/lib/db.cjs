@@ -154,6 +154,15 @@ pool.on('error', (err, client) => {
 
 // Handle connection errors
 pool.on('connect', (client) => {
+  // Set timezone to Riyadh for all new connections
+  client.query("SET timezone = 'Asia/Riyadh'")
+    .then(() => {
+      console.log('🕐 Database timezone set to Asia/Riyadh (CJS)');
+    })
+    .catch((err) => {
+      console.warn('⚠️ Failed to set database timezone (CJS):', err.message);
+    });
+    
   client.on('error', (err) => {
     console.error('❌ Database client error:', err);
   });

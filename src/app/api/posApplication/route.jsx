@@ -4,6 +4,7 @@ import {
     sendApplicationSubmissionEmail, 
     sendNewApplicationNotificationToBanks 
 } from '@/lib/email/emailNotifications';
+import { auctionConfig } from '@/lib/config/auction-config';
 
 export async function POST(req) {
     try {
@@ -27,7 +28,7 @@ export async function POST(req) {
         } = body;
 
         const submitted_at = new Date(); // capture submit time
-        const auction_end_time = new Date(submitted_at.getTime() + (process.env.DEFAULT_AUCTION_HOURS || 48) * 60 * 60 * 1000); // Configured duration from submission time
+        const auction_end_time = new Date(submitted_at.getTime() + auctionConfig.durationMilliseconds); // Configured duration from submission time
 
         const client = await pool.connectWithRetry(2, 1000, 'app_api_posApplication_route.jsx_route');
         

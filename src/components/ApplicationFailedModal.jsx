@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
 import { XCircleIcon } from '@heroicons/react/24/outline'
+import { auctionConfig } from '@/lib/config/auction-config'
 
 export default function ApplicationFailedModal() {
     const [open, setOpen] = useState(true)
@@ -30,7 +31,7 @@ export default function ApplicationFailedModal() {
                                 </DialogTitle>
                                 <div className="mt-2">
                                     <p className="text-sm text-gray-500">
-                                        You will receive response within 48 hours
+                                        You will receive response within {auctionConfig.durationHours} hours
                                     </p>
                                 </div>
                             </div>

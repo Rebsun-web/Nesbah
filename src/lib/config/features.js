@@ -1,4 +1,6 @@
 // Feature configuration for POS Financing MVP
+import { auctionConfig } from './auction-config.js';
+
 export const features = {
   // Core features
   showPosFinancing: true,
@@ -8,7 +10,7 @@ export const features = {
   // Auction configuration
   auctionWindow: {
     posFinancing: {
-      defaultHours: 48,
+      defaultHours: auctionConfig.durationHours,
       minRequestedAmount: 10000, // SAR
       maxRequestedAmount: 5000000, // SAR
     }
