@@ -98,22 +98,12 @@ class AuctionExpiryHandler {
             UPDATE pos_application 
             SET 
                 status = 'completed',
+                current_application_status = 'completed',
                 updated_at = NOW()
             WHERE application_id = $1
         `, [applicationId]);
 
-        // Update application_offer_tracking if it exists
-        try {
-            await client.query(`
-                UPDATE application_offer_tracking 
-                SET current_application_status = 'completed',
-                    offer_window_start = NOW(),
-                    offer_window_end = NOW() + INTERVAL '24 hours'
-                WHERE application_id = $1
-            `, [applicationId]);
-        } catch (error) {
-            console.warn(`⚠️  Could not update application_offer_tracking for application ${applicationId}:`, error.message);
-        }
+        
 
         // Log the transition (optional - don't fail if audit log insertion fails)
         try {
@@ -135,20 +125,12 @@ class AuctionExpiryHandler {
             UPDATE pos_application 
             SET 
                 status = 'ignored',
+                current_application_status = 'ignored',
                 updated_at = NOW()
             WHERE application_id = $1
         `, [applicationId]);
 
-        // Update application_offer_tracking if it exists
-        try {
-            await client.query(`
-                UPDATE application_offer_tracking 
-                SET current_application_status = 'ignored'
-                WHERE application_id = $1
-            `, [applicationId]);
-        } catch (error) {
-            console.warn(`⚠️  Could not update application_offer_tracking for application ${applicationId}:`, error.message);
-        }
+        
 
         // Log the transition (optional - don't fail if audit log insertion fails)
         try {

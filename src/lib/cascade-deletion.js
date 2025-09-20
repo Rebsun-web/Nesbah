@@ -34,7 +34,6 @@ export async function cascadeDeleteApplication(client, applicationId, includeUse
             bank_offer_submissions: 0,
             application_revenue: 0,
             status_audit_log: 0,
-            application_offer_tracking: 0,
             bank_application_views: 0,
             pos_application: 0,
             business_users: 0,
@@ -59,13 +58,7 @@ export async function cascadeDeleteApplication(client, applicationId, includeUse
         deletedRecords.bank_offer_submissions = submissionsResult.rowCount;
         console.log(`✅ Deleted ${deletedRecords.bank_offer_submissions} bank offer submissions`);
 
-        // 3. Delete application revenue
-        const revenueResult = await client.query(
-            `DELETE FROM application_revenue WHERE application_id = $1`,
-            [applicationId]
-        );
-        deletedRecords.application_revenue = revenueResult.rowCount;
-        console.log(`✅ Deleted ${deletedRecords.application_revenue} application revenue records`);
+        // 3. (Removed) application_revenue table no longer used
 
         // 4. Delete status audit logs
         const auditResult = await client.query(
@@ -75,15 +68,7 @@ export async function cascadeDeleteApplication(client, applicationId, includeUse
         deletedRecords.status_audit_log = auditResult.rowCount;
         console.log(`✅ Deleted ${deletedRecords.status_audit_log} status audit logs`);
 
-        // 5. Delete application offer tracking
-        const trackingResult = await client.query(
-            `DELETE FROM application_offer_tracking WHERE application_id = $1`,
-            [applicationId]
-        );
-        deletedRecords.application_offer_tracking = trackingResult.rowCount;
-        console.log(`✅ Deleted ${deletedRecords.application_offer_tracking} application offer tracking records`);
-
-        // 6. Delete bank application views
+        // 5. Delete bank application views
         const viewsResult = await client.query(
             `DELETE FROM bank_application_views WHERE application_id = $1`,
             [applicationId]
@@ -148,7 +133,6 @@ export async function cascadeDeleteMultipleApplications(client, applicationIds) 
                 bank_offer_submissions: 0,
                 application_revenue: 0,
                 status_audit_log: 0,
-                application_offer_tracking: 0,
                 bank_application_views: 0,
                 pos_application: 0
             },
@@ -171,12 +155,7 @@ export async function cascadeDeleteMultipleApplications(client, applicationIds) 
             );
             results.deletedRecords.bank_offer_submissions = submissionsResult.rowCount;
 
-            // Delete application revenue
-            const revenueResult = await client.query(
-                `DELETE FROM application_revenue WHERE application_id = ANY($1)`,
-                [applicationIds]
-            );
-            results.deletedRecords.application_revenue = revenueResult.rowCount;
+            // (Removed) application_revenue table no longer used
 
             // Delete status audit logs
             const auditResult = await client.query(
@@ -184,13 +163,6 @@ export async function cascadeDeleteMultipleApplications(client, applicationIds) 
                 [applicationIds]
             );
             results.deletedRecords.status_audit_log = auditResult.rowCount;
-
-            // Delete application offer tracking
-            const trackingResult = await client.query(
-                `DELETE FROM application_offer_tracking WHERE application_id = ANY($1)`,
-                [applicationIds]
-            );
-            results.deletedRecords.application_offer_tracking = trackingResult.rowCount;
 
             // Delete bank application views
             const viewsResult = await client.query(
@@ -235,7 +207,6 @@ export async function validateCascadeDeletion(client, applicationId) {
             bank_offer_submissions: 0,
             application_revenue: 0,
             status_audit_log: 0,
-            application_offer_tracking: 0,
             bank_application_views: 0,
             pos_application: 0
         };

@@ -557,7 +557,6 @@ export default function ApplicationDetail() {
                                                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             >
                                                 <option value="live_auction">Live Auction</option>
-                                                <option value="approved_leads">Approved Leads</option>
                                                 <option value="complete">Complete</option>
                                                 <option value="ignored">Ignored</option>
                                             </select>

@@ -28,134 +28,21 @@ export async function POST(req, { params }) {
         const alreadyPurchased = check.rowCount > 0;
 
         if (!alreadyPurchased) {
-            // Record revenue collection (25 SAR per purchase)
-            await pool.query(
-                `INSERT INTO application_revenue (application_id, bank_user_id, amount, transaction_type)
-                 VALUES ($1, $2, $3, $4)`,
-                [applicationId, bankUserId, 25.00, 'lead_purchase']
-            );
-
-            // Update pos_application with purchase tracking
+            // Update pos_application with purchase tracking (remove revenue collection)
             await pool.query(
                 `UPDATE pos_application
                  SET
                      purchased_by = array_append(purchased_by, $1),
-                     revenue_collected = revenue_collected + $2,
                      offers_count = offers_count + 1
-                 WHERE application_id = $3`,
-                [bankUserId, 25.00, applicationId]
+                 WHERE application_id = $2`,
+                [bankUserId, applicationId]
             );
 
             // Keep pos_application status as 'live_auction' - don't change to 'completed'
             // This allows multiple banks to purchase the same application
         }
 
-        const offer_device_setup_fee = formData.get('offer_device_setup_fee');
-        const offer_transaction_fee_mada = formData.get('offer_transaction_fee_mada');
-        const offer_transaction_fee_visa_mc = formData.get('offer_transaction_fee_visa_mc');
-        const offer_settlement_time_mada = formData.get('offer_settlement_time_mada');
-        const offer_comment = formData.get('offer_comment');
-        const file = formData.get('uploaded_file');
-
-        const hasOfferData =
-          offer_device_setup_fee ||
-          offer_transaction_fee_mada ||
-          offer_transaction_fee_visa_mc ||
-          offer_settlement_time_mada ||
-          offer_comment;
-
-        if (hasOfferData) {
-
-          let uploadedDocument = null;
-          let uploadedMimetype = null;
-          let uploadedFilename = null;
-
-          if (file && typeof file.arrayBuffer === 'function') {
-            const arrayBuffer = await file.arrayBuffer();
-            uploadedDocument = Buffer.from(arrayBuffer);
-            uploadedMimetype = file.type;
-            uploadedFilename = file.name;
-          }
-
-          // Check if purchased using pos_application table
-          const result = await pool.query(
-            `SELECT application_id FROM pos_application WHERE application_id = $1 AND $2 = ANY(purchased_by)`,
-            [applicationId, bankUserId]
-          );
-
-          if (result.rowCount > 0) {
-            // Check if this bank has already submitted an offer for this application
-            const existingOfferCheck = await pool.query(`
-                SELECT offer_id FROM application_offers 
-                WHERE submitted_application_id = $1 AND bank_user_id = $2
-            `, [applicationId, bankUserId]);
-            
-            if (existingOfferCheck.rows.length > 0) {
-                return NextResponse.json(
-                    { success: false, message: 'You have already submitted an offer for this application' },
-                    { status: 400 }
-                );
-            }
-            
-            const submittedApplicationId = applicationId; // Use application_id directly
-
-            const offerResult = await pool.query(
-              `INSERT INTO application_offers (
-                submitted_application_id,
-                bank_user_id,
-                submitted_by_user_id,
-                offer_device_setup_fee,
-                offer_transaction_fee_mada,
-                offer_transaction_fee_visa_mc,
-                offer_settlement_time_mada,
-                offer_comment,
-                uploaded_document,
-                uploaded_mimetype,
-                uploaded_filename,
-                status,
-                offer_selection_deadline
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-              RETURNING offer_id`,
-              [
-                submittedApplicationId,
-                bankUserId, // Set bank_user_id
-                bankUserId, // Set submitted_by_user_id to same value
-                offer_device_setup_fee || null,
-                offer_transaction_fee_mada || null,
-                offer_transaction_fee_visa_mc || null,
-                offer_settlement_time_mada || null,
-                offer_comment || null,
-                uploadedDocument,
-                uploadedMimetype,
-                uploadedFilename,
-                'live_auction',
-                new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
-              ]
-            );
-
-            // Track offer submission for analytics
-            try {
-                const offerId = offerResult.rows[0].offer_id;
-                await AnalyticsService.trackOfferSubmission(applicationId, bankUserId, offerId);
-                
-            } catch (error) {
-                console.error('Failed to track offer submission:', error);
-                // Don't fail the request if analytics tracking fails
-            }
-
-            // Update offers count in pos_application
-            await pool.query(
-              `UPDATE pos_application
-               SET offers_count = offers_count + 1
-               WHERE application_id = $1`,
-              [applicationId]
-            );
-
-            // Note: Application status remains 'live_auction' until auction period ends
-            // Status will be updated to 'completed' or 'ignored' after 48-hour auction period
-            console.log(`📝 Offer recorded for application #${applicationId} - status remains live_auction until auction ends`);
-          }
-        }
+        // Remove ad-hoc offer submission flow from this endpoint
 
         return NextResponse.json({ success: true, message: 'Offer submitted or lead purchased.' });
     } catch (err) {
@@ -172,10 +59,6 @@ export async function GET(req, { params }) {
         const result = await pool.query(
           `SELECT
             u.entity_name,
-            ao.offer_device_setup_fee,
-            ao.offer_transaction_fee_mada,
-            ao.offer_transaction_fee_visa_mc,
-            ao.offer_settlement_time_mada,
             ao.offer_comment,
             ao.submitted_at AS submitted_at
           FROM application_offers ao

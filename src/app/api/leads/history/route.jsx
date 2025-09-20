@@ -13,9 +13,8 @@ export async function GET(req) {
         const result = await pool.query(`
           SELECT 
             sa.*,
-            COALESCE(aot.current_application_status, sa.status) as current_status
+            sa.status as current_status
           FROM submitted_applications sa
-          LEFT JOIN application_offer_tracking aot ON sa.application_id = aot.application_id
           WHERE 
             ($1 = ANY(sa.opened_by) OR $1 = ANY(sa.purchased_by))
             AND NOT ($1 = ANY(sa.ignored_by))
