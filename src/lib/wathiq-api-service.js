@@ -28,7 +28,8 @@ class WathiqAPIService {
             }
             
             // Clean the CR number - remove any non-digit characters
-            const cleanCRNumber = crNationalNumber.toString().replace(/\D/g, '');
+            let cleanCRNumber = crNationalNumber.toString().replace(/\D/g, '');
+            
             console.log(`🔍 Fetching Wathiq data for CR: ${crNationalNumber} (cleaned: ${cleanCRNumber})`);
             
             const response = await fetch(

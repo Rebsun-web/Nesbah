@@ -105,6 +105,15 @@ class StatusSynchronizer {
         try {
             console.log('🔄 Starting status synchronization for all applications...');
             
+            // Validate client parameter
+            if (!client) {
+                throw new Error('Database client is required for status synchronization');
+            }
+            
+            if (!client.query || typeof client.query !== 'function') {
+                throw new Error('Invalid database client: query method not available');
+            }
+            
             // Get all applications that might need status updates
             const allAppsQuery = `
                 SELECT 

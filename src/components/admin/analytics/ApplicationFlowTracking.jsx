@@ -83,8 +83,7 @@ export default function ApplicationFlowTracking() {
                     >
                         <option value="7d" className="font-medium">Last 7 days</option>
                         <option value="30d" className="font-medium">Last 30 days</option>
-                        <option value="90d" className="font-medium">Last 90 days</option>
-                        <option value="1y" className="font-medium">Last year</option>
+                        <option value="all" className="font-medium">All time</option>
                     </select>
                     <button
                         onClick={fetchFlowTrackingData}

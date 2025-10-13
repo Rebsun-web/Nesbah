@@ -9,8 +9,14 @@ export async function GET() {
         try {
             const { default: backgroundTaskManager } = await import('@/lib/background-tasks')
             const status = backgroundTaskManager.getStatus()
-            isRunning = backgroundTaskManager.isRunning
+            isRunning = status.isRunning
             backgroundTaskStatus = isRunning ? 'running' : 'stopped'
+            
+            // Additional check: if status shows running but no active tasks, mark as stopped
+            if (isRunning && status.tasks && status.tasks.length === 0) {
+                isRunning = false
+                backgroundTaskStatus = 'stopped'
+            }
         } catch (error) {
             backgroundTaskStatus = 'error'
             console.warn('Could not get background task status:', error.message)

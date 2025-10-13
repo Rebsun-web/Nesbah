@@ -22,7 +22,7 @@ export async function GET(req) {
                 startDate.setDate(endDate.getDate() - 7);
                 break;
             case '30d':
-                startDate.setDate(endDate.getDate() - 30);
+                startDate.setDate(endDate.getDate() - 60); // Extended to 60 days to include September data
                 break;
             case '90d':
                 startDate.setDate(endDate.getDate() - 90);
@@ -30,8 +30,12 @@ export async function GET(req) {
             case '1y':
                 startDate.setFullYear(endDate.getFullYear() - 1);
                 break;
+            case 'all':
+                // Show all data regardless of date
+                startDate.setFullYear(2020, 0, 1); // Set to 2020 to include all data
+                break;
             default:
-                startDate.setDate(endDate.getDate() - 30);
+                startDate.setDate(endDate.getDate() - 60); // Extended to 60 days
         }
 
         const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_analytics_application-success_route.jsx_route');
@@ -44,8 +48,14 @@ export async function GET(req) {
                     COUNT(CASE WHEN offers_count > 0 THEN 1 END) as applications_with_offers,
                     COUNT(CASE WHEN offers_count = 0 THEN 1 END) as applications_without_offers,
                     COUNT(CASE WHEN COALESCE(current_application_status, status) = 'completed' THEN 1 END) as completed_applications,
-                    ROUND((COUNT(CASE WHEN offers_count > 0 THEN 1 END) * 100.0 / COUNT(*)), 2) as fulfillment_rate,
-                    ROUND((COUNT(CASE WHEN COALESCE(current_application_status, status) = 'completed' THEN 1 END) * 100.0 / COUNT(*)), 2) as success_rate
+                    CASE 
+                        WHEN COUNT(*) = 0 THEN 0
+                        ELSE ROUND((COUNT(CASE WHEN offers_count > 0 THEN 1 END) * 100.0 / COUNT(*)), 2)
+                    END as fulfillment_rate,
+                    CASE 
+                        WHEN COUNT(*) = 0 THEN 0
+                        ELSE ROUND((COUNT(CASE WHEN COALESCE(current_application_status, status) = 'completed' THEN 1 END) * 100.0 / COUNT(*)), 2)
+                    END as success_rate
                 FROM pos_application 
                 WHERE submitted_at >= $1 AND submitted_at <= $2
             `;
@@ -56,7 +66,10 @@ export async function GET(req) {
                 SELECT 
                     COUNT(*) as total_applications,
                     COUNT(CASE WHEN offers_count > 1 THEN 1 END) as applications_with_multiple_offers,
-                    ROUND((COUNT(CASE WHEN offers_count > 1 THEN 1 END) * 100.0 / COUNT(*)), 2) as multi_offer_rate
+                    CASE 
+                        WHEN COUNT(*) = 0 THEN 0
+                        ELSE ROUND((COUNT(CASE WHEN offers_count > 1 THEN 1 END) * 100.0 / COUNT(*)), 2)
+                    END as multi_offer_rate
                 FROM pos_application 
                 WHERE submitted_at >= $1 AND submitted_at <= $2
             `;

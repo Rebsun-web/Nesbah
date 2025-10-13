@@ -24,13 +24,17 @@ export async function GET(req) {
                 startDate.setDate(endDate.getDate() - 7);
                 break;
             case '30d':
-                startDate.setDate(endDate.getDate() - 30);
+                startDate.setDate(endDate.getDate() - 60); // Extended to 60 days to include September data
                 break;
             case '90d':
                 startDate.setDate(endDate.getDate() - 90);
                 break;
             case '1y':
                 startDate.setFullYear(endDate.getFullYear() - 1);
+                break;
+            case 'all':
+                // Show all data regardless of date
+                startDate.setFullYear(2020, 0, 1); // Set to 2020 to include all data
                 break;
             default:
                 startDate.setDate(endDate.getDate() - 30);
@@ -77,7 +81,10 @@ export async function GET(req) {
                 SELECT 
                     ${STATUS_CALCULATION_SQL},
                     COUNT(*) as count,
-                    ROUND((COUNT(*) * 100.0 / SUM(COUNT(*)) OVER ()), 2) as percentage
+                    CASE 
+                        WHEN SUM(COUNT(*)) OVER () = 0 THEN 0
+                        ELSE ROUND((COUNT(*) * 100.0 / SUM(COUNT(*)) OVER ()), 2)
+                    END as percentage
                 FROM pos_application pa
                 GROUP BY calculated_status
                 ORDER BY count DESC
@@ -85,7 +92,10 @@ export async function GET(req) {
                 SELECT 
                     ${STATUS_CALCULATION_SQL},
                     COUNT(*) as count,
-                    ROUND((COUNT(*) * 100.0 / SUM(COUNT(*)) OVER ()), 2) as percentage
+                    CASE 
+                        WHEN SUM(COUNT(*)) OVER () = 0 THEN 0
+                        ELSE ROUND((COUNT(*) * 100.0 / SUM(COUNT(*)) OVER ()), 2)
+                    END as percentage
                 FROM pos_application pa
                 WHERE pa.submitted_at >= $1 AND pa.submitted_at <= $2
                 GROUP BY calculated_status
@@ -147,7 +157,10 @@ export async function GET(req) {
                 SELECT 
                     COUNT(*) as total_applications,
                     COUNT(CASE WHEN offers_count > 0 THEN 1 END) as applications_with_offers,
-                    ROUND((COUNT(CASE WHEN offers_count > 0 THEN 1 END) * 100.0 / COUNT(*)), 2) as offer_rate
+                    CASE 
+                        WHEN COUNT(*) = 0 THEN 0
+                        ELSE ROUND((COUNT(CASE WHEN offers_count > 0 THEN 1 END) * 100.0 / COUNT(*)), 2)
+                    END as offer_rate
                 FROM pos_application 
                 WHERE submitted_at >= $1 AND submitted_at <= $2
                 AND COALESCE(current_application_status, status) IN ('live_auction', 'completed')
@@ -159,7 +172,10 @@ export async function GET(req) {
                 SELECT 
                     COUNT(*) as total_applications,
                     COUNT(CASE WHEN COALESCE(current_application_status, status) = 'ignored' AND offers_count = 0 THEN 1 END) as abandoned_applications,
-                    ROUND((COUNT(CASE WHEN COALESCE(current_application_status, status) = 'ignored' AND offers_count = 0 THEN 1 END) * 100.0 / COUNT(*)), 2) as abandonment_rate
+                    CASE 
+                        WHEN COUNT(*) = 0 THEN 0
+                        ELSE ROUND((COUNT(CASE WHEN COALESCE(current_application_status, status) = 'ignored' AND offers_count = 0 THEN 1 END) * 100.0 / COUNT(*)), 2)
+                    END as abandonment_rate
                 FROM pos_application 
                 WHERE submitted_at >= $1 AND submitted_at <= $2
                 AND COALESCE(current_application_status, status) IN ('live_auction', 'completed', 'ignored')

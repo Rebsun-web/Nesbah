@@ -22,7 +22,7 @@ export async function GET(req) {
                 startDate.setDate(endDate.getDate() - 7);
                 break;
             case '30d':
-                startDate.setDate(endDate.getDate() - 30);
+                startDate.setDate(endDate.getDate() - 60); // Extended to 60 days to include September data
                 break;
             case '90d':
                 startDate.setDate(endDate.getDate() - 90);
@@ -30,8 +30,12 @@ export async function GET(req) {
             case '1y':
                 startDate.setFullYear(endDate.getFullYear() - 1);
                 break;
+            case 'all':
+                // Show all data regardless of date
+                startDate.setFullYear(2020, 0, 1); // Set to 2020 to include all data
+                break;
             default:
-                startDate.setDate(endDate.getDate() - 30);
+                startDate.setDate(endDate.getDate() - 60); // Extended to 60 days
         }
 
         const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_analytics_bank-performance_route.jsx_route');
@@ -42,7 +46,10 @@ export async function GET(req) {
                 SELECT 
                     COUNT(*) as total_applications,
                     COUNT(CASE WHEN pa.offers_count > 0 THEN 1 END) as viewed_applications,
-                    ROUND((COUNT(CASE WHEN pa.offers_count > 0 THEN 1 END) * 100.0 / COUNT(*)), 2) as view_rate
+                    CASE 
+                        WHEN COUNT(*) = 0 THEN 0
+                        ELSE ROUND((COUNT(CASE WHEN pa.offers_count > 0 THEN 1 END) * 100.0 / COUNT(*)), 2)
+                    END as view_rate
                 FROM pos_application pa
                 WHERE pa.submitted_at >= $1 AND pa.submitted_at <= $2
                 AND COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'completed')
@@ -54,7 +61,10 @@ export async function GET(req) {
                 SELECT 
                     COUNT(*) as total_viewed_applications,
                     COUNT(CASE WHEN pa.offers_count > 0 THEN 1 END) as applications_with_offers,
-                    ROUND((COUNT(CASE WHEN pa.offers_count > 0 THEN 1 END) * 100.0 / COUNT(*)), 2) as submission_rate
+                    CASE 
+                        WHEN COUNT(*) = 0 THEN 0
+                        ELSE ROUND((COUNT(CASE WHEN pa.offers_count > 0 THEN 1 END) * 100.0 / COUNT(*)), 2)
+                    END as submission_rate
                 FROM pos_application pa
                 WHERE pa.submitted_at >= $1 AND pa.submitted_at <= $2
                 AND COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'completed')

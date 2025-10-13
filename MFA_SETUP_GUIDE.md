@@ -125,3 +125,4 @@ Your frontend should then prompt for the MFA token and include it in a subsequen
 - Add audit logging for MFA-related actions
 
 The MFA implementation is now ready for use! Admin users can enable two-factor authentication to secure their accounts.
+

@@ -4,19 +4,25 @@ import pool from './db.js'
 class BackgroundConnectionManager {
     constructor() {
         this.activeConnections = new Map()
-        this.connectionTimeout = 30000 // 30 seconds max
-        this.maxRetries = 3
-        this.retryDelay = 5000
+        this.connectionTimeout = 10000 // 10 seconds max - further reduced to prevent exhaustion
+        this.maxRetries = 1 // Minimal retries
+        this.retryDelay = 2000 // Reduced delay
     }
 
     // Get a connection with timeout and retry logic
     async getConnection(taskName) {
+        // Check if we already have too many active connections
+        if (this.activeConnections.size >= 3) {
+            console.warn(`⚠️ Too many active connections (${this.activeConnections.size}), waiting...`)
+            await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+        
         const connectionId = `${taskName}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         
         try {
             // Get connection with timeout
             const client = await Promise.race([
-                pool.connectWithRetry(2, 1000, 'background-connection-manager'),
+                pool.connectWithRetry(1, 1000, 'background-connection-manager'), // Reduced retries
                 new Promise((_, reject) => 
                     setTimeout(() => reject(new Error('Connection timeout')), this.connectionTimeout)
                 )

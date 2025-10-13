@@ -42,6 +42,21 @@ export async function POST(req) {
         try {
             console.log(`🔍 Verifying business with CR: ${cr_national_number}`);
             wathiqData = await WathiqAPIService.fetchBusinessData(cr_national_number, 'en');
+            
+            // Check if the response contains an error (from our improved error handling)
+            if (wathiqData && wathiqData.error) {
+                console.log('⚠️ Wathiq API returned structured error:', wathiqData);
+                return NextResponse.json(
+                    { 
+                        success: false, 
+                        error: wathiqData.errorMessage,
+                        errorCode: wathiqData.errorCode,
+                        suggestion: wathiqData.suggestion
+                    },
+                    { status: 400 }
+                );
+            }
+            
             console.log('✅ Wathiq verification successful');
         } catch (error) {
             console.error('❌ Wathiq API verification failed:', error);
