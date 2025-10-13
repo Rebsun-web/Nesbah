@@ -161,32 +161,11 @@ export default function AdminApplicationsDashboard() {
         setShowDeleteModal(true)
     }
 
-    const handleDeleteConfirm = async () => {
-        if (!selectedApplication) return
-
-        try {
-            const response = await fetch(`/api/admin/applications/${selectedApplication.application_id}`, {
-                method: 'DELETE',
-                credentials: 'include'
-            })
-            
-            if (response.ok) {
-                const data = await response.json()
-                if (data.success) {
-                    alert('Application deleted successfully')
-                    setShowDeleteModal(false)
-                    setSelectedApplication(null)
-                    fetchApplications()
-                } else {
-                    alert('Failed to delete application: ' + data.error)
-                }
-            } else {
-                alert('Failed to delete application')
-            }
-        } catch (err) {
-            console.error('Error deleting application:', err)
-            alert('Error deleting application')
-        }
+    const handleDeleteConfirm = (applicationId) => {
+        // This function is called by the modal after successful deletion
+        setShowDeleteModal(false)
+        setSelectedApplication(null)
+        fetchApplications() // Refresh the applications list
     }
 
     const getApplicationStatusInfo = (application) => {
@@ -601,7 +580,7 @@ export default function AdminApplicationsDashboard() {
                     isOpen={showDeleteModal}
                     onClose={() => setShowDeleteModal(false)}
                     application={selectedApplication}
-                    onConfirm={handleDeleteConfirm}
+                    onDelete={handleDeleteConfirm}
                 />
             )}
         </div>

@@ -339,9 +339,11 @@ export async function POST(req) {
                     pa.cr_capital,
                     pa.contact_person as business_contact,
                     pa.contact_person_number as business_phone,
-                    pa.business_email
+                    u.email as business_email
                 FROM application_offers ao
                 JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+                JOIN business_users bu ON pa.user_id = bu.user_id
+                JOIN users u ON bu.user_id = u.user_id
                 WHERE ao.offer_id = $1
             `, [offerId]);
             

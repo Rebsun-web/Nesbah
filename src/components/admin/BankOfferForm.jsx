@@ -211,7 +211,7 @@ export default function BankOfferForm({
         
         setValidatingCR(true)
         try {
-            const response = await fetch(`/api/admin/validate-cr?cr_number=${formData.cr_number}`, {
+            const response = await fetch(`/api/admin/bank-offers/validate-cr?cr_number=${formData.cr_number}`, {
                 credentials: 'include'
             })
             

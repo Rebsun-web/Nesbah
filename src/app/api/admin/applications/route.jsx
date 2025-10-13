@@ -210,7 +210,6 @@ export async function POST(req) {
         const {
             // Business user data (same as business registration)
             cr_national_number,
-            email,
             password,
             cr_number,
             trade_name,
@@ -237,6 +236,7 @@ export async function POST(req) {
             city,
             contact_person,
             contact_person_number,
+            contact_email,
             // POS application data (same as business submission)
             notes,
             uploaded_document,
@@ -252,10 +252,10 @@ export async function POST(req) {
             preferred_repayment_period_months
         } = body;
 
-        // Validate required fields (same as business registration)
-        if (!cr_national_number || !email || !cr_number || !trade_name) {
+        // Validate required fields - only CR number needed for lookup
+        if (!cr_national_number) {
             return NextResponse.json(
-                { success: false, error: 'CR National Number, email, CR number, and trade name are required' },
+                { success: false, error: 'CR National Number is required to find existing business user' },
                 { status: 400 }
             );
         }
@@ -275,106 +275,28 @@ export async function POST(req) {
         try {
             await client.query('BEGIN');
 
-            // Check if user already exists
-            const existingUser = await client.query(
-                `SELECT user_id FROM users WHERE email = $1 OR user_id IN (
-                    SELECT user_id FROM business_users WHERE cr_national_number = $2
-                )`,
-                [email, cr_national_number]
+            // Check if business user already exists and get their data
+            const existingBusinessUser = await client.query(
+                `SELECT bu.*, u.email 
+                 FROM business_users bu 
+                 JOIN users u ON bu.user_id = u.user_id 
+                 WHERE bu.cr_national_number = $1`,
+                [cr_national_number]
             );
 
-            if (existingUser.rowCount > 0) {
-                await client.query('ROLLBACK');
+            if (existingBusinessUser.rowCount === 0) {
                 return NextResponse.json(
-                    { success: false, error: 'User with this email or CR number already exists' },
-                    { status: 409 }
+                    { success: false, error: 'Business user with this CR number does not exist. Please register the business user first.' },
+                    { status: 404 }
                 );
             }
 
-            // Hash the password (same as business registration)
-            const bcrypt = await import('bcrypt');
-            const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(password || 'default_password', saltRounds);
+            const user_id = existingBusinessUser.rows[0].user_id;
+            const businessUserData = existingBusinessUser.rows[0];
+            console.log(`Using existing business user: ${user_id} for CR: ${cr_national_number}`);
 
-            // Insert user record (same as business registration)
-            const userRes = await client.query(
-                `INSERT INTO users (email, password, user_type, entity_name, account_status, created_at, updated_at) 
-                 VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING user_id`,
-                [email, hashedPassword, 'business_user', trade_name, 'active']
-            );
-            const user_id = userRes.rows[0].user_id;
-
-            // Insert business user data (same as business registration)
-            await client.query(
-                `INSERT INTO business_users (
-                    user_id, 
-                    cr_national_number, 
-                    cr_number, 
-                    trade_name, 
-                    legal_form,
-                    registration_status,
-                    headquarter_city_name,
-                    issue_date_gregorian,
-                    confirmation_date_gregorian,
-                    contact_info,
-                    activities,
-                    has_ecommerce,
-                    store_url,
-                    cr_capital,
-                    cash_capital,
-                    management_structure,
-                    management_managers,
-                    address,
-                    sector,
-                    in_kind_capital,
-                    avg_capital,
-                    headquarter_district_name,
-                    headquarter_street_name,
-                    headquarter_building_number,
-                    city,
-                    contact_person,
-                    contact_person_number,
-                    is_verified,
-                    verification_date,
-                    created_at,
-                    updated_at
-                ) VALUES (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
-                )`,
-                [
-                    user_id, 
-                    cr_national_number, 
-                    cr_number, 
-                    trade_name, 
-                    legal_form || 'LLC',
-                    registration_status || 'active',
-                    headquarter_city_name || city,
-                    issue_date_gregorian || new Date().toISOString().split('T')[0],
-                    confirmation_date_gregorian || new Date().toISOString().split('T')[0],
-                    contact_info ? (typeof contact_info === 'string' ? contact_info : JSON.stringify(contact_info)) : null,
-                    activities ? (Array.isArray(activities) ? activities : [activities]) : null,
-                    has_ecommerce || false,
-                    store_url, 
-                    cr_capital || 0,
-                    cash_capital || 0,
-                    management_structure || 'Standard',
-                    management_managers ? (Array.isArray(management_managers) ? management_managers : [management_managers]) : null,
-                    address || city, 
-                    sector || 'Technology', 
-                    in_kind_capital || 0, 
-                    avg_capital || 0,
-                    headquarter_district_name || 'Central',
-                    headquarter_street_name || 'Main Street',
-                    headquarter_building_number || '1',
-                    city,
-                    contact_person || 'Contact Person',
-                    contact_person_number || '0500000000',
-                    true, // is_verified - admin created
-                    new Date().toISOString(), // verification_date
-                    new Date().toISOString(), // created_at
-                    new Date().toISOString()  // updated_at
-                ]
-            );
+            // Use existing business user data for the application
+            console.log(`Using business user data for application creation`);
 
             // Create POS application (same as business submission)
             const submitted_at = new Date();
@@ -389,28 +311,28 @@ export async function POST(req) {
                     contact_person, contact_person_number, number_of_pos_devices, 
                     city_of_operation, auction_end_time, opened_by, purchased_by,
                     pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
-                    requested_financing_amount, preferred_repayment_period_months,
-                    offers_count, revenue_collected
+                    requested_financing_amount, preferred_repayment_period_months
                 ) VALUES (
                     $1, 'live_auction', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-                    $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32
+                    $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
                 ) RETURNING application_id
                 `,
                 [
                     user_id, submitted_at, notes || null,
                     uploaded_document ? Buffer.from(uploaded_document, 'base64') : null,
                     own_pos_system ?? null, uploaded_filename || null, uploaded_mimetype || null,
-                    trade_name, cr_number, cr_national_number,
-                    legal_form || 'LLC', registration_status || 'active', issue_date_gregorian || new Date().toISOString().split('T')[0],
-                    city, has_ecommerce || false,
-                    store_url, cr_capital || 0, cash_capital || 0,
-                    management_structure || 'Standard',
-                    contact_person || 'Contact Person', contact_person_number || '0500000000',
-                    number_of_pos_devices || 1, city_of_operation || city, auction_end_time,
-                    [], [], // Initialize empty arrays for tracking (same as business submission)
+                    // Use existing business user data instead of form data
+                    businessUserData.trade_name, businessUserData.cr_number, businessUserData.cr_national_number,
+                    businessUserData.legal_form, businessUserData.registration_status, businessUserData.issue_date_gregorian,
+                    businessUserData.city, businessUserData.has_ecommerce,
+                    businessUserData.store_url, businessUserData.cr_capital, businessUserData.cash_capital,
+                    businessUserData.management_structure,
+                    contact_person || businessUserData.contact_person, contact_person_number || businessUserData.contact_person_number,
+                    number_of_pos_devices || 1, city_of_operation || businessUserData.city, auction_end_time,
+                    '{}', '{}', // Initialize empty arrays for tracking
+                    // Use form data for POS-specific fields
                     pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
-                    requested_financing_amount, preferred_repayment_period_months,
-                    0, 0 // Initialize offers_count and revenue_collected
+                    requested_financing_amount, preferred_repayment_period_months
                 ]
             );
 
@@ -420,12 +342,12 @@ export async function POST(req) {
 
             return NextResponse.json({
                 success: true,
-                message: 'Business user and application created successfully',
+                message: 'Application created successfully using existing business user data',
                 data: {
                     user_id,
                     application_id,
-                    email,
-                    trade_name,
+                    email: businessUserData.email,
+                    trade_name: businessUserData.trade_name,
                     cr_national_number,
                     status: 'live_auction',
                     auction_end_time,

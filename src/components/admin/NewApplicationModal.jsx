@@ -187,34 +187,30 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
                 uploadedFilename = await handleFileUpload()
             }
 
-            // Prepare data for submission
+            // Prepare data for submission - only CR number for lookup and POS-specific data
             const submissionData = {
-                // Business information
-                trade_name: formData.trade_name,
-                cr_number: formData.cr_number,
+                // Only CR number needed for business user lookup
                 cr_national_number: formData.cr_national_number,
-                legal_form: formData.legal_form,
-                city: formData.city,
-                activities: formData.activities,
-                has_ecommerce: formData.has_ecommerce,
-                store_url: formData.store_url,
-                cr_capital: formData.cr_capital,
-                cash_capital: formData.cash_capital,
-                management_structure: formData.management_structure,
-                management_names: formData.management_names,
+                
+                // Contact information (editable fields)
                 contact_person: formData.contact_person,
                 contact_person_number: formData.contact_person_number,
                 contact_email: formData.contact_email,
                 
-                // POS application details
+                // POS application details (required fields)
                 pos_provider_name: formData.pos_provider_name,
                 pos_age_duration_months: parseInt(formData.pos_age_duration_months),
                 avg_monthly_pos_sales: parseFloat(formData.avg_monthly_pos_sales),
                 requested_financing_amount: parseFloat(formData.requested_financing_amount),
                 preferred_repayment_period_months: formData.preferred_repayment_period_months ? 
                     parseInt(formData.preferred_repayment_period_months) : null,
+                
+                // Optional fields
                 notes: formData.notes,
-                uploaded_filename: uploadedFilename
+                uploaded_filename: uploadedFilename,
+                number_of_pos_devices: formData.number_of_pos_devices,
+                city_of_operation: formData.city_of_operation,
+                own_pos_system: formData.own_pos_system
             }
 
             const response = await fetch('/api/admin/applications', {
@@ -398,13 +394,44 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
                                         readOnly
                                     />
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Contact Information */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <h4 className="text-md font-medium text-gray-900 mb-4">Contact Information</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">Contact Person</label>
                                     <input
                                         type="text"
+                                        name="contact_person"
                                         value={formData.contact_person}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
-                                        readOnly
+                                        onChange={(e) => handleInputChange('contact_person', e.target.value)}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-gray-500 focus:border-gray-500"
+                                        placeholder="Enter contact person name"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        name="contact_person_number"
+                                        value={formData.contact_person_number}
+                                        onChange={(e) => handleInputChange('contact_person_number', e.target.value)}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-gray-500 focus:border-gray-500"
+                                        placeholder="Enter phone number"
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="text-sm font-medium text-gray-700">Business Email</label>
+                                    <input
+                                        type="email"
+                                        name="contact_email"
+                                        value={formData.contact_email}
+                                        onChange={(e) => handleInputChange('contact_email', e.target.value)}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Enter business email"
                                     />
                                 </div>
                             </div>

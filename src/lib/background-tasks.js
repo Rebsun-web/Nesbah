@@ -65,7 +65,7 @@ class BackgroundTaskManager {
         // Start status transition monitoring with persistent timing
         this.startPersistentTimer('statusTransitions', async () => {
             try {
-                await this.executeWithConnectionRetry('statusTransitions', () => this.checkStatusTransitions())
+                await this.executeWithConnectionRetry('statusTransitions', (client) => this.checkStatusTransitions(client))
             } catch (error) {
                 console.error('❌ Error in status transitions task:', error)
             }
@@ -74,7 +74,7 @@ class BackgroundTaskManager {
         // Start auction monitoring
         this.startPersistentTimer('auctionMonitor', async () => {
             try {
-                await this.executeWithConnectionRetry('auctionMonitor', () => this.checkAuctionStatus())
+                await this.executeWithConnectionRetry('auctionMonitor', (client) => this.checkAuctionStatus(client))
             } catch (error) {
                 console.error('❌ Error in auction monitoring task:', error)
             }
@@ -83,7 +83,7 @@ class BackgroundTaskManager {
         // Start status consistency monitoring
         this.startPersistentTimer('statusConsistency', async () => {
             try {
-                await this.executeWithConnectionRetry('statusConsistency', () => this.checkStatusConsistency())
+                await this.executeWithConnectionRetry('statusConsistency', (client) => this.checkStatusConsistency(client))
             } catch (error) {
                 console.error('❌ Error in status consistency task:', error)
             }
@@ -92,7 +92,7 @@ class BackgroundTaskManager {
         // Start health checks
         this.startPersistentTimer('healthCheck', async () => {
             try {
-                await this.executeWithConnectionRetry('healthCheck', () => this.performHealthChecks())
+                await this.executeWithConnectionRetry('healthCheck', (client) => this.performHealthChecks(client))
             } catch (error) {
                 console.error('❌ Error in health check task:', error)
             }

@@ -244,7 +244,7 @@ export async function PUT(req, { params }) {
             return NextResponse.json({ success: false, error: 'Invalid assigned user ID' }, { status: 400 });
         }
 
-        const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_[id]_route.jsx_route');
+        const client = await pool.connectWithRetry(3, 2000, 'app_api_admin_applications_[id]_route.jsx_route');
         
         try {
             await client.query('BEGIN');
@@ -269,19 +269,18 @@ export async function PUT(req, { params }) {
                 return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
             }
 
-            // Also update application status if status is provided
+            // Log the status transition if status is provided
             if (status) {
-                // Update pos_application table status
-                await client.query(
-                    'UPDATE pos_application SET current_application_status = $1 WHERE application_id = $2',
-                    [status, applicationId]
-                );
+                // Get the previous status for logging
+                const previousStatusQuery = 'SELECT current_application_status FROM pos_application WHERE application_id = $1';
+                const previousStatusResult = await client.query(previousStatusQuery, [applicationId]);
+                const previousStatus = previousStatusResult.rows[0]?.current_application_status || 'unknown';
                 
                 // Log the status transition
                 await client.query(`
                     INSERT INTO status_audit_log (application_id, from_status, to_status, admin_user_id, reason, timestamp)
                     VALUES ($1, $2, $3, $4, $5, NOW())
-                `, [applicationId, 'unknown', status, adminUser.admin_id || 1, 'Admin direct update']);
+                `, [applicationId, previousStatus, status, adminUser.admin_id || 1, 'Admin direct update']);
                 
                 console.log(`✅ Application ${applicationId} status updated to ${status} by admin`);
             }
@@ -409,15 +408,40 @@ export async function PUT(req, { params }) {
 
         } catch (error) {
             await client.query('ROLLBACK');
+            console.error('Database transaction error:', {
+                error: error.message,
+                code: error.code,
+                applicationId,
+                status,
+                timestamp: new Date().toISOString()
+            });
             throw error;
         } finally {
             client.release();
         }
 
     } catch (error) {
-        console.error('Application update error:', error);
+        console.error('Application update error:', {
+            error: error.message,
+            code: error.code,
+            applicationId,
+            status,
+            timestamp: new Date().toISOString(),
+            stack: error.stack
+        });
+        
+        // Provide more specific error messages based on error type
+        let errorMessage = 'Failed to update application';
+        if (error.code === '53300') {
+            errorMessage = 'Database connection limit reached. Please try again.';
+        } else if (error.code === 'ECONNRESET' || error.code === 'ECONNREFUSED') {
+            errorMessage = 'Database connection lost. Please try again.';
+        } else if (error.message.includes('timeout')) {
+            errorMessage = 'Request timeout. Please try again.';
+        }
+        
         return NextResponse.json(
-            { success: false, error: 'Failed to update application' },
+            { success: false, error: errorMessage },
             { status: 500 }
         );
     }
