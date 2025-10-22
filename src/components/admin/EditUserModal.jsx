@@ -97,6 +97,15 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
         setLogoPreview(null);
     };
 
+    const removeCurrentLogo = () => {
+        setFormData(prev => ({
+            ...prev,
+            logo_url: null
+        }));
+        setLogoFile(null);
+        setLogoPreview(null);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -123,30 +132,37 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
             cleanFormData.user_type = user.userType;
 
             // Handle logo file upload for bank users
-            if (user.userType === 'bank' && logoFile) {
-                const formDataWithFile = new FormData();
-                formDataWithFile.append('logo', logoFile);
-                
-                // Add other form data
-                Object.keys(cleanFormData).forEach(key => {
-                    if (cleanFormData[key] !== null && cleanFormData[key] !== undefined) {
-                        formDataWithFile.append(key, cleanFormData[key]);
+            if (user.userType === 'bank') {
+                if (logoFile) {
+                    // Upload new logo file
+                    const formDataWithFile = new FormData();
+                    formDataWithFile.append('logo', logoFile);
+                    
+                    // Add other form data
+                    Object.keys(cleanFormData).forEach(key => {
+                        if (cleanFormData[key] !== null && cleanFormData[key] !== undefined) {
+                            formDataWithFile.append(key, cleanFormData[key]);
+                        }
+                    });
+                    
+                    // Send file upload request
+                    const response = await fetch('/api/admin/users/upload-bank-logo', {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: formDataWithFile
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success && result.logo_url) {
+                            cleanFormData.logo_url = result.logo_url;
+                        }
                     }
-                });
-                
-                // Send file upload request
-                const response = await fetch('/api/admin/users/upload-bank-logo', {
-                    method: 'POST',
-                    credentials: 'include',
-                    body: formDataWithFile
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success && result.logo_url) {
-                        cleanFormData.logo_url = result.logo_url;
-                    }
+                } else if (cleanFormData.logo_url === null) {
+                    // User wants to remove the logo completely
+                    cleanFormData.logo_url = null;
                 }
+                // If no logoFile and logo_url is not null, keep the existing logo
             }
 
             await onUpdate(cleanFormData);
@@ -445,14 +461,24 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
                     {formData.logo_url && !logoPreview && (
                         <div className="text-center">
                             <p className="text-sm text-gray-600 mb-2">Current Logo:</p>
-                            <img
-                                src={formData.logo_url}
-                                alt="Current Bank Logo"
-                                className="mx-auto h-24 w-24 object-contain rounded-lg border border-gray-200"
-                                onError={(e) => {
-                                    e.target.style.display = 'none';
-                                }}
-                            />
+                            <div className="relative inline-block">
+                                <img
+                                    src={formData.logo_url}
+                                    alt="Current Bank Logo"
+                                    className="mx-auto h-24 w-24 object-contain rounded-lg border border-gray-200"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={removeCurrentLogo}
+                                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg transition-colors"
+                                    title="Remove current logo"
+                                >
+                                    <XMarkIcon className="h-4 w-4" />
+                                </button>
+                            </div>
                         </div>
                     )}
                     
@@ -488,9 +514,20 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
                                 </button>
                             )}
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Upload a new logo image file (PNG, JPG, JPEG, GIF). Leave empty to keep current logo.
-                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                            <p className="text-xs text-gray-500">
+                                Upload a new logo image file (PNG, JPG, JPEG, GIF). Leave empty to keep current logo.
+                            </p>
+                            {formData.logo_url && (
+                                <button
+                                    type="button"
+                                    onClick={removeCurrentLogo}
+                                    className="px-3 py-1 text-xs text-red-600 hover:text-red-800 border border-red-300 rounded-md hover:bg-red-50"
+                                >
+                                    Remove Current Logo
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

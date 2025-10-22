@@ -9,6 +9,11 @@ import { auctionConfig } from '@/lib/config/auction-config';
 export async function POST(req) {
     try {
         const body = await req.json();
+        console.log('📥 POS Application API: Received body:', {
+            ...body,
+            uploaded_document: body.uploaded_document ? `[base64 data: ${body.uploaded_document.substring(0, 50)}...]` : null
+        });
+        
         const {
             user_id,
             notes,
@@ -57,7 +62,7 @@ export async function POST(req) {
 
             // CRITICAL: Check if this business user already has a submitted application
             const existingApplicationQuery = `
-                SELECT COUNT(*) as count, application_id, status, submitted_at
+                SELECT application_id, status, submitted_at
                 FROM pos_application 
                 WHERE user_id = $1 
                 AND status IN ('live_auction', 'completed', 'ignored')
@@ -66,7 +71,7 @@ export async function POST(req) {
             `;
             
             const existingApplicationResult = await client.query(existingApplicationQuery, [user_id]);
-            const hasExistingApplication = parseInt(existingApplicationResult.rows[0].count) > 0;
+            const hasExistingApplication = existingApplicationResult.rows.length > 0;
 
             if (hasExistingApplication) {
                 await client.query('ROLLBACK');
@@ -85,6 +90,29 @@ export async function POST(req) {
             // Note: Removed problematic JSON fields (activities, contact_info, management_managers) 
             // to avoid JSON parsing errors. These fields are not essential for POS application submission.
 
+            const queryParams = [
+                user_id, submitted_at, notes || null,
+                uploaded_document ? Buffer.from(uploaded_document, 'base64') : null,
+                own_pos_system ?? null, uploaded_filename || null, uploaded_mimetype || null,
+                business.trade_name, business.cr_number, business.cr_national_number,
+                business.legal_form, business.registration_status, business.issue_date_gregorian,
+                business.city, business.has_ecommerce,
+                business.store_url, business.cr_capital, business.cash_capital,
+                business.management_structure,
+                contact_person || null, contact_person_number || null,
+                number_of_pos_devices || null, city_of_operation || null, auction_end_time,
+                [], [], // Initialize empty arrays for tracking (no ignored_by needed)
+                pos_provider_name || null, pos_age_duration_months || null, avg_monthly_pos_sales || null,
+                requested_financing_amount || null, preferred_repayment_period_months || null
+            ];
+
+            console.log('🔍 POS Application API: Inserting with params:', queryParams.map((p, i) => {
+                if (p instanceof Buffer) return `$${i+1}: [Buffer]`;
+                if (p instanceof Date) return `$${i+1}: ${p.toISOString()}`;
+                if (Array.isArray(p)) return `$${i+1}: ${JSON.stringify(p)}`;
+                return `$${i+1}: ${p}`;
+            }));
+
             // UPDATED: Insert into pos_application with all data in one query (no ignored_by needed)
             const posAppResult = await client.query(
                 `
@@ -102,21 +130,7 @@ export async function POST(req) {
                      $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
                 RETURNING application_id
                 `,
-                [
-                    user_id, submitted_at, notes || null,
-                    uploaded_document ? Buffer.from(uploaded_document, 'base64') : null,
-                    own_pos_system ?? null, uploaded_filename || null, uploaded_mimetype || null,
-                    business.trade_name, business.cr_number, business.cr_national_number,
-                    business.legal_form, business.registration_status, business.issue_date_gregorian,
-                    business.city, business.has_ecommerce,
-                    business.store_url, business.cr_capital, business.cash_capital,
-                    business.management_structure,
-                    contact_person || null, contact_person_number || null,
-                    number_of_pos_devices || null, city_of_operation || null, auction_end_time,
-                    [], [], // Initialize empty arrays for tracking (no ignored_by needed)
-                    pos_provider_name || null, pos_age_duration_months || null, avg_monthly_pos_sales || null,
-                    requested_financing_amount || null, preferred_repayment_period_months || null
-                ]
+                queryParams
             );
 
             const application_id = posAppResult.rows[0].application_id;
@@ -174,14 +188,34 @@ export async function POST(req) {
 
         } catch (err) {
             await client.query('ROLLBACK');
-            console.error('Database transaction failed:', err);
-            return NextResponse.json({ success: false, error: 'Submission failed' }, { status: 500 });
+            console.error('❌ Database transaction failed:', err);
+            console.error('❌ Error details:', {
+                message: err.message,
+                code: err.code,
+                detail: err.detail,
+                hint: err.hint,
+                position: err.position,
+                stack: err.stack
+            });
+            return NextResponse.json({ 
+                success: false, 
+                error: 'Submission failed', 
+                details: process.env.NODE_ENV === 'development' ? err.message : undefined 
+            }, { status: 500 });
         } finally {
             client.release();
         }
 
     } catch (err) {
-        console.error('Unexpected error:', err);
-        return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        console.error('❌ Unexpected error:', err);
+        console.error('❌ Error details:', {
+            message: err.message,
+            stack: err.stack
+        });
+        return NextResponse.json({ 
+            success: false, 
+            error: 'Internal server error',
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined  
+        }, { status: 500 });
     }
 }

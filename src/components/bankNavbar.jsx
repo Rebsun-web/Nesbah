@@ -23,6 +23,7 @@ export default function BankNavbar() {
     const [userInfo, setUserInfo] = useState(null)
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const [isLogoUploadModalOpen, setIsLogoUploadModalOpen] = useState(false)
+    const [logoError, setLogoError] = useState(false)
     const { t } = useLanguage()
 
     useEffect(() => {
@@ -37,6 +38,13 @@ export default function BankNavbar() {
             }
         }
     }, [])
+
+    // Reset logo error when userInfo logo changes
+    useEffect(() => {
+        if (userInfo?.logo_url) {
+            setLogoError(false)
+        }
+    }, [userInfo?.logo_url])
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -160,11 +168,12 @@ export default function BankNavbar() {
                                     <span className="sr-only">Open user menu</span>
                                     {userInfo ? (
                                         <>
-                                            {userInfo.logo_url ? (
+                                            {userInfo.logo_url && !logoError ? (
                                                 <img
                                                     src={userInfo.logo_url}
                                                     alt={userInfo.entity_name}
                                                     className="size-8 rounded-full object-cover"
+                                                    onError={() => setLogoError(true)}
                                                 />
                                             ) : (
                                                 <div className="size-8 rounded-full bg-blue-500 flex items-center justify-center">

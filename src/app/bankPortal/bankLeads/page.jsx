@@ -684,17 +684,6 @@ function BankLeadsPage() {
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            {/* Action Buttons */}
-                                            <div className="mt-8 flex justify-end space-x-3">
-                                                <button
-                                                    type="button"
-                                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                                                    onClick={() => setShowUnmaskedInfo(false)}
-                                                >
-                                                    Close
-                                                </button>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
 import { CheckIcon } from '@heroicons/react/24/outline'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { auctionConfig } from '@/lib/config/auction-config'
 
 export default function ApplicationSubmittedModal() {
     const { t } = useLanguage()
@@ -32,7 +33,7 @@ export default function ApplicationSubmittedModal() {
                                 </DialogTitle>
                                 <div className="mt-2">
                                     <p className="text-sm text-gray-500">
-                                        {t('modal.responseTime')}
+                                        {t('modal.responseTime').replace('{AUCTION_HOURS}', auctionConfig.durationHours)}
                                     </p>
                                 </div>
                             </div>

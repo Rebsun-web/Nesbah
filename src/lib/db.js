@@ -5,8 +5,22 @@ const { Pool } = pkg;
 // Check if we're in a build environment
 const isBuildEnvironment = process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build';
 
-// Use DATABASE_URL if available, otherwise use direct connection parameters
-const poolConfig = process.env.DATABASE_URL ? {
+// In production, prioritize individual env vars to avoid URL encoding issues
+// In development, use DATABASE_URL if available
+const useIndividualVars = process.env.NODE_ENV === 'production' && 
+  (process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD);
+
+const poolConfig = useIndividualVars ? {
+  host: process.env.PGHOST,
+  port: process.env.PGPORT || 5432,
+  database: process.env.PGDATABASE,
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  ssl: {
+    rejectUnauthorized: false,
+    checkServerIdentity: () => undefined, // Skip hostname verification
+  }
+} : process.env.DATABASE_URL ? {
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false,
@@ -23,6 +37,15 @@ const poolConfig = process.env.DATABASE_URL ? {
     checkServerIdentity: () => undefined, // Skip hostname verification
   } : false, // Disable SSL in development
 };
+
+// Log database configuration for debugging
+console.log('🔧 Database configuration:', {
+  environment: process.env.NODE_ENV,
+  useIndividualVars,
+  hasDatabaseUrl: !!process.env.DATABASE_URL,
+  hasIndividualVars: !!(process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD),
+  configType: useIndividualVars ? 'individual_vars' : process.env.DATABASE_URL ? 'connection_string' : 'fallback_individual'
+});
 
 const pool = new Pool({
   ...poolConfig,

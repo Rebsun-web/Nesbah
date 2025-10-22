@@ -53,8 +53,13 @@ export default function BankLogo({
     }
     
     // If no logo URL or image failed to load, show fallback
-    if (!logoUrl || imageError || !showFallback) {
+    if ((!logoUrl || imageError) && showFallback) {
         return generateFallbackLogo(bankName)
+    }
+    
+    // If showFallback is false and no valid logo, return null
+    if (!logoUrl || imageError) {
+        return null
     }
     
     // Show actual logo
