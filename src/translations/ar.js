@@ -108,7 +108,7 @@ const translations = {
   'portal.submitted': 'تم الإرسال',
   'portal.applyForService': 'تقدم لخدمة',
   'portal.liveAuction': 'مزاد حي نشط',
-  'portal.liveAuctionDesc': 'البنوك تطلع وتقدم عروض لطلبك. ينتهي المزاد خلال {AUCTION_HOURS} ساعة.',
+  'portal.liveAuctionDesc': '',
   'portal.dealCompleted': 'تم إنجاز الصفقة',
   'portal.dealCompletedDesc': 'تم معالجة طلبك بنجاح.',
   'portal.applicationIgnored': 'تم تجاهل الطلب',

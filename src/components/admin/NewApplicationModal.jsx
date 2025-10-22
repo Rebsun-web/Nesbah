@@ -45,6 +45,7 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
     const [error, setError] = useState('')
     const [validationError, setValidationError] = useState('')
     const [fileUpload, setFileUpload] = useState(null)
+    const [base64File, setBase64File] = useState(null)
 
     // Reset form when modal opens/closes
     useEffect(() => {
@@ -78,6 +79,7 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
                 uploaded_filename: null
             })
             setFileUpload(null)
+            setBase64File(null)
             setError('')
             setValidationError('')
         }
@@ -138,33 +140,43 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
 
     const handleFileChange = (e) => {
         const file = e.target.files[0]
-        if (file) {
-            setFileUpload(file)
-        }
-    }
-
-    const handleFileUpload = async () => {
-        if (!fileUpload) return null
         
-        try {
-            const formDataFile = new FormData()
-            formDataFile.append('file', fileUpload)
-            formDataFile.append('application_id', 'new') // Will be updated after creation
-            
-            const response = await fetch('/api/upload/document', {
-                method: 'POST',
-                credentials: 'include',
-                body: formDataFile
-            })
-            
-            const data = await response.json()
-            if (data.success) {
-                return data.data.filename
-            }
-        } catch (err) {
-            console.error('File upload error:', err)
+        if (!file) {
+            return
         }
-        return null
+
+        // Validate file type
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please upload only PDF, JPG, or DOCX files.')
+            return
+        }
+
+        // Validate file size (10MB)
+        const maxSize = 10 * 1024 * 1024
+        if (file.size > maxSize) {
+            alert('File size must be less than 10MB.')
+            return
+        }
+
+        setFileUpload(file)
+
+        // Convert file to base64
+        const reader = new FileReader()
+        reader.onloadend = () => {
+            const base64 = reader.result.split(',')[1]
+            setBase64File({
+                data: base64,
+                name: file.name,
+                type: file.type
+            })
+            console.log('📄 File converted to base64:', {
+                name: file.name,
+                type: file.type,
+                size: file.size
+            })
+        }
+        reader.readAsDataURL(file)
     }
 
     const handleSubmit = async (e) => {
@@ -181,12 +193,6 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
         setError('')
 
         try {
-            // Handle file upload first if present
-            let uploadedFilename = null
-            if (fileUpload) {
-                uploadedFilename = await handleFileUpload()
-            }
-
             // Prepare data for submission - only CR number for lookup and POS-specific data
             const submissionData = {
                 // Only CR number needed for business user lookup
@@ -207,11 +213,21 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
                 
                 // Optional fields
                 notes: formData.notes,
-                uploaded_filename: uploadedFilename,
                 number_of_pos_devices: formData.number_of_pos_devices,
                 city_of_operation: formData.city_of_operation,
-                own_pos_system: formData.own_pos_system
+                own_pos_system: formData.own_pos_system,
+                
+                // File upload - send base64 data (same as portal form)
+                uploaded_document: base64File?.data || null,
+                uploaded_filename: base64File?.name || null,
+                uploaded_mimetype: base64File?.type || null
             }
+
+            console.log('📤 Submitting application with file data:', {
+                has_file: !!base64File,
+                filename: base64File?.name,
+                mimetype: base64File?.type
+            })
 
             const response = await fetch('/api/admin/applications', {
                 method: 'POST',

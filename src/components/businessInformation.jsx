@@ -288,7 +288,7 @@ export function BusinessInformation({ businessInfo }) {
                     <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
                       <DocumentTextIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-gray-700">CR National Number</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Unified Number</span>
                   </div>
                   <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{displayValue(businessInfo?.cr_national_number)}</span>
                 </div>

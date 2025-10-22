@@ -13,7 +13,7 @@
     "@emailjs/browser": "^4.4.1",
     "@emailjs/nodejs": "^5.0.2",
     "@headlessui/react": "^2.2.7",
-    "@heroicons/react": "^2.1.4",
+    "@heroicons/react": "^2.2.0",
     "@react-aria/utils": "^3.30.1",
     "@react-stately/collections": "^3.12.7",
     "@react-stately/selection": "^3.20.5",

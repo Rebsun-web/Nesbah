@@ -690,15 +690,18 @@ export default function UserManagement() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {bank.logo_url ? (
-                                                    <img 
-                                                        src={bank.logo_url} 
-                                                        alt="Bank Logo" 
-                                                        className="h-8 w-8 rounded object-cover"
-                                                        onError={(e) => {
-                                                            e.target.style.display = 'none';
-                                                            e.target.nextSibling.style.display = 'inline';
-                                                        }}
-                                                    />
+                                                    <div className="relative">
+                                                        <img 
+                                                            src={bank.logo_url} 
+                                                            alt="Bank Logo" 
+                                                            className="h-8 w-8 rounded object-cover"
+                                                            onError={(e) => {
+                                                                e.target.src = '/logo/blank_profile.png';
+                                                                e.target.alt = 'Missing Logo';
+                                                                e.target.title = 'Logo file not found';
+                                                            }}
+                                                        />
+                                                    </div>
                                                 ) : (
                                                     <span className="text-gray-400">No Logo</span>
                                                 )}

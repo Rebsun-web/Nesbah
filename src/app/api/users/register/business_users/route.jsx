@@ -4,8 +4,15 @@ import bcrypt from 'bcrypt';
 import { sendBusinessRegistrationEmail } from '@/lib/email/emailNotifications';
 
 export async function POST(req) {
+    console.log('🚀 ========== BUSINESS USER REGISTRATION API CALLED ==========');
     try {
         const body = await req.json();
+        console.log('📝 Registration request received:', {
+            email: body.email,
+            cr_national_number: body.cr_national_number,
+            hasPassword: !!body.password
+        });
+        
         const { 
             cr_national_number, 
             password, 
@@ -41,35 +48,52 @@ export async function POST(req) {
 
         // Validate required fields
         if (!cr_national_number || !password || !email) {
+            console.log('❌ Missing required fields');
             return NextResponse.json(
                 { success: false, error: 'CR National Number, password, and email are required' },
                 { status: 400 }
             );
         }
 
+        console.log('🔒 Hashing password...');
         // Hash the password before storing
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
+        console.log('✅ Password hashed successfully');
 
         // Check if user already exists
+        console.log('🔍 Checking for existing user...');
         const client = await pool.connectWithRetry(2, 1000, 'app_api_users_register_business_users_route.jsx_route');
         try {
             const existingUser = await client.query(
-                `SELECT user_id FROM users WHERE email = $1 OR user_id IN (
-                    SELECT user_id FROM business_users WHERE cr_national_number = $2
-                )`,
+                `SELECT u.user_id, u.email, bu.cr_national_number 
+                 FROM users u
+                 LEFT JOIN business_users bu ON u.user_id = bu.user_id
+                 WHERE u.email = $1 OR bu.cr_national_number = $2`,
                 [email, cr_national_number]
             );
 
             if (existingUser.rowCount > 0) {
+                const existing = existingUser.rows[0];
+                let errorMsg = 'User already exists: ';
+                if (existing.email === email) {
+                    errorMsg += `Email ${email} is already registered`;
+                }
+                if (existing.cr_national_number === cr_national_number) {
+                    if (errorMsg !== 'User already exists: ') errorMsg += ' and ';
+                    errorMsg += `CR number ${cr_national_number} is already registered`;
+                }
+                console.log(`❌ ${errorMsg}`);
                 return NextResponse.json(
-                    { success: false, error: 'User with this email or CR number already exists' },
+                    { success: false, error: errorMsg },
                     { status: 409 }
                 );
             }
+            console.log('✅ No existing user found, proceeding with registration');
 
             await client.query('BEGIN');
 
+            console.log('📝 Creating user record...');
             // Insert user record
             const userRes = await client.query(
                 `INSERT INTO users (email, password, user_type, entity_name, account_status, created_at, updated_at) 
@@ -77,7 +101,9 @@ export async function POST(req) {
                 [email, hashedPassword, 'business_user', trade_name || 'Business User', 'active']
             );
             const user_id = userRes.rows[0].user_id;
+            console.log(`✅ User record created with ID: ${user_id}`);
 
+            console.log('📝 Creating business user record...');
             // Insert business user data with all required Wathiq API fields
             await client.query(
                 `INSERT INTO business_users (
@@ -132,9 +158,9 @@ export async function POST(req) {
                     cr_capital,
                     cash_capital,
                     management_structure,
-                    management_managers ? (Array.isArray(management_managers) ? management_managers : [management_managers]) : null,
+                    management_managers ? (Array.isArray(management_managers) ? JSON.stringify(management_managers) : JSON.stringify([management_managers])) : null,
                     address, 
-                    sector, 
+                    sector || 'General', // Add default value if sector is null
                     in_kind_capital, 
                     avg_capital,
                     headquarter_district_name,
@@ -149,8 +175,10 @@ export async function POST(req) {
                     new Date().toISOString()  // updated_at
                 ]
             );
+            console.log(`✅ Business user record created`);
 
             await client.query('COMMIT');
+            console.log('✅ Transaction committed successfully');
 
             // Send welcome email to business user
             try {
@@ -195,9 +223,32 @@ export async function POST(req) {
             });
         } catch (err) {
             await client.query('ROLLBACK');
-            console.error('Database error during business user creation:', err);
+            console.error('❌ Database error during business user creation:', err);
+            console.error('❌ Error details:', {
+                message: err.message,
+                code: err.code,
+                detail: err.detail,
+                constraint: err.constraint
+            });
+            
+            // Provide more specific error messages based on error type
+            let errorMessage = 'Failed to create business user account';
+            if (err.code === '23505') { // Unique violation
+                if (err.constraint?.includes('email')) {
+                    errorMessage = 'This email is already registered';
+                } else if (err.constraint?.includes('cr_national_number')) {
+                    errorMessage = 'This CR number is already registered';
+                } else {
+                    errorMessage = 'A user with this information already exists';
+                }
+            } else if (err.code === '23503') { // Foreign key violation
+                errorMessage = 'Invalid reference data';
+            } else if (err.code === '23502') { // Not null violation
+                errorMessage = `Required field missing: ${err.column || 'unknown'}`;
+            }
+            
             return NextResponse.json(
-                { success: false, error: 'Failed to create business user account' },
+                { success: false, error: errorMessage, details: err.message },
                 { status: 500 }
             );
         } finally {
@@ -205,9 +256,10 @@ export async function POST(req) {
         }
 
     } catch (err) {
-        console.error('Unexpected error during business user registration:', err);
+        console.error('❌ Unexpected error during business user registration:', err);
+        console.error('❌ Error stack:', err.stack);
         return NextResponse.json(
-            { success: false, error: 'Internal server error' },
+            { success: false, error: 'Internal server error', details: err.message },
             { status: 500 }
         );
     }

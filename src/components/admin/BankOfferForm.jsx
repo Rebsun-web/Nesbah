@@ -93,24 +93,35 @@ export default function BankOfferForm({
 
         if (!formData.cr_number) {
             newErrors.cr_number = 'CR Number is required'
+            console.log('❌ Missing: CR Number')
         }
         if (!formData.bank_user_id) {
             newErrors.bank_user_id = 'Bank is required'
+            console.log('❌ Missing: Bank selection')
         }
         if (!formData.approved_financing_amount) {
             newErrors.approved_financing_amount = 'Approved financing amount is required'
+            console.log('❌ Missing: Approved financing amount')
         }
         if (!formData.proposed_repayment_period_months) {
             newErrors.proposed_repayment_period_months = 'Repayment period is required'
+            console.log('❌ Missing: Repayment period')
         }
         if (!formData.interest_rate) {
             newErrors.interest_rate = 'Interest rate is required'
+            console.log('❌ Missing: Interest rate')
         }
         if (!formData.monthly_installment_amount) {
             newErrors.monthly_installment_amount = 'Monthly installment amount is required'
+            console.log('❌ Missing: Monthly installment amount')
         }
 
         setErrors(newErrors)
+        
+        if (Object.keys(newErrors).length > 0) {
+            console.log('❌ Total validation errors:', Object.keys(newErrors).length)
+        }
+        
         return Object.keys(newErrors).length === 0
     }
 
@@ -119,8 +130,18 @@ export default function BankOfferForm({
         e.preventDefault()
         
         console.log('🔍 Validating form...')
+        console.log('📋 Current form data:', {
+            cr_number: formData.cr_number,
+            bank_user_id: formData.bank_user_id,
+            approved_financing_amount: formData.approved_financing_amount,
+            proposed_repayment_period_months: formData.proposed_repayment_period_months,
+            interest_rate: formData.interest_rate,
+            monthly_installment_amount: formData.monthly_installment_amount
+        })
+        
         if (!validateForm()) {
             console.log('❌ Form validation failed')
+            console.log('❌ Validation errors:', errors)
             return
         }
         

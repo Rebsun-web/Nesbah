@@ -1,21 +1,26 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import bcrypt from 'bcrypt';
 import AdminAuth from '@/lib/auth/admin-auth';
 import WathiqAPIService from '@/lib/wathiq-api-service';
 
 export async function POST(req) {
+    console.log('🚀 ========== CREATE BUSINESS USER API CALLED ==========');
     try {
         // Get admin token from cookies
         const adminToken = req.cookies.get('admin_token')?.value;
         
         if (!adminToken) {
+            console.log('❌ No admin token found');
             return NextResponse.json({ success: false, error: 'No admin token found' }, { status: 401 });
         }
 
         // Validate admin session using session manager
+        console.log('🔐 Validating admin session...');
         const sessionValidation = await AdminAuth.validateAdminSession(adminToken);
         
         if (!sessionValidation.valid) {
+            console.log('❌ Invalid admin session:', sessionValidation.error);
             return NextResponse.json({ 
                 success: false, 
                 error: sessionValidation.error || 'Invalid admin session' 
@@ -24,8 +29,16 @@ export async function POST(req) {
 
         // Get admin user from session (no database query needed)
         const adminUser = sessionValidation.adminUser;
+        console.log('✅ Admin session valid:', adminUser.email);
 
+        console.log('📖 Reading request body...');
         const body = await req.json();
+        console.log('📝 Request body received:', {
+            cr_national_number: body.cr_national_number,
+            email: body.email,
+            hasPassword: !!body.password,
+            fetch_from_wathiq: body.fetch_from_wathiq
+        });
         const { 
             cr_national_number, 
             trade_name, 
@@ -163,9 +176,46 @@ export async function POST(req) {
             trade_name: finalData.trade_name
         });
 
+        // Hash the password before storing
+        const saltRounds = 10;
+        const hashedPassword = finalData.password 
+            ? await bcrypt.hash(finalData.password, saltRounds)
+            : await bcrypt.hash('TempPassword123!', saltRounds); // Default password if none provided
+        
+        console.log('🔒 Password hashed successfully');
+
         const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_users_create-business_route.jsx_route');
         try {
             await client.query('BEGIN');
+
+            // Check if user with this email or CR number already exists
+            console.log('🔍 Checking for existing user with email or CR number...');
+            const existingUser = await client.query(
+                `SELECT u.user_id, u.email, bu.cr_national_number 
+                 FROM users u
+                 LEFT JOIN business_users bu ON u.user_id = bu.user_id
+                 WHERE u.email = $1 OR bu.cr_national_number = $2`,
+                [finalData.email || `business_${finalData.cr_national_number}@nesbah.com`, finalData.cr_national_number]
+            );
+
+            if (existingUser.rowCount > 0) {
+                await client.query('ROLLBACK');
+                const existing = existingUser.rows[0];
+                let errorMsg = 'User already exists: ';
+                if (existing.email === (finalData.email || `business_${finalData.cr_national_number}@nesbah.com`)) {
+                    errorMsg += `Email ${existing.email} is already registered`;
+                }
+                if (existing.cr_national_number === finalData.cr_national_number) {
+                    if (errorMsg !== 'User already exists: ') errorMsg += ' and ';
+                    errorMsg += `CR number ${finalData.cr_national_number} is already registered`;
+                }
+                console.log(`❌ ${errorMsg}`);
+                return NextResponse.json(
+                    { success: false, error: errorMsg },
+                    { status: 409 }
+                );
+            }
+            console.log('✅ No existing user found, proceeding with creation');
 
             // First, create a user record in the users table
             const userResult = await client.query(
@@ -174,7 +224,7 @@ export async function POST(req) {
                  RETURNING user_id`,
                 [
                     finalData.email || `business_${finalData.cr_national_number}@nesbah.com`,
-                    finalData.password || 'default_password_hash', // Use provided password or fallback
+                    hashedPassword, // Use hashed password
                     'business_user',
                     finalData.trade_name
                 ]
@@ -243,9 +293,32 @@ export async function POST(req) {
 
         } catch (err) {
             await client.query('ROLLBACK');
-            console.error('Database transaction failed:', err);
+            console.error('❌ Database transaction failed:', err);
+            console.error('❌ Error details:', {
+                message: err.message,
+                code: err.code,
+                detail: err.detail,
+                constraint: err.constraint
+            });
+            
+            // Provide more specific error messages based on error type
+            let errorMessage = 'Failed to create business user';
+            if (err.code === '23505') { // Unique violation
+                if (err.constraint?.includes('email')) {
+                    errorMessage = 'This email is already registered';
+                } else if (err.constraint?.includes('cr_national_number')) {
+                    errorMessage = 'This CR number is already registered';
+                } else {
+                    errorMessage = 'A user with this information already exists';
+                }
+            } else if (err.code === '23503') { // Foreign key violation
+                errorMessage = 'Invalid reference data';
+            } else if (err.code === '23502') { // Not null violation
+                errorMessage = `Required field missing: ${err.column || 'unknown'}`;
+            }
+            
             return NextResponse.json(
-                { success: false, error: 'Failed to create business user' },
+                { success: false, error: errorMessage, details: err.message },
                 { status: 500 }
             );
         } finally {
@@ -253,9 +326,10 @@ export async function POST(req) {
         }
 
     } catch (err) {
-        console.error('Unexpected error:', err);
+        console.error('❌ Unexpected error in create-business route:', err);
+        console.error('❌ Error stack:', err.stack);
         return NextResponse.json(
-            { success: false, error: 'Internal server error' },
+            { success: false, error: 'Internal server error', details: err.message },
             { status: 500 }
         );
     }

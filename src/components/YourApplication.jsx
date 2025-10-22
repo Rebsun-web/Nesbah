@@ -37,7 +37,11 @@ export default function YourApplication({ user }) {
         const res = await fetch(`/api/posApplication/${user.user_id}`);
         const data = await res.json();
         if (data.success) {
-          setApplications(data.data);
+          // Sort applications by submission date (oldest first) to maintain chronological order
+          const sortedApplications = data.data.sort((a, b) => 
+            new Date(a.submitted_at) - new Date(b.submitted_at)
+          );
+          setApplications(sortedApplications);
           // No need to set initial elapsed times - we'll calculate them dynamically
         }
       } catch (err) {
@@ -123,16 +127,8 @@ export default function YourApplication({ user }) {
                   </div>
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-gray-900">
-                      {t('application.application')} #{index + 1}
+                      {t('application.application')} {index + 1}
                     </h3>
-                    <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3 mt-1">
-                      <span className="text-xs sm:text-sm text-gray-500">
-                        Submitted: {new Date(app.submitted_at).toLocaleDateString()}
-                      </span>
-                      <span className="text-xs sm:text-sm text-gray-500">
-                        {new Date(app.submitted_at).toLocaleTimeString()}
-                      </span>
-                    </div>
                   </div>
                 </div>
                 {(() => {
@@ -147,7 +143,7 @@ export default function YourApplication({ user }) {
                   if (remainingSeconds > 0) {
                     return (
                       <div className="flex items-center space-x-3">
-                        <span className="inline-flex items-center rounded-full bg-orange-100 px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-orange-800">
+                        <span className="inline-flex items-center rounded-full bg-purple-100 px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-purple-800">
                           ⏳ {formatDuration(remainingSeconds)}
                         </span>
                       </div>
@@ -162,25 +158,8 @@ export default function YourApplication({ user }) {
 
               {/* Application Details */}
               <div className="mb-6">
-                <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center">
-                  <BuildingOfficeIcon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mr-2" />
-                  {t('application.details')}
-                </h4>
-                
                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                   <div className="divide-y divide-gray-200">
-                    {/* Submitted Date */}
-                    <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                          <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
-                        </div>
-                        <span className="text-xs sm:text-sm font-medium text-gray-700">{t('application.submittedAt')}</span>
-                      </div>
-                      <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
-                        {new Date(app.submitted_at).toLocaleString()}
-                      </span>
-                    </div>
 
                     {/* CR Number */}
                     {app.cr_number && (
@@ -194,7 +173,6 @@ export default function YourApplication({ user }) {
                         <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{app.cr_number || 'N/A'}</span>
                       </div>
                     )}
-
 
                     {/* Contact Person */}
                     <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
@@ -218,18 +196,76 @@ export default function YourApplication({ user }) {
                       <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{app.contact_person_number || 'N/A'}</span>
                     </div>
 
-                    {/* Own POS System */}
-                    <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                          <DocumentTextIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+
+
+                    {/* POS Provider Name */}
+                    {app.pos_provider_name && (
+                      <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                            <BuildingOfficeIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+                          </div>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">POS Provider Name</span>
                         </div>
-                        <span className="text-xs sm:text-sm font-medium text-gray-700">{t('application.ownPosSystem')}</span>
+                        <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{app.pos_provider_name}</span>
                       </div>
-                      <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
-                        {app.own_pos_system ? t('common.yes') : t('common.no')}
-                      </span>
-                    </div>
+                    )}
+
+                    {/* POS Age Duration */}
+                    {app.pos_age_duration_months && (
+                      <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                            <ClockIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+                          </div>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">POS Age Duration</span>
+                        </div>
+                        <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{app.pos_age_duration_months} months</span>
+                      </div>
+                    )}
+
+                    {/* Average Monthly POS Sales */}
+                    {app.avg_monthly_pos_sales && (
+                      <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                            <CreditCardIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+                          </div>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">Average Monthly POS Sales</span>
+                        </div>
+                        <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
+                          SAR {parseFloat(app.avg_monthly_pos_sales).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Requested Financing Amount */}
+                    {app.requested_financing_amount && (
+                      <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                            <CreditCardIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+                          </div>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">Requested Financing Amount</span>
+                        </div>
+                        <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
+                          SAR {parseFloat(app.requested_financing_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Preferred Repayment Period */}
+                    {app.preferred_repayment_period_months && (
+                      <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                            <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
+                          </div>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">Preferred Repayment Period</span>
+                        </div>
+                        <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">{app.preferred_repayment_period_months} months</span>
+                      </div>
+                    )}
 
                     {/* Notes */}
                     {app.notes && (
@@ -241,7 +277,7 @@ export default function YourApplication({ user }) {
                           <span className="text-xs sm:text-sm font-medium text-gray-700">{t('application.notes')}</span>
                         </div>
                         <span className="text-xs sm:text-sm text-gray-900 font-semibold max-w-md text-left sm:text-right ml-9 sm:ml-0">
-                          {app.notes || 'N/A'}
+                          {app.notes}
                         </span>
                       </div>
                     )}

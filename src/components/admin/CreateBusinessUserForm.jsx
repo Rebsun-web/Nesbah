@@ -109,10 +109,19 @@ export default function CreateBusinessUserForm({ isOpen, onClose, onSuccess }) {
 
     // Create business user
     const createBusinessUser = async () => {
+        console.log('🚀 createBusinessUser called');
+        console.log('📝 Form data:', {
+            cr_national_number: crNumber,
+            email: userDetails.email,
+            hasPassword: !!userDetails.password,
+            fetch_from_wathiq: true
+        });
+
         setLoading(true);
         setError('');
 
         try {
+            console.log('📡 Sending request to /api/admin/users/create-business');
             const response = await fetch('/api/admin/users/create-business', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -125,19 +134,24 @@ export default function CreateBusinessUserForm({ isOpen, onClose, onSuccess }) {
                 })
             });
 
+            console.log('📡 Response status:', response.status);
             const data = await response.json();
+            console.log('📡 Response data:', data);
 
             if (response.ok && data.success) {
+                console.log('✅ Business user created successfully');
                 onSuccess(data.data);
                 onClose();
             } else {
+                console.error('❌ Failed to create business user:', data.error);
                 setError(data.error || 'Failed to create business user');
             }
         } catch (error) {
-            console.error('Error creating business user:', error);
+            console.error('❌ Error creating business user:', error);
             setError('Network error while creating business user');
         } finally {
             setLoading(false);
+            console.log('🏁 createBusinessUser finished');
         }
     };
 

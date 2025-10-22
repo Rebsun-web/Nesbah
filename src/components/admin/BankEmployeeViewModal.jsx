@@ -186,13 +186,10 @@ export default function BankEmployeeViewModal({ user, isOpen, onClose }) {
                                                         alt="Bank Logo" 
                                                         className="h-12 w-12 rounded object-cover border border-gray-200"
                                                         onError={(e) => {
-                                                            e.target.style.display = 'none';
-                                                            e.target.nextSibling.style.display = 'block';
+                                                            e.target.src = '/logo/blank_profile.png';
+                                                            e.target.alt = 'Default Logo';
                                                         }}
                                                     />
-                                                    <div className="hidden text-sm text-gray-500 mt-1">
-                                                        {detailedUser.bank_logo_url}
-                                                    </div>
                                                 </div>
                                             ) : (
                                                 <p className="text-sm text-gray-500">No logo available</p>

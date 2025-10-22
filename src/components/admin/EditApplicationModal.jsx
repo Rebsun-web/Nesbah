@@ -20,7 +20,7 @@ import { calculateApplicationStatus } from '@/lib/application-status'
 import { getCorrectStatus } from '@/lib/client-status-utils'
 import { auctionConfig } from '@/lib/config/auction-config'
 
-export default function EditApplicationModal({ isOpen, onClose, application, onSave }) {
+export default function EditApplicationModal({ isOpen, onClose, application, onSuccess }) {
     const [fullApplication, setFullApplication] = useState(null)
     const [loadingData, setLoadingData] = useState(false)
     const [formData, setFormData] = useState({
@@ -42,6 +42,7 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
     })
     const [crNumberError, setCrNumberError] = useState('')
     const [fileUpload, setFileUpload] = useState(null)
+    const [base64File, setBase64File] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [users, setUsers] = useState([])
@@ -216,33 +217,43 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
 
     const handleFileChange = (e) => {
         const file = e.target.files[0]
-        if (file) {
-            setFileUpload(file)
-        }
-    }
-
-    const handleFileUpload = async () => {
-        if (!fileUpload) return null
         
-        try {
-            const formDataFile = new FormData()
-            formDataFile.append('file', fileUpload)
-            formDataFile.append('application_id', fullApplication ? fullApplication.application_id : application.application_id)
-            
-            const response = await fetch('/api/upload/document', {
-                method: 'POST',
-                credentials: 'include',
-                body: formDataFile
-            })
-            
-            const data = await response.json()
-            if (data.success) {
-                return data.data.filename
-            }
-        } catch (err) {
-            console.error('File upload error:', err)
+        if (!file) {
+            return
         }
-        return null
+
+        // Validate file type
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please upload only PDF, JPG, or DOCX files.')
+            return
+        }
+
+        // Validate file size (10MB)
+        const maxSize = 10 * 1024 * 1024
+        if (file.size > maxSize) {
+            alert('File size must be less than 10MB.')
+            return
+        }
+
+        setFileUpload(file)
+
+        // Convert file to base64
+        const reader = new FileReader()
+        reader.onloadend = () => {
+            const base64 = reader.result.split(',')[1]
+            setBase64File({
+                data: base64,
+                name: file.name,
+                type: file.type
+            })
+            console.log('📄 File converted to base64:', {
+                name: file.name,
+                type: file.type,
+                size: file.size
+            })
+        }
+        reader.readAsDataURL(file)
     }
 
     const getSelectedUser = () => {
@@ -302,12 +313,6 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
         }
 
         try {
-            // Handle file upload first if present
-            let uploadedFilename = null
-            if (fileUpload) {
-                uploadedFilename = await handleFileUpload()
-            }
-            
             // Clean numeric fields - convert empty strings to null
             const cleanFormData = {
                 ...formData,
@@ -325,12 +330,21 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
             // Reset if status is 'live_auction' (whether changing or staying the same)
             const shouldResetAuction = cleanFormData.status === 'live_auction' && fullApplication
 
-            // Prepare form data with file upload if present
+            // Prepare form data with file upload if present (base64)
             const submitData = {
                 ...cleanFormData,
                 reset_auction: shouldResetAuction, // Only reset if status changed to live_auction
-                uploaded_filename: uploadedFilename || (fullApplication ? fullApplication.uploaded_filename : application.uploaded_filename)
+                // If new file uploaded, use base64 data; otherwise keep existing file reference
+                uploaded_document: base64File?.data || undefined,
+                uploaded_filename: base64File?.name || (fullApplication ? fullApplication.uploaded_filename : application.uploaded_filename),
+                uploaded_mimetype: base64File?.type || undefined
             }
+
+            console.log('📤 Submitting with file data:', {
+                has_new_file: !!base64File,
+                filename: submitData.uploaded_filename,
+                mimetype: submitData.uploaded_mimetype
+            })
 
             if (shouldResetAuction) {
                 console.log('🔄 EditApplicationModal: Status is live_auction, auction timer will be reset')
@@ -349,20 +363,34 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                 body: JSON.stringify(submitData)
             })
             
+            console.log('📡 EditApplicationModal: Response status:', response.status)
+            
             if (!response.ok) {
+                const errorText = await response.text()
+                console.error('❌ EditApplicationModal: Response not ok:', response.status, errorText)
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
             
             const data = await response.json()
+            console.log('📡 EditApplicationModal: Response data:', data)
             
             if (data.success) {
-                onSave(data.data)
+                console.log('✅ EditApplicationModal: Update successful, calling onSuccess and onClose')
+                if (onSuccess) {
+                    await onSuccess()
+                }
                 onClose()
             } else {
+                console.error('❌ EditApplicationModal: Update failed:', data.error)
                 setError(data.error || 'Failed to update application')
             }
         } catch (err) {
-            setError('Network error while updating application')
+            console.error('❌ EditApplicationModal: Error during update:', err)
+            console.error('Error details:', {
+                message: err.message,
+                stack: err.stack
+            })
+            setError(err.message || 'Network error while updating application')
         } finally {
             setLoading(false)
         }

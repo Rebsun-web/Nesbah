@@ -172,6 +172,8 @@ export async function GET(req, { params }) {
 
 // PUT - Update application
 export async function PUT(req, { params }) {
+    let applicationId; // Define outside try block for error logging
+    
     try {
         // Get admin token from cookies
         const adminToken = req.cookies.get('admin_token')?.value;
@@ -193,7 +195,7 @@ export async function PUT(req, { params }) {
         // Get admin user from session (no database query needed)
         const adminUser = sessionValidation.adminUser;
 
-        const applicationId = parseInt((await params).id);
+        applicationId = parseInt((await params).id);
         
         if (!applicationId || isNaN(applicationId)) {
             return NextResponse.json({ success: false, error: 'Invalid application ID' }, { status: 400 });
@@ -215,7 +217,9 @@ export async function PUT(req, { params }) {
             avg_monthly_pos_sales,
             requested_financing_amount,
             preferred_repayment_period_months,
+            uploaded_document,
             uploaded_filename,
+            uploaded_mimetype,
             reset_auction,
             assigned_user_id
         } = body;
@@ -249,20 +253,97 @@ export async function PUT(req, { params }) {
         try {
             await client.query('BEGIN');
 
-            // Update pos_application
+            // Build dynamic UPDATE query for editable fields
+            const updateFields = [];
+            const updateValues = [];
+            let paramCount = 1;
+
+            if (status !== undefined) {
+                updateFields.push(`current_application_status = $${paramCount++}`);
+                updateValues.push(status);
+            }
+            if (admin_notes !== undefined) {
+                updateFields.push(`admin_notes = $${paramCount++}`);
+                updateValues.push(admin_notes);
+            }
+            if (validatedAssignedUserId !== undefined) {
+                updateFields.push(`assigned_user_id = $${paramCount++}`);
+                updateValues.push(validatedAssignedUserId);
+            }
+            if (trade_name !== undefined) {
+                updateFields.push(`trade_name = $${paramCount++}`);
+                updateValues.push(trade_name);
+            }
+            if (cr_number !== undefined) {
+                updateFields.push(`cr_number = $${paramCount++}`);
+                updateValues.push(cr_number);
+            }
+            if (city !== undefined) {
+                updateFields.push(`city = $${paramCount++}`);
+                updateValues.push(city);
+            }
+            if (contact_person !== undefined) {
+                updateFields.push(`contact_person = $${paramCount++}`);
+                updateValues.push(contact_person);
+            }
+            if (contact_person_number !== undefined) {
+                updateFields.push(`contact_person_number = $${paramCount++}`);
+                updateValues.push(contact_person_number);
+            }
+            if (notes !== undefined) {
+                updateFields.push(`notes = $${paramCount++}`);
+                updateValues.push(notes);
+            }
+            if (pos_provider_name !== undefined) {
+                updateFields.push(`pos_provider_name = $${paramCount++}`);
+                updateValues.push(pos_provider_name);
+            }
+            if (validatedPosAgeDurationMonths !== undefined) {
+                updateFields.push(`pos_age_duration_months = $${paramCount++}`);
+                updateValues.push(validatedPosAgeDurationMonths);
+            }
+            if (validatedAvgMonthlyPosSales !== undefined) {
+                updateFields.push(`avg_monthly_pos_sales = $${paramCount++}`);
+                updateValues.push(validatedAvgMonthlyPosSales);
+            }
+            if (validatedRequestedFinancingAmount !== undefined) {
+                updateFields.push(`requested_financing_amount = $${paramCount++}`);
+                updateValues.push(validatedRequestedFinancingAmount);
+            }
+            if (validatedPreferredRepaymentPeriodMonths !== undefined) {
+                updateFields.push(`preferred_repayment_period_months = $${paramCount++}`);
+                updateValues.push(validatedPreferredRepaymentPeriodMonths);
+            }
+            // Handle file upload (base64)
+            if (uploaded_document !== undefined) {
+                updateFields.push(`uploaded_document = $${paramCount++}`);
+                updateValues.push(uploaded_document ? Buffer.from(uploaded_document, 'base64') : null);
+            }
+            if (uploaded_filename !== undefined) {
+                updateFields.push(`uploaded_filename = $${paramCount++}`);
+                updateValues.push(uploaded_filename);
+            }
+            if (uploaded_mimetype !== undefined) {
+                updateFields.push(`uploaded_mimetype = $${paramCount++}`);
+                updateValues.push(uploaded_mimetype);
+            }
+
+            if (updateFields.length === 0) {
+                await client.query('ROLLBACK');
+                return NextResponse.json({ success: false, error: 'No fields to update' }, { status: 400 });
+            }
+
+            // Add application_id as the last parameter
+            updateValues.push(applicationId);
+
             const posUpdateQuery = `
                 UPDATE pos_application 
-                SET 
-                    current_application_status = COALESCE($1, current_application_status),
-                    admin_notes = COALESCE($2, admin_notes),
-                    assigned_user_id = COALESCE($3, assigned_user_id)
-                WHERE application_id = $4
+                SET ${updateFields.join(', ')}
+                WHERE application_id = $${paramCount}
                 RETURNING *
             `;
             
-            const posResult = await client.query(posUpdateQuery, [
-                status, admin_notes, validatedAssignedUserId, applicationId
-            ]);
+            const posResult = await client.query(posUpdateQuery, updateValues);
 
             if (posResult.rows.length === 0) {
                 await client.query('ROLLBACK');
@@ -383,7 +464,7 @@ export async function PUT(req, { params }) {
 
                     // Clean opened_by and purchased_by arrays
                     await client.query(
-                        'UPDATE pos_application SET opened_by = ARRAY[]::text[], purchased_by = ARRAY[]::text[] WHERE application_id = $1',
+                        'UPDATE pos_application SET opened_by = ARRAY[]::integer[], purchased_by = ARRAY[]::integer[] WHERE application_id = $1',
                         [applicationId]
                     );
 
@@ -424,8 +505,7 @@ export async function PUT(req, { params }) {
         console.error('Application update error:', {
             error: error.message,
             code: error.code,
-            applicationId,
-            status,
+            applicationId: applicationId || 'unknown',
             timestamp: new Date().toISOString(),
             stack: error.stack
         });

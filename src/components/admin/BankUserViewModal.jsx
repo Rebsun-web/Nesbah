@@ -129,13 +129,10 @@ export default function BankUserViewModal({ user, isOpen, onClose }) {
                                                     alt="Bank Logo" 
                                                     className="h-16 w-16 rounded object-cover border border-gray-200"
                                                     onError={(e) => {
-                                                        e.target.style.display = 'none';
-                                                        e.target.nextSibling.style.display = 'block';
+                                                        e.target.src = '/logo/blank_profile.png';
+                                                        e.target.alt = 'Default Logo';
                                                     }}
                                                 />
-                                                <div className="hidden text-sm text-gray-500 mt-1">
-                                                    {detailedUser.logo_url}
-                                                </div>
                                             </div>
                                         ) : (
                                             <p className="text-sm text-gray-500">No logo uploaded</p>

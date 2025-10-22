@@ -63,15 +63,25 @@ function BusinessPortal() {
         };
         
         const localizedDescriptions = {
-            'live_auction': t('portal.liveAuctionDesc'),
+            'live_auction': t('portal.liveAuctionDesc') || '',
             'completed': t('portal.dealCompletedDesc'),
             'ignored': t('portal.applicationIgnoredDesc')
+        };
+        
+        // Get the localized description, but filter out translation keys
+        const getDescription = (status) => {
+            const desc = localizedDescriptions[status] || baseStatusInfo.description;
+            // If description looks like a translation key (contains dots), return empty string
+            if (desc && desc.includes('.') && desc.startsWith('portal.')) {
+                return '';
+            }
+            return desc;
         };
         
         return {
             ...baseStatusInfo,
             label: localizedLabels[calculatedStatus] || baseStatusInfo.label,
-            description: localizedDescriptions[calculatedStatus] || baseStatusInfo.description,
+            description: getDescription(calculatedStatus),
             icon: '⏳' // Use string icon instead of React component
         };
     }, [applicationData, t]);
@@ -285,28 +295,25 @@ function BusinessPortal() {
                                 </svg>
                                 {t('common.refresh')}
                               </button>
-                              <div className="flex items-center space-x-2">
-                                <span className={`inline-flex items-center rounded-full px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium ${statusInfo?.color || 'bg-gray-100 text-gray-800'}`}>
-                                  {statusInfo?.label || 'Loading...'}
-                                </span>
-                              </div>
                             </div>
                           </div>
                         </div>
 
                         {/* Status Bar */}
-                        <div className="px-4 sm:px-8 py-4 bg-slate-50 border-b border-slate-200">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                            <p className="text-sm text-slate-600">
-                              {statusInfo?.description || 'Loading application status...'}
-                            </p>
-                            {lastUpdate && (
-                              <p className="text-xs text-slate-500">
-                                {t('common.lastUpdated')}: {lastUpdate.toLocaleTimeString()}
+                        {statusInfo?.description && (
+                          <div className="px-4 sm:px-8 py-4 bg-slate-50 border-b border-slate-200">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                              <p className="text-sm text-slate-600">
+                                {statusInfo.description}
                               </p>
-                            )}
+                              {lastUpdate && (
+                                <p className="text-xs text-slate-500">
+                                  {t('common.lastUpdated')}: {lastUpdate.toLocaleTimeString()}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Status Details */}
                         <div className="px-4 sm:px-8 py-4 sm:py-6">
@@ -327,23 +334,25 @@ function BusinessPortal() {
                                 </span>
                               </div>
                               
-                              <div className="px-4 sm:px-6 py-4 flex flex-col space-y-2 hover:bg-gray-50 transition-colors">
-                                <div className="flex items-center space-x-3">
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
-                                    <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                              {statusInfo.description && (
+                                <div className="px-4 sm:px-6 py-4 flex flex-col space-y-2 hover:bg-gray-50 transition-colors">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
+                                      <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                    </div>
+                                    <span className="text-sm font-medium text-gray-700">Status Description</span>
                                   </div>
-                                  <span className="text-sm font-medium text-gray-700">Status Description</span>
+                                  <span className="text-sm text-gray-900 font-semibold text-left ml-11">
+                                    {statusInfo.description}
+                                  </span>
                                 </div>
-                                <span className="text-sm text-gray-900 font-semibold text-left ml-11">
-                                  {statusInfo.description}
-                                </span>
-                              </div>
+                              )}
                             </div>
                           </div>
                           
-                          {/* Application Details */}
+                          {/* Submission Details */}
                           {applicationData && (
                             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                               <div className="px-4 sm:px-6 py-4 bg-gray-50 border-b border-gray-200">
@@ -351,7 +360,7 @@ function BusinessPortal() {
                                   <svg className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                   </svg>
-                                  Application Details
+                                  Submission Details
                                 </h5>
                               </div>
                               <div className="divide-y divide-gray-200">

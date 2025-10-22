@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import bcrypt from 'bcrypt';
 import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function GET(req) {
@@ -355,15 +356,17 @@ export async function POST(req) {
             );
         }
 
-        // Use provided password or generate a secure default
-        const userPassword = password || 'default_password';
-
         if (!['business', 'individual', 'bank'].includes(user_type)) {
             return NextResponse.json(
                 { success: false, error: 'user_type must be one of: business, individual, bank' },
                 { status: 400 }
             );
         }
+
+        // Hash the password before storing
+        const plainPassword = password || 'TempPassword123!';
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(plainPassword, saltRounds);
 
         let client;
         try {
@@ -376,7 +379,7 @@ export async function POST(req) {
                 `INSERT INTO users (email, password, user_type, entity_name, account_status, created_at, updated_at)
                  VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
                  RETURNING user_id`,
-                [email, userPassword, `${user_type}_user`, entity_name || `${first_name} ${last_name}`.trim(), registration_status]
+                [email, hashedPassword, `${user_type}_user`, entity_name || `${first_name} ${last_name}`.trim(), registration_status]
             );
             
             const userId = userResult.rows[0].user_id;

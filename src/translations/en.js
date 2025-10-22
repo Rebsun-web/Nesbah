@@ -105,7 +105,7 @@ const translations = {
   'portal.submitted': 'Submitted',
   'portal.applyForService': 'Apply for Service',
   'portal.liveAuction': 'Live Auction Active',
-  'portal.liveAuctionDesc': 'Banks bid and offer deals for your request. The auction ends within {AUCTION_HOURS} hours.',
+  'portal.liveAuctionDesc': '',
   'portal.dealCompleted': 'Deal Completed',
   'portal.dealCompletedDesc': 'Your request has been processed successfully.',
   'portal.applicationIgnored': 'Application Ignored',

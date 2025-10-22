@@ -7,7 +7,9 @@ import { Checkbox, Field, Input, Label } from '@headlessui/react';
 import { CheckIcon } from '@heroicons/react/16/solid';
 import { clsx } from 'clsx';
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import RegistrationModal from '@/components/RegistrationModal';
+import SuccessNotification from '@/components/SuccessNotification';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import {Navbar} from "@/components/navbar";
 import {Container} from "@/components/container";
@@ -17,6 +19,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Register() {
     const { t } = useLanguage();
+    const router = useRouter();
     const [userType, setUserType] = useState('business'); // Set to business by default
     const [showPassword, setShowPassword] = useState(false);
     const [cr_national_number, setCrNationalNumber] = useState('');
@@ -31,6 +34,7 @@ export default function Register() {
     const [isLoading, setIsLoading] = useState(false);
     const [verificationStep, setVerificationStep] = useState('initial'); // 'initial', 'verifying', 'verified', 'account_creation'
     const [verifiedData, setVerifiedData] = useState(null);
+    const [showSuccessNotification, setShowSuccessNotification] = useState(false);
     
     // Field validation states
     const [fieldErrors, setFieldErrors] = useState({});
@@ -195,6 +199,7 @@ export default function Register() {
 
     const handleFinalRegistration = async (e) => {
         e.preventDefault();
+        console.log('🚀 handleFinalRegistration called');
         
         // Validate account creation form
         const errors = {};
@@ -222,9 +227,11 @@ export default function Register() {
         
         setFieldErrors(errors);
         if (Object.keys(errors).length > 0) {
+            console.log('❌ Validation errors:', errors);
             return;
         }
 
+        console.log('✅ Validation passed, submitting registration...');
         setIsLoading(true);
 
         try {
@@ -236,58 +243,42 @@ export default function Register() {
                 ...verifiedData
             };
 
+            console.log('📡 Sending registration request:', {
+                email,
+                cr_national_number: verifiedData.cr_national_number,
+                hasPassword: !!password
+            });
+
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
+            console.log('📡 Response status:', response.status);
             const data = await response.json();
+            console.log('📡 Response data:', data);
 
             if (response.ok && data.success) {
-                // Auto-login the user after successful registration
-                try {
-                    const loginResponse = await fetch('/api/users/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password }),
-                    });
-
-                    const loginData = await loginResponse.json();
-
-                    if (loginResponse.ok && loginData.success) {
-                        // Store user data in localStorage
-                        localStorage.setItem('user', JSON.stringify(loginData.user));
-                        
-                        // Redirect to portal
-                        window.location.href = '/portal';
-                    } else {
-                        // If auto-login fails, redirect to login page
-                        setErrorMessage('Account created successfully! Please log in with your credentials.');
-                        setIsModalOpen(true);
-                        setTimeout(() => {
-                            window.location.href = '/login';
-                        }, 2000);
-                    }
-                } catch (loginError) {
-                    console.error('Auto-login error:', loginError);
-                    // If auto-login fails, redirect to login page
-                    setErrorMessage('Account created successfully! Please log in with your credentials.');
-                    setIsModalOpen(true);
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 2000);
-                }
+                console.log('✅ Registration successful: showing success notification...');
+                // Show success notification
+                setShowSuccessNotification(true);
+                // Auto-redirect after 4 seconds
+                setTimeout(() => {
+                    router.push('/login');
+                }, 4000);
             } else {
+                console.error('❌ Registration failed:', data?.error);
                 setErrorMessage(data?.error || 'Account creation failed. Please try again.');
                 setIsModalOpen(true);
             }
         } catch (error) {
-            console.error('Registration error:', error);
+            console.error('❌ Registration error:', error);
             setErrorMessage('Account creation failed. Please try again later.');
             setIsModalOpen(true);
         } finally {
             setIsLoading(false);
+            console.log('🏁 handleFinalRegistration finished');
         }
     };
 
@@ -315,7 +306,7 @@ export default function Register() {
 
                             <Field className="mt-4 space-y-3">
                                 <Label className="text-sm/5 font-medium text-gray-700">
-                                    رقم السجل التجاري (CR National Number)
+                                    الرقم الموحد للمنشأة (Unified Number)
                                 </Label>
                                 <input
                                     type="text"
@@ -327,7 +318,7 @@ export default function Register() {
                                         }
                                     }}
                                     required
-                                    placeholder="1010XXXXXX"
+                                    placeholder="70XXXXXXXX"
                                     className={`block w-full rounded-lg border px-4 py-2 shadow ${
                                         fieldErrors.cr_national_number ? 'border-orange-500 bg-orange-50' : 'border-gray-300'
                                     } focus:border-purple-500 focus:ring-purple-500`}
@@ -628,6 +619,24 @@ export default function Register() {
                         </form>
                     </div>
                 </div>
+
+                {/* Success Notification */}
+                <SuccessNotification
+                    show={showSuccessNotification}
+                    onClose={() => setShowSuccessNotification(false)}
+                    title="Registration Successful!"
+                    message="Your account has been created successfully. You will be redirected to the login page shortly."
+                    actionText="Go to Login Now"
+                    onAction={() => router.push('/login')}
+                />
+
+                {/* Error Modal */}
+                <RegistrationModal
+                    isOpen={isOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    isSuccess={isSuccess}
+                    modalMessage={errorMessage}
+                />
             </main>
         );
     }
