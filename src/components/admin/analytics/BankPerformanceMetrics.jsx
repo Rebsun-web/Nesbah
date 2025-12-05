@@ -196,12 +196,6 @@ export default function BankPerformanceMetrics() {
                     </div>
                 </div>
                 
-                <div className="px-4 py-2 bg-blue-50 border-b border-blue-200">
-                    <p className="text-xs text-blue-700">
-                        💡 Click on any column header to sort the data. Click again to reverse the sort order.
-                    </p>
-                </div>
-                
                 <div className="overflow-x-auto">
                     <table className="bank-performance-table">
                         <thead>
@@ -211,6 +205,9 @@ export default function BankPerformanceMetrics() {
                                         <span className="font-semibold">BANK NAME</span>
                                         {getSortIcon('bank_name')}
                                     </div>
+                                </th>
+                                <th className="text-left">
+                                    <span className="font-semibold">EMAILS</span>
                                 </th>
                                 <th onClick={() => handleSort('applications_viewed')} className="cursor-pointer hover:bg-gray-100 transition-colors duration-150">
                                     <div className="flex items-center">
@@ -237,10 +234,25 @@ export default function BankPerformanceMetrics() {
                         <tbody>
                             {sortedData.length > 0 ? (
                                 sortedData.map((bank, index) => (
-                                    <tr key={bank.bank_user_id || index}>
+                                    <tr key={bank.bank_name || index}>
                                         <td>
                                             <div>
                                                 {bank.bank_name || 'Unknown Bank'}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className="text-sm text-gray-600">
+                                                {bank.emails && Array.isArray(bank.emails) && bank.emails.length > 0 ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        {bank.emails.map((email, emailIndex) => (
+                                                            <span key={emailIndex} className="font-mono text-xs">
+                                                                {email}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400 italic">No emails</span>
+                                                )}
                                             </div>
                                         </td>
                                         <td>
@@ -269,7 +281,7 @@ export default function BankPerformanceMetrics() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="4">
+                                    <td colSpan="5">
                                         <div className="flex flex-col items-center py-12">
                                             <DocumentTextIcon className="h-12 w-12 text-gray-300 mb-3" />
                                             <p className="text-lg font-medium text-gray-900">No bank performance data</p>

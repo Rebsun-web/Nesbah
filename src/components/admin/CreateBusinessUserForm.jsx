@@ -26,7 +26,14 @@ export default function CreateBusinessUserForm({ isOpen, onClose, onSuccess }) {
     // CR Number validation
     const validateCRNumber = (crNumber) => {
         const crRegex = /^\d{10}$/;
-        return crRegex.test(crNumber);
+        if (!crRegex.test(crNumber)) {
+            return { valid: false, error: 'CR number must be exactly 10 digits' };
+        }
+        // CR numbers should start with 70
+        if (!crNumber.startsWith('70')) {
+            return { valid: false, error: 'Incorrect CR number format. CR number should start with 70' };
+        }
+        return { valid: true };
     };
 
     // Handle CR number input change
@@ -47,8 +54,9 @@ export default function CreateBusinessUserForm({ isOpen, onClose, onSuccess }) {
 
     // Validate CR number via Wathiq API
     const validateCRNumberWithWathiq = async () => {
-        if (!validateCRNumber(crNumber)) {
-            setError('Please enter a valid 10-digit CR number');
+        const validation = validateCRNumber(crNumber);
+        if (!validation.valid) {
+            setError(validation.error);
             return;
         }
 
@@ -75,7 +83,8 @@ export default function CreateBusinessUserForm({ isOpen, onClose, onSuccess }) {
                 if (response.status === 409) {
                     setError('This CR number is already registered. Please use a different CR number.');
                 } else {
-                    setError(data.error || 'Failed to validate CR number');
+                    // Use the specific error message from the API, or fallback to generic message
+                    setError(data.error || data.errorMessage || 'Failed to validate CR number');
                 }
             }
         } catch (error) {
@@ -249,21 +258,21 @@ export default function CreateBusinessUserForm({ isOpen, onClose, onSuccess }) {
                                         type="text"
                                         value={crNumber}
                                         onChange={handleCRNumberChange}
-                                        placeholder="1234567890"
+                                        placeholder="70......"
                                         maxLength={10}
                                         className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         disabled={loading}
                                     />
                                     <button
                                         onClick={validateCRNumberWithWathiq}
-                                        disabled={loading || !crNumber || !validateCRNumber(crNumber)}
+                                        disabled={loading || !crNumber || !validateCRNumber(crNumber).valid}
                                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {loading ? 'Validating...' : 'Validate'}
                                     </button>
                                 </div>
                                 <p className="mt-1 text-xs text-gray-500">
-                                    Enter exactly 10 digits (e.g., 1234567890)
+                                    Enter exactly 10 digits starting with 70 (e.g., 7012345678)
                                 </p>
                             </div>
 

@@ -87,11 +87,15 @@ export async function GET(req) {
             const responseTimeDistribution = await client.query(responseTimeDistributionQuery, [startDate, endDate]);
 
             // 4. Bank Performance Ranking Query - Count from opened_by and purchased_by arrays
+            // Group by bank name (entity_name) to aggregate multiple bank users from the same bank
+            // Also includes bank employees and aggregates their data with their parent bank
             const bankPerformanceRankingQuery = `
-                WITH bank_stats AS (
+                WITH bank_user_stats AS (
+                    -- Stats for bank users (direct bank accounts)
                     SELECT 
                         bu.user_id,
                         COALESCE(u.entity_name, 'Unknown Bank') as bank_name,
+                        u.email,
                         -- Count applications viewed (from opened_by array)
                         COUNT(DISTINCT CASE WHEN pa.opened_by @> ARRAY[bu.user_id] THEN pa.application_id END) as applications_viewed,
                         -- Count applications purchased/offers submitted (from purchased_by array)
@@ -102,7 +106,82 @@ export async function GET(req) {
                         pa.submitted_at >= $1 AND 
                         pa.submitted_at <= $2 AND
                         (pa.opened_by @> ARRAY[bu.user_id] OR pa.purchased_by @> ARRAY[bu.user_id])
-                    GROUP BY bu.user_id, u.entity_name
+                    GROUP BY bu.user_id, u.entity_name, u.email
+                ),
+                bank_employee_stats AS (
+                    -- Stats for bank employees (aggregated to their parent bank)
+                    SELECT 
+                        be.user_id as employee_user_id,
+                        COALESCE(parent_u.entity_name, 'Unknown Bank') as bank_name,
+                        employee_u.email,
+                        -- Count applications viewed (from opened_by array)
+                        COUNT(DISTINCT CASE WHEN pa.opened_by @> ARRAY[be.user_id] THEN pa.application_id END) as applications_viewed,
+                        -- Count applications purchased/offers submitted (from purchased_by array)
+                        COUNT(DISTINCT CASE WHEN pa.purchased_by @> ARRAY[be.user_id] THEN pa.application_id END) as offers_submitted
+                    FROM bank_employees be
+                    LEFT JOIN users employee_u ON be.user_id = employee_u.user_id
+                    LEFT JOIN bank_users parent_bu ON be.bank_user_id = parent_bu.user_id
+                    LEFT JOIN users parent_u ON parent_bu.user_id = parent_u.user_id
+                    LEFT JOIN pos_application pa ON 
+                        pa.submitted_at >= $1 AND 
+                        pa.submitted_at <= $2 AND
+                        (pa.opened_by @> ARRAY[be.user_id] OR pa.purchased_by @> ARRAY[be.user_id])
+                    GROUP BY be.user_id, parent_u.entity_name, employee_u.email
+                ),
+                all_bank_users AS (
+                    -- Get all user_ids (bank users + employees) grouped by bank name
+                    SELECT 
+                        COALESCE(u.entity_name, 'Unknown Bank') as bank_name,
+                        bu.user_id,
+                        u.email
+                    FROM bank_users bu
+                    LEFT JOIN users u ON bu.user_id = u.user_id
+                    UNION
+                    SELECT 
+                        COALESCE(parent_u.entity_name, 'Unknown Bank') as bank_name,
+                        be.user_id,
+                        employee_u.email
+                    FROM bank_employees be
+                    LEFT JOIN users employee_u ON be.user_id = employee_u.user_id
+                    LEFT JOIN bank_users parent_bu ON be.bank_user_id = parent_bu.user_id
+                    LEFT JOIN users parent_u ON parent_bu.user_id = parent_u.user_id
+                ),
+                bank_viewed_apps AS (
+                    -- Get distinct applications viewed by any user from each bank
+                    SELECT DISTINCT
+                        abu.bank_name,
+                        pa.application_id
+                    FROM all_bank_users abu
+                    INNER JOIN pos_application pa ON 
+                        pa.submitted_at >= $1 AND 
+                        pa.submitted_at <= $2 AND
+                        pa.opened_by @> ARRAY[abu.user_id]
+                ),
+                bank_purchased_apps AS (
+                    -- Get distinct applications purchased by any user from each bank
+                    SELECT DISTINCT
+                        abu.bank_name,
+                        pa.application_id
+                    FROM all_bank_users abu
+                    INNER JOIN pos_application pa ON 
+                        pa.submitted_at >= $1 AND 
+                        pa.submitted_at <= $2 AND
+                        pa.purchased_by @> ARRAY[abu.user_id]
+                ),
+                bank_stats AS (
+                    -- Aggregate by bank name, counting DISTINCT applications across all users (bank + employees)
+                    SELECT 
+                        abu.bank_name,
+                        -- Count distinct applications viewed by ANY user (bank or employee) from this bank
+                        COALESCE(COUNT(DISTINCT bva.application_id), 0) as applications_viewed,
+                        -- Count distinct applications purchased by ANY user (bank or employee) from this bank
+                        COALESCE(COUNT(DISTINCT bpa.application_id), 0) as offers_submitted,
+                        -- Collect all emails (bank users + employees)
+                        ARRAY_AGG(DISTINCT abu.email ORDER BY abu.email) FILTER (WHERE abu.email IS NOT NULL) as emails
+                    FROM all_bank_users abu
+                    LEFT JOIN bank_viewed_apps bva ON abu.bank_name = bva.bank_name
+                    LEFT JOIN bank_purchased_apps bpa ON abu.bank_name = bpa.bank_name
+                    GROUP BY abu.bank_name
                 )
                 SELECT 
                     bank_name,
@@ -112,7 +191,8 @@ export async function GET(req) {
                         WHEN applications_viewed > 0 THEN 
                             ROUND((offers_submitted::decimal / applications_viewed * 100), 2)
                         ELSE 0 
-                    END as conversion_rate
+                    END as conversion_rate,
+                    emails
                 FROM bank_stats
                 WHERE applications_viewed > 0 OR offers_submitted > 0
                 ORDER BY offers_submitted DESC, applications_viewed DESC
@@ -124,6 +204,17 @@ export async function GET(req) {
             console.log('  - Bank performance ranking:', bankPerformanceRanking.rows);
             console.log('  - Number of banks found:', bankPerformanceRanking.rows.length);
             console.log('  - Sample bank data:', bankPerformanceRanking.rows[0]);
+            if (bankPerformanceRanking.rows.length > 0) {
+                bankPerformanceRanking.rows.forEach((bank, index) => {
+                    const emailCount = bank.emails && Array.isArray(bank.emails) ? bank.emails.length : 0;
+                    console.log(`  - Bank ${index + 1}: ${bank.bank_name}`);
+                    console.log(`    - Applications Viewed: ${bank.applications_viewed || 0}`);
+                    console.log(`    - Offers Submitted: ${bank.offers_submitted || 0}`);
+                    console.log(`    - Conversion Rate: ${bank.conversion_rate || 0}%`);
+                    console.log(`    - Total Accounts (bank users + employees): ${emailCount}`);
+                    console.log(`    - Emails: ${bank.emails ? bank.emails.join(', ') : 'N/A'}`);
+                });
+            }
             
             // Debug: Check actual array data in applications
             const arrayDataDebugQuery = `
@@ -148,7 +239,10 @@ export async function GET(req) {
                 SELECT 
                     COUNT(*) as total_applications,
                     COUNT(CASE WHEN pa.status = 'completed' THEN 1 END) as successful_applications,
-                    ROUND((COUNT(CASE WHEN pa.status = 'completed' THEN 1 END) * 100.0 / COUNT(*)), 2) as success_rate,
+                    CASE 
+                        WHEN COUNT(*) = 0 THEN 0
+                        ELSE ROUND((COUNT(CASE WHEN pa.status = 'completed' THEN 1 END) * 100.0 / COUNT(*)), 2)
+                    END as success_rate,
                     ROUND(AVG(pa.offers_count), 2) as avg_offers_per_application
                 FROM pos_application pa
                 WHERE pa.submitted_at >= $1 AND pa.submitted_at <= $2
@@ -160,11 +254,14 @@ export async function GET(req) {
                 SELECT 
                     COUNT(*) as total_applications,
                     COUNT(CASE WHEN pa.offers_count > 1 THEN 1 END) as competitive_applications,
-                    ROUND((COUNT(CASE WHEN pa.offers_count > 1 THEN 1 END) * 100.0 / COUNT(*)), 2) as competition_rate,
+                    CASE 
+                        WHEN COUNT(*) = 0 THEN 0
+                        ELSE ROUND((COUNT(CASE WHEN pa.offers_count > 1 THEN 1 END) * 100.0 / COUNT(*)), 2)
+                    END as competition_rate,
                     ROUND(AVG(pa.offers_count), 2) as avg_competition_level
                 FROM pos_application pa
                 WHERE pa.submitted_at >= $1 AND pa.submitted_at <= $2
-                AND pa.status IN ('live_auction', 'completed')
+                AND COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'completed')
             `;
             const competitiveAnalysis = await client.query(competitiveAnalysisQuery, [startDate, endDate]);
 
@@ -185,7 +282,13 @@ export async function GET(req) {
         }
 
     } catch (error) {
-        console.error('Bank performance analytics error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        console.error('❌ Bank performance analytics error:', error);
+        console.error('❌ Error stack:', error.stack);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return NextResponse.json({ 
+            error: 'Internal server error',
+            details: process.env.NODE_ENV === 'production' ? undefined : error.message 
+        }, { status: 500 });
     }
 }

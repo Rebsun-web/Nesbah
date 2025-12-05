@@ -15,6 +15,36 @@ export async function POST(req) {
             );
         }
 
+        // Validate CR number format
+        const crNumberStr = cr_national_number.toString().trim();
+        
+        // Check if it's exactly 10 digits
+        if (!/^\d{10}$/.test(crNumberStr)) {
+            return NextResponse.json(
+                { 
+                    success: false, 
+                    error: 'Incorrect CR number format. CR number must be exactly 10 digits and should start with 70',
+                    errorMessage: 'Incorrect CR number format. CR number must be exactly 10 digits and should start with 70',
+                    errorCode: 'INVALID_CR_FORMAT'
+                },
+                { status: 400 }
+            );
+        }
+
+        // Check if CR number starts with 70
+        if (!crNumberStr.startsWith('70')) {
+            return NextResponse.json(
+                { 
+                    success: false, 
+                    error: 'Incorrect CR number format. CR number should start with 70',
+                    errorMessage: 'Incorrect CR number format. CR number should start with 70',
+                    errorCode: 'INVALID_CR_PREFIX',
+                    suggestion: 'Please ensure the CR number starts with 70 (e.g., 7012345678)'
+                },
+                { status: 400 }
+            );
+        }
+
         // Check if business user already exists
         const existingBusiness = await pool.query(
             `SELECT bu.user_id, u.email, u.user_type 
@@ -61,15 +91,42 @@ export async function POST(req) {
         } catch (error) {
             console.error('❌ Wathiq API verification failed:', error);
             
-            if (error.message.includes('404')) {
+            // Check for specific error types
+            if (error.message.includes('404') || error.message.includes('not found')) {
                 return NextResponse.json(
-                    { success: false, error: 'Please check your CR Number format' },
+                    { 
+                        success: false, 
+                        error: 'CR number not found. Please verify the CR number format - it should start with 70',
+                        errorMessage: 'CR number not found. Please verify the CR number format - it should start with 70',
+                        errorCode: 'CR_NOT_FOUND',
+                        suggestion: 'Please ensure the CR number is correct and starts with 70 (e.g., 7012345678)'
+                    },
+                    { status: 404 }
+                );
+            }
+            
+            // Check if it's a format-related error from Wathiq
+            if (error.message.includes('format') || error.message.includes('invalid')) {
+                return NextResponse.json(
+                    { 
+                        success: false, 
+                        error: 'Incorrect CR number format. CR number should start with 70',
+                        errorMessage: 'Incorrect CR number format. CR number should start with 70',
+                        errorCode: 'INVALID_CR_FORMAT',
+                        suggestion: 'Please ensure the CR number starts with 70 (e.g., 7012345678)'
+                    },
                     { status: 400 }
                 );
             }
             
+            // Generic error for other cases
             return NextResponse.json(
-                { success: false, error: 'Verification temporarily unavailable' },
+                { 
+                    success: false, 
+                    error: 'Verification temporarily unavailable. Please try again later.',
+                    errorMessage: 'Verification temporarily unavailable. Please try again later.',
+                    errorCode: 'SERVICE_UNAVAILABLE'
+                },
                 { status: 502 }
             );
         }
