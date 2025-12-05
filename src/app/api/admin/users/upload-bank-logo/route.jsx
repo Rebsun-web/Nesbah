@@ -3,6 +3,7 @@ import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
 import path from 'path';
 import fs from 'fs';
+import gcsStorage from '@/lib/storage/gcs-storage';
 
 export async function POST(req) {
     try {
@@ -58,26 +59,24 @@ export async function POST(req) {
         const fileExtension = path.extname(logoFile.name);
         const fileName = `bank-logo-${timestamp}-${randomString}${fileExtension}`;
         
-        // Create uploads directory if it doesn't exist
-        const uploadDir = 'public/uploads/bank-logos';
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        
-        // Save file to disk
-        const filePath = path.join(uploadDir, fileName);
+        // Convert file to buffer
         const bytes = await logoFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
         
-        fs.writeFileSync(filePath, buffer);
-        
-        // Generate the URL for the uploaded file
-        const logoUrl = `/uploads/bank-logos/${fileName}`;
+        // Upload using storage service (GCS in production, local in development)
+        const logoUrl = await gcsStorage.uploadFile(
+            buffer,
+            fileName,
+            'bank-logos',
+            logoFile.type
+        );
         
         return NextResponse.json({
             success: true,
             logo_url: logoUrl,
-            message: 'Logo uploaded successfully'
+            message: 'Logo uploaded successfully',
+            fileName: fileName,
+            size: buffer.length
         });
 
     } catch (error) {

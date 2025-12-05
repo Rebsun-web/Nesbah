@@ -67,10 +67,15 @@ export async function PUT(req) {
             let paramCount = 0;
 
             for (const [key, value] of Object.entries(updateData)) {
-                if (allowedBankFields.includes(key) && value !== undefined && value !== '') {
-                    paramCount++;
-                    bankSetClauses.push(`${key} = $${paramCount}`);
-                    bankUpdateParams.push(value);
+                if (allowedBankFields.includes(key) && value !== undefined) {
+                    // Always include logo_url (can be null to remove, or a valid URL)
+                    // For other fields, skip empty strings but allow null
+                    if (key === 'logo_url' || value !== '') {
+                        paramCount++;
+                        bankSetClauses.push(`${key} = $${paramCount}`);
+                        // Convert empty strings to null for logo_url, keep other values as-is
+                        bankUpdateParams.push((key === 'logo_url' && value === '') ? null : value);
+                    }
                 }
             }
 
@@ -98,7 +103,12 @@ export async function PUT(req) {
                     RETURNING user_id, contact_person, contact_person_number, logo_url, credit_limit
                 `;
                 
-                await client.query(bankUpdateQuery, bankUpdateParams);
+                console.log('🔍 Updating bank_users with logo_url:', updateData.logo_url);
+                console.log('🔍 Update query:', bankUpdateQuery);
+                console.log('🔍 Update params:', bankUpdateParams);
+                
+                const updateResult = await client.query(bankUpdateQuery, bankUpdateParams);
+                console.log('✅ Bank user updated, returned logo_url:', updateResult.rows[0]?.logo_url);
             }
 
             // Update users table if there are fields to update

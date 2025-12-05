@@ -39,7 +39,7 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
                 setFormData({
                     email: user.email || '',
                     entity_name: user.entity_name || '',
-                    logo_url: user.logo_url || '',
+                    logo_url: user.logo_url || null, // Use null instead of empty string to properly handle logo state
                     contact_person: user.contact_person || '',
                     contact_person_number: user.contact_person_number || '',
                     credit_limit: user.credit_limit || 10000
@@ -156,15 +156,20 @@ export default function EditUserModal({ user, isOpen, onClose, onUpdate }) {
                         const result = await response.json();
                         if (result.success && result.logo_url) {
                             cleanFormData.logo_url = result.logo_url;
+                            console.log('✅ Logo uploaded, logo_url set to:', result.logo_url);
+                        } else {
+                            console.error('❌ Logo upload failed:', result);
                         }
+                    } else {
+                        const errorText = await response.text();
+                        console.error('❌ Logo upload response not OK:', response.status, errorText);
                     }
-                } else if (cleanFormData.logo_url === null) {
-                    // User wants to remove the logo completely
-                    cleanFormData.logo_url = null;
                 }
-                // If no logoFile and logo_url is not null, keep the existing logo
+                // Always include logo_url in the update, even if it's null (to preserve existing or remove)
+                // If no logoFile was uploaded, cleanFormData.logo_url will keep its current value
             }
 
+            console.log('📤 Sending update with logo_url:', cleanFormData.logo_url);
             await onUpdate(cleanFormData);
             onClose();
         } catch (error) {
