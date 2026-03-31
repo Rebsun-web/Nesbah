@@ -190,7 +190,10 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                         <table className="w-full divide-y divide-gray-300">
                             <thead>
                                 <tr>
-                                    <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 rounded-tl-md w-24">
+                                    <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 rounded-tl-md w-28">
+                                        Type
+                                    </th>
+                                    <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-24">
                                         POS Provider
                                     </th>
                                     <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-20">
@@ -229,6 +232,14 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                                 hoursLeft < 2 ? 'bg-red-50' : hoursLeft < 6 ? 'bg-yellow-50' : ''
                                             }`}
                                         >
+                                            <td className="px-3 py-3 text-xs text-start">
+                                                <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
+                                                    {lead.financing_type ? lead.financing_type.replace('_', ' ') : 'POS'}
+                                                </span>
+                                                {lead.reference_number && (
+                                                    <div className="text-xs text-purple-600 font-mono mt-0.5">{lead.reference_number}</div>
+                                                )}
+                                            </td>
                                             <td className="px-3 py-3 text-xs text-start text-gray-900 font-medium truncate" title={lead.pos_provider || 'N/A'}>
                                                 {lead.pos_provider || 'N/A'}
                                             </td>
@@ -278,9 +289,19 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center space-x-2">
                                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <span className="text-sm font-medium text-gray-900">
-                                        {lead.pos_provider || 'N/A'}
-                                    </span>
+                                    <div>
+                                        <span className="text-sm font-medium text-gray-900">
+                                            {lead.pos_provider || 'N/A'}
+                                        </span>
+                                        <div className="flex items-center gap-1 mt-0.5">
+                                            <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
+                                                {lead.financing_type ? lead.financing_type.replace('_', ' ') : 'POS'}
+                                            </span>
+                                            {lead.reference_number && (
+                                                <span className="text-xs text-purple-600 font-mono">{lead.reference_number}</span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="flex items-center space-x-1 text-xs font-semibold text-red-600">
                                     <span>⏳</span>

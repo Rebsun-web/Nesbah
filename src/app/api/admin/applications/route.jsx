@@ -32,6 +32,7 @@ export async function GET(req) {
         const limit = parseInt(searchParams.get('limit')) || 10;
         const search = searchParams.get('search') || '';
         const status = searchParams.get('status') || 'all';
+        const financingType = searchParams.get('financing_type') || 'all';
         const sortBy = searchParams.get('sortBy') || 'submitted_at';
         const sortOrder = searchParams.get('sortOrder') || 'desc';
         
@@ -55,6 +56,12 @@ export async function GET(req) {
                 paramCount++;
                 whereConditions.push(`(${STATUS_FILTER_SQL}) = $${paramCount}`);
                 queryParams.push(status);
+            }
+
+            if (financingType !== 'all') {
+                paramCount++;
+                whereConditions.push(`pa.financing_type = $${paramCount}`);
+                queryParams.push(financingType);
             }
 
             const whereClause = whereConditions.length > 0 ? `AND ${whereConditions.join(' AND ')}` : '';
@@ -103,6 +110,8 @@ export async function GET(req) {
                     pa.cr_capital,
                     pa.cash_capital,
                     pa.management_structure,
+                    pa.financing_type,
+                    pa.reference_number,
                     pa.offers_count,
                     pa.revenue_collected,
                     pa.opened_by,

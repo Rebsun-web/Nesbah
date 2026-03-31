@@ -31,6 +31,7 @@ export default function ApplicationsTable() {
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
+    const [financingTypeFilter, setFinancingTypeFilter] = useState('all')
     const [sortBy, setSortBy] = useState('submitted_at')
     const [sortOrder, setSortOrder] = useState('desc')
     const [selectedApplications, setSelectedApplications] = useState([])
@@ -57,6 +58,7 @@ export default function ApplicationsTable() {
                 limit: '10',
                 search: searchTerm,
                 status: statusFilter,
+                financing_type: financingTypeFilter,
                 sortBy,
                 sortOrder
             })
@@ -131,7 +133,7 @@ export default function ApplicationsTable() {
     useEffect(() => {
         fetchApplications()
         checkStatusUpdatesLocal()
-    }, [currentPage, searchTerm, statusFilter, sortBy, sortOrder])
+    }, [currentPage, searchTerm, statusFilter, financingTypeFilter, sortBy, sortOrder])
 
     const handleNewApplicationSuccess = (newApplication) => {
         fetchApplications()
@@ -259,6 +261,20 @@ export default function ApplicationsTable() {
                         <option value="completed">Completed</option>
                         <option value="ignored">Ignored</option>
                     </select>
+                    <select
+                        value={financingTypeFilter}
+                        onChange={(e) => setFinancingTypeFilter(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                        <option value="all">All Types</option>
+                        <option value="pos">POS</option>
+                        <option value="working_capital">Working Capital</option>
+                        <option value="equipment">Equipment</option>
+                        <option value="expansion">Expansion</option>
+                        <option value="project">Project</option>
+                        <option value="real_estate">Real Estate</option>
+                        <option value="general">General</option>
+                    </select>
                 </div>
             </div>
 
@@ -301,12 +317,22 @@ export default function ApplicationsTable() {
                                             <div className="text-sm font-medium text-gray-900">
                                                 #{application.application_id}
                                             </div>
+                                            {application.reference_number && (
+                                                <div className="text-xs text-purple-600 font-mono mt-0.5">
+                                                    {application.reference_number}
+                                                </div>
+                                            )}
                                             <div className="text-sm text-gray-500">
                                                 {new Date(application.submitted_at).toLocaleDateString()}
                                             </div>
                                             <div className="text-xs text-gray-400">
                                                 {formatCountdown(application.auction_end_time)}
                                             </div>
+                                            {application.financing_type && (
+                                                <span className="mt-1 inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
+                                                    {application.financing_type.replace('_', ' ')}
+                                                </span>
+                                            )}
                                         </td>
 
                                         {/* Business Information */}
@@ -420,9 +446,19 @@ export default function ApplicationsTable() {
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center space-x-2">
                                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <span className="text-sm font-medium text-gray-900">
-                                        #{application.application_id}
-                                    </span>
+                                    <div>
+                                        <span className="text-sm font-medium text-gray-900">
+                                            #{application.application_id}
+                                        </span>
+                                        {application.reference_number && (
+                                            <div className="text-xs text-purple-600 font-mono">{application.reference_number}</div>
+                                        )}
+                                        {application.financing_type && (
+                                            <span className="inline-block mt-0.5 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
+                                                {application.financing_type.replace('_', ' ')}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                     <statusInfo.icon className="h-4 w-4" />

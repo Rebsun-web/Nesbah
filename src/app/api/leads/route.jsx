@@ -98,12 +98,14 @@ export async function GET(req) {
                     pa.avg_monthly_pos_sales as monthly_sales,
                     pa.requested_financing_amount as financing_amount,
                     pa.preferred_repayment_period_months as repayment_period,
+                    pa.financing_type,
+                    pa.reference_number,
                     -- Check if bank has already viewed this application
                     CASE WHEN $1 = ANY(pa.opened_by) THEN true ELSE false END as has_viewed,
                     -- Check if bank has already purchased this application
                     CASE WHEN $1 = ANY(pa.purchased_by) THEN true ELSE false END as has_purchased
                  FROM pos_application pa
-                 INNER JOIN business_users bu ON pa.user_id = bu.user_id
+                 LEFT JOIN business_users bu ON pa.user_id = bu.user_id
                  WHERE (${STATUS_FILTER_SQL}) = 'live_auction'
                    AND NOT $1 = ANY(pa.purchased_by)  -- Only show applications bank hasn't purchased
                  ORDER BY pa.submitted_at DESC`,
