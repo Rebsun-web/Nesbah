@@ -79,7 +79,7 @@ export async function GET(req, { params }) {
                 bu.sector,
                 bu.activities
              FROM pos_application pa
-             JOIN business_users bu ON pa.user_id = bu.user_id
+             LEFT JOIN business_users bu ON pa.user_id = bu.user_id
              WHERE pa.application_id = $1`,
             [applicationId]
         );

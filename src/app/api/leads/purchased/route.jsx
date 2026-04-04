@@ -86,9 +86,9 @@ export async function GET(req) {
                 END as lead_status
                 
              FROM pos_application pa
-             JOIN business_users bu ON pa.user_id = bu.user_id
-             JOIN users u ON bu.user_id = u.user_id
-             WHERE $1 = ANY(pa.purchased_by) 
+             LEFT JOIN business_users bu ON pa.user_id = bu.user_id
+             LEFT JOIN users u ON bu.user_id = u.user_id
+             WHERE $1 = ANY(pa.purchased_by)
                 OR EXISTS (SELECT 1 FROM application_offers WHERE submitted_application_id = pa.application_id AND submitted_by_user_id = $1)
              ORDER BY pa.submitted_at DESC`,
             [bankUserId]

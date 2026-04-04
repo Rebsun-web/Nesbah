@@ -6,12 +6,6 @@
 class WathiqAPIService {
     constructor() {
         this.baseUrl = 'https://api.wathq.sa/commercial-registration';
-        this.apiKey = process.env.WATHIQ_API_KEY;
-        
-        // Only throw error during runtime, not during build
-        if (!this.apiKey && typeof window !== 'undefined') {
-            throw new Error('WATHIQ_API_KEY environment variable is required');
-        }
     }
 
     /**
@@ -22,23 +16,17 @@ class WathiqAPIService {
      */
     async fetchBusinessData(crNationalNumber, language = 'en') {
         try {
-            // Check if API key is available
-            if (!this.apiKey) {
-                throw new Error('WATHIQ_API_KEY environment variable is required');
-            }
-            
             // Clean the CR number - remove any non-digit characters
             let cleanCRNumber = crNationalNumber.toString().replace(/\D/g, '');
-            
+
             console.log(`🔍 Fetching Wathiq data for CR: ${crNationalNumber} (cleaned: ${cleanCRNumber})`);
-            
+
             const response = await fetch(
                 `${this.baseUrl}/fullinfo/${cleanCRNumber}?language=${language}`,
                 {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        'apiKey': this.apiKey,
                     },
                 }
             );
@@ -543,19 +531,11 @@ class WathiqAPIService {
      */
     async checkAPIHealth() {
         try {
-            // Check if API key is available
-            if (!this.apiKey) {
-                return false;
-            }
-            
             const response = await fetch(`${this.baseUrl}/health`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apiKey': this.apiKey,
-                },
+                headers: { 'Content-Type': 'application/json' },
             });
-            
+
             return response.ok;
         } catch (error) {
             console.error('Wathiq API health check failed:', error);

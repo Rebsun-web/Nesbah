@@ -100,8 +100,8 @@ export async function GET(req, { params }) {
                 u.email as business_contact_email,
                 u.entity_name as business_entity_name
             FROM pos_application pa
-            JOIN business_users bu ON pa.user_id = bu.user_id
-            JOIN users u ON bu.user_id = u.user_id
+            LEFT JOIN business_users bu ON pa.user_id = bu.user_id
+            LEFT JOIN users u ON bu.user_id = u.user_id
             WHERE pa.application_id = $1
         `;
 

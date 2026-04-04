@@ -193,8 +193,8 @@ export async function POST(req) {
                     u.email as business_email,
                     bu.user_id as business_user_id
                 FROM pos_application pa
-                JOIN business_users bu ON pa.user_id = bu.user_id
-                JOIN users u ON bu.user_id = u.user_id
+                LEFT JOIN business_users bu ON pa.user_id = bu.user_id
+                LEFT JOIN users u ON bu.user_id = u.user_id
                 WHERE bu.cr_number = $1
                 ORDER BY pa.submitted_at DESC
                 LIMIT 1
@@ -342,8 +342,8 @@ export async function POST(req) {
                     u.email as business_email
                 FROM application_offers ao
                 JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
-                JOIN business_users bu ON pa.user_id = bu.user_id
-                JOIN users u ON bu.user_id = u.user_id
+                LEFT JOIN business_users bu ON pa.user_id = bu.user_id
+                LEFT JOIN users u ON bu.user_id = u.user_id
                 WHERE ao.offer_id = $1
             `, [offerId]);
             

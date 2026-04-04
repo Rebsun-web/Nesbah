@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useLang, translations } from '@/contexts/PublicLanguageContext'
 
@@ -12,6 +13,65 @@ const financingLinks = [
   { href: '/real-estate-project-financing', label: { ar: 'التمويل العقاري', en: 'Real Estate' } },
   { href: '/pos-financing', label: { ar: 'تمويل نقاط البيع', en: 'POS Financing' } },
 ]
+
+function NewsletterForm() {
+  const { lang } = useLang()
+  const [email, setEmail] = useState('')
+  const [status, setStatus] = useState(null) // null | 'loading' | 'success' | 'error'
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault()
+    if (!email || !email.includes('@')) return
+    setStatus('loading')
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      setStatus(data.success ? 'success' : 'error')
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  if (status === 'success') {
+    return (
+      <p className="text-sm text-[hsl(var(--primary))] font-medium">
+        {lang === 'ar' ? 'تم الاشتراك! تحقق من بريدك الإلكتروني.' : 'Subscribed! Check your inbox.'}
+      </p>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubscribe} className="flex gap-2">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder={lang === 'ar' ? 'بريدك الإلكتروني' : 'Your email'}
+        dir="ltr"
+        required
+        className="flex-1 rounded-xl border border-[hsl(var(--border))] bg-white px-4 py-2 text-sm outline-none focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.15)]"
+      />
+      <button
+        type="submit"
+        disabled={status === 'loading'}
+        className="rounded-xl bg-[hsl(var(--primary))] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+      >
+        {status === 'loading'
+          ? (lang === 'ar' ? '...' : '...')
+          : (lang === 'ar' ? 'اشتراك' : 'Subscribe')}
+      </button>
+      {status === 'error' && (
+        <p className="absolute mt-10 text-xs text-red-500">
+          {lang === 'ar' ? 'حدث خطأ، حاول مجدداً.' : 'Something went wrong. Try again.'}
+        </p>
+      )}
+    </form>
+  )
+}
 
 export default function Footer() {
   const { t, lang } = useLang()
@@ -82,7 +142,18 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-[hsl(var(--border))] pt-6 text-center text-xs text-[hsl(var(--muted-foreground))]">
+        <div className="mt-12 border-t border-[hsl(var(--border))] pt-8">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <p className="text-sm font-semibold text-[hsl(var(--foreground))]">
+              {lang === 'ar' ? 'اشترك في النشرة الإخبارية' : 'Subscribe to our newsletter'}
+            </p>
+            <div className="w-full md:max-w-xs">
+              <NewsletterForm />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 border-t border-[hsl(var(--border))] pt-6 text-center text-xs text-[hsl(var(--muted-foreground))]">
           <p>© {new Date().getFullYear()} {t(f.copyright)}</p>
         </div>
       </div>
