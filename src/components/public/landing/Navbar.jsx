@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useLang, translations } from '@/contexts/PublicLanguageContext'
 import {
   GlobeAltIcon,
@@ -29,11 +30,11 @@ export default function Navbar() {
   const n = translations.nav
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-white/80 backdrop-blur-lg">
+    <nav className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-xl">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center">
-          <span className="text-xl font-bold text-foreground">{t(n.brand)}</span>
+          <Image src="/logo/NewNesbahLogo.png" alt="Nesbah" height={26} width={86} className="object-contain" />
         </Link>
 
         {/* Desktop nav */}
@@ -87,13 +88,6 @@ export default function Navbar() {
             <GlobeAltIcon className="h-4 w-4" />
             {lang === 'ar' ? 'EN' : 'عربي'}
           </button>
-          {/* Login link for bank/registered business users */}
-          <Link
-            href="/login"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-2"
-          >
-            {t(n.login)}
-          </Link>
           <Link
             href="/onboarding"
             className="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
@@ -157,9 +151,6 @@ export default function Navbar() {
             <a href="/#faq" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">
               {t(n.faq)}
             </a>
-            <Link href="/login" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">
-              {t(n.login)}
-            </Link>
             <Link
               href="/onboarding"
               className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"

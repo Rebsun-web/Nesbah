@@ -6,6 +6,7 @@
 class WathiqAPIService {
     constructor() {
         this.baseUrl = 'https://api.wathq.sa/commercial-registration';
+        this.apiKey = process.env.WATHIQ_API_KEY;
     }
 
     /**
@@ -27,6 +28,7 @@ class WathiqAPIService {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
+                        'apiKey': this.apiKey,
                     },
                 }
             );
@@ -533,7 +535,7 @@ class WathiqAPIService {
         try {
             const response = await fetch(`${this.baseUrl}/health`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'apiKey': this.apiKey },
             });
 
             return response.ok;

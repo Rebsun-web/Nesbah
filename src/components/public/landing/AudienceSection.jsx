@@ -11,7 +11,7 @@ export default function AudienceSection() {
   const a = translations.audience
 
   return (
-    <section className="py-20 md:py-28" id="audience">
+    <section className="bg-gray-50 py-20 md:py-28" id="audience">
       <div className="container mx-auto px-4">
         <ScrollReveal>
           <div className="mb-16 text-center">

@@ -12,7 +12,7 @@ export default function FinancingTypes() {
   const f = translations.financing
 
   return (
-    <section className="py-20 md:py-28" id="financing">
+    <section className="bg-gray-50 py-20 md:py-28" id="financing">
       <div className="container mx-auto px-4">
         <ScrollReveal>
           <div className="mb-16 text-center">

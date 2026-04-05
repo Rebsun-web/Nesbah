@@ -23,7 +23,7 @@
   --radius: 1rem;
   --shadow-card: 0 0 0 1px rgba(30,24,81,0.05), 0 2px 4px rgba(0,0,0,0.05);
   --shadow-card-hover: 0 0 0 1px rgba(30,24,81,0.08), 0 8px 16px rgba(0,0,0,0.08);
-  --gradient-hero: linear-gradient(135deg, hsl(247,54%,21%) 0%, hsl(263,90%,35%) 100%);
+  --gradient-hero: linear-gradient(170deg, hsl(244,58%,16%) 0%, hsl(263,78%,50%) 100%);
 }
 
 .text-balance { text-wrap: balance; }

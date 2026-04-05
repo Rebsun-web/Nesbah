@@ -6,7 +6,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: 'Switzer, system-ui, sans-serif',
+        sans: ["IBM Plex Sans Arabic", "sans-serif"],
       },
       borderRadius: {
         '4xl': '2rem',

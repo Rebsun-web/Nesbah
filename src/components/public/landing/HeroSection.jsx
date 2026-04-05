@@ -43,7 +43,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-            className="text-balance text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-[3.5rem]"
+            className="text-balance text-3xl font-extrabold leading-tight text-white sm:text-4xl md:text-5xl lg:text-[3.5rem]"
             style={{ letterSpacing: '-0.03em', lineHeight: 1.15 }}
           >
             {t(h.headline)}
@@ -66,7 +66,7 @@ export default function HeroSection() {
           >
             <Link
               href="/onboarding"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-[hsl(var(--primary))] shadow-elevated transition-all hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-6 py-3.5 text-sm font-semibold text-white shadow-elevated transition-all hover:opacity-90"
             >
               {t(h.cta)}
               <Arrow className="h-5 w-5" />

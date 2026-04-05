@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 
 // Inline translations — ported from Lovable lovable-reference/src/i18n/translations.ts
 export const translations = {
@@ -16,7 +16,7 @@ export const translations = {
     closeMenu: { ar: 'إغلاق القائمة', en: 'Close menu' },
   },
   hero: {
-    headline: { ar: 'قارن عروض تمويل لشركتك من عدة جهات — مجاناً', en: 'Compare financing offers for your business from multiple lenders — free' },
+    headline: { ar: 'قارن عروض تمويل لشركتك من عدة جهات – مجاناً', en: 'Compare financing offers for your business from multiple lenders — free' },
     sub: { ar: 'نسبة منصة تساعد الشركات في السعودية على الوصول إلى عروض تمويل من البنوك وشركات التمويل، ومقارنة الخيارات واختيار الأنسب لاحتياجاتها بسهولة ووضوح.', en: 'Nesbah is a platform that helps businesses in Saudi Arabia access financing offers from banks and financing companies, compare options, and choose the best fit — simply and clearly.' },
     cta: { ar: 'قدّم طلب تمويل لشركتك الآن', en: 'Submit a financing request now' },
     ctaSec: { ar: 'تحتاج استفسار قبل التقديم؟ تواصل معنا على واتساب', en: 'Need to ask before applying? Chat on WhatsApp' },
@@ -181,8 +181,17 @@ const PublicLanguageContext = createContext(null)
 export function PublicLanguageProvider({ children }) {
   const [lang, setLang] = useState('ar')
 
+  useEffect(() => {
+    const saved = localStorage.getItem('nesbah_lang')
+    if (saved && saved !== 'ar') setLang(saved)
+  }, [])
+
   const toggleLang = useCallback(() => {
-    setLang((prev) => (prev === 'ar' ? 'en' : 'ar'))
+    setLang((prev) => {
+      const next = prev === 'ar' ? 'en' : 'ar'
+      localStorage.setItem('nesbah_lang', next)
+      return next
+    })
   }, [])
 
   const isRTL = lang === 'ar'

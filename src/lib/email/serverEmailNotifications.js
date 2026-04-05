@@ -89,6 +89,33 @@ export async function sendApplicationSubmissionEmail(businessEmail, applicationD
 }
 
 /**
+ * Send onboarding submission confirmation to business
+ */
+export async function sendSubmissionConfirmationEmail(toEmail, { reference_number, business_name }) {
+    if (isEmailDisabled) return { success: true, disabled: true };
+    if (!toEmail) return { success: false, error: 'No email provided' };
+
+    try {
+        const response = await emailjs.send(
+            process.env.EMAILJS_SERVICE_ID,
+            process.env.EMAILJS_SUBMISSION_TEMPLATE_ID,
+            {
+                email: toEmail,
+                reference_number,
+                business_name: business_name || '',
+            },
+            {
+                publicKey: process.env.EMAILJS_PUBLIC_KEY,
+                privateKey: process.env.EMAILJS_PRIVATE_KEY,
+            }
+        );
+        return { success: true, response };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
  * Get email notification status
  */
 export function getEmailNotificationStatus() {

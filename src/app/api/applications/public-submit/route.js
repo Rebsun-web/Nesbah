@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import wathiqAPIService from '@/lib/wathiq-api-service';
-import { sendNewApplicationNotificationToBanks } from '@/lib/email/emailNotifications';
+import { sendSubmissionConfirmationEmail } from '@/lib/email/serverEmailNotifications';
 import { auctionConfig } from '@/lib/config/auction-config';
 
 const VALID_FINANCING_TYPES = [
@@ -12,6 +12,7 @@ const VALID_FINANCING_TYPES = [
     'project',
     'real_estate',
     'general',
+    'business',
 ];
 
 function generateReferenceNumber() {
@@ -46,6 +47,13 @@ export async function POST(req) {
             );
         }
 
+        if (!/^7\d{9}$/.test(cr_national_number.toString())) {
+            return NextResponse.json(
+                { success: false, error: 'الرقم الوطني يجب أن يتكون من 10 أرقام ويبدأ بالرقم 7 / National number must be exactly 10 digits and start with 7' },
+                { status: 400 }
+            );
+        }
+
         if (!VALID_FINANCING_TYPES.includes(financing_type)) {
             return NextResponse.json(
                 { success: false, error: `Invalid financing_type. Must be one of: ${VALID_FINANCING_TYPES.join(', ')}` },
@@ -53,7 +61,7 @@ export async function POST(req) {
             );
         }
 
-        // Attempt Wathiq verification — non-blocking if it fails
+        // Attempt Wathiq verification
         let wathiqData = null;
         let verification_status = 'pending';
         try {
@@ -62,7 +70,15 @@ export async function POST(req) {
                 verification_status = 'verified';
             }
         } catch (wathiqError) {
-            // Store submission anyway — flag for manual review
+            const msg = wathiqError.message || '';
+            // 400 from Wathiq = invalid CR number — reject the submission
+            if (msg.includes('400')) {
+                return NextResponse.json(
+                    { success: false, error: 'الرقم الوطني غير صحيح. يرجى التحقق من الرقم والمحاولة مجدداً. / Invalid national number. Please check and try again.' },
+                    { status: 422 }
+                );
+            }
+            // Any other error (network, 5xx, auth) — proceed with pending status
             verification_status = 'pending';
         }
 
@@ -71,6 +87,19 @@ export async function POST(req) {
         const auction_end_time = new Date(submitted_at.getTime() + auctionConfig.durationMilliseconds);
 
         const client = await pool.connectWithRetry(2, 1000, 'api_applications_public-submit_route.js');
+
+        // Check uniqueness — one submission per national number
+        const existing = await client.query(
+            'SELECT application_id FROM pos_application WHERE cr_national_number = $1 LIMIT 1',
+            [cr_national_number]
+        );
+        if (existing.rows.length > 0) {
+            client.release();
+            return NextResponse.json(
+                { success: false, error: 'تم تقديم طلب بهذا الرقم الوطني مسبقاً / A request with this national number has already been submitted' },
+                { status: 409 }
+            );
+        }
 
         try {
             await client.query('BEGIN');
@@ -143,32 +172,14 @@ export async function POST(req) {
 
             const application_id = result.rows[0].application_id;
 
-            // Notify banks about the new lead
-            const bankUsersResult = await client.query(
-                'SELECT email FROM users WHERE user_type = $1 AND account_status = $2',
-                ['bank_user', 'active']
-            );
-
             await client.query('COMMIT');
 
-            const bankEmails = bankUsersResult.rows.map(row => row.email).filter(Boolean);
-            if (bankEmails.length > 0) {
-                try {
-                    await sendNewApplicationNotificationToBanks(bankEmails, {
-                        application_id,
-                        trade_name: wathiqData?.trade_name || business_name || cr_national_number,
-                        cr_number: wathiqData?.cr_number || cr_national_number,
-                        city: wathiqData?.city || city_of_operation,
-                        legal_form: wathiqData?.legal_form || null,
-                        submitted_at,
-                        auction_end_time,
-                        city_of_operation,
-                        requested_financing_amount: requested_financing_amount || null,
-                        preferred_repayment_period_months: preferred_repayment_period_months || null,
-                    });
-                } catch (emailError) {
-                    // Don't fail the submission if email fails
-                }
+            // Send confirmation email to business — fire and forget, never block submission
+            if (email) {
+                sendSubmissionConfirmationEmail(email, {
+                    reference_number,
+                    business_name: wathiqData?.trade_name || business_name || null,
+                }).catch(() => {});
             }
 
             return NextResponse.json({

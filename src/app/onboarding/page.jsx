@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, ArrowRight, CheckCircle2,
@@ -9,15 +10,28 @@ import {
 } from 'lucide-react'
 import { PublicLanguageProvider, useLang, translations } from '@/contexts/PublicLanguageContext'
 
+// API code for each financing type — same index order as translations.onboarding.financingTypes
+const FINANCING_TYPE_CODES = [
+  'business',       // تمويل الشركات / Business Financing
+  'working_capital',// تمويل رأس المال العامل / Working Capital
+  'expansion',      // تمويل التوسع / Expansion Financing
+  'equipment',      // تمويل المعدات / Equipment Financing
+  'project',        // تمويل المشاريع / Project Financing
+  'real_estate',    // تمويل المشاريع العقارية / Real Estate
+  'pos',            // تمويل نقاط البيع / POS Financing
+  'general',        // أخرى / Other
+]
+
 // ─── Field components ───────────────────────────────────────────────────────
 
-function Input({ id, value, onChange, placeholder, type = 'text', dir }) {
+function Input({ id, value, onChange, onBlur, placeholder, type = 'text', dir }) {
   return (
     <input
       id={id}
       type={type}
       value={value}
       onChange={onChange}
+      onBlur={onBlur}
       placeholder={placeholder}
       dir={dir}
       className="mt-1.5 block w-full rounded-xl border border-[hsl(var(--border))] bg-white px-4 py-2.5 text-sm text-[hsl(var(--foreground))] placeholder-[hsl(var(--muted-foreground))] outline-none transition focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.15)]"
@@ -54,13 +68,12 @@ function Label({ htmlFor, children }) {
 function SuccessScreen({ referenceNumber }) {
   const { t } = useLang()
   const o = translations.onboarding
-  const n = translations.nav
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
-      <nav className="border-b border-[hsl(var(--border))] bg-white/80 backdrop-blur-lg">
+      <nav className="border-b border-[hsl(var(--border))] bg-white/95 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center px-4">
-          <Link href="/" className="text-xl font-bold text-[hsl(var(--foreground))]">{t(n.brand)}</Link>
+          <Link href="/"><Image src="/logo/NewNesbahLogo.png" alt="Nesbah" height={26} width={86} className="object-contain" /></Link>
         </div>
       </nav>
       <div className="container mx-auto flex min-h-[70vh] items-center justify-center px-4">
@@ -99,13 +112,20 @@ function SuccessScreen({ referenceNumber }) {
 function OnboardingForm() {
   const { t, isRTL, lang } = useLang()
   const o = translations.onboarding
-  const n = translations.nav
+
+  // Build { label, code } pairs — label is what the user sees, code is what the API expects
+  const FINANCING_OPTIONS = o.financingTypes.map((ft, i) => ({
+    label: t(ft),
+    code: FINANCING_TYPE_CODES[i],
+  }))
 
   const [currentStep, setCurrentStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
   const [referenceNumber, setReferenceNumber] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const [crTouched, setCrTouched] = useState(false)
 
   const [formData, setFormData] = useState({
     businessName: '',
@@ -122,8 +142,10 @@ function OnboardingForm() {
 
   const updateField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }))
 
+  const crValid = /^7\d{9}$/.test(formData.crNumber)
+
   const canProceed = () => {
-    if (currentStep === 0) return formData.businessName && formData.crNumber && formData.contactName && formData.phone
+    if (currentStep === 0) return formData.businessName && crValid && formData.contactName && formData.phone
     if (currentStep === 1) return formData.financingType && formData.amount
     return true
   }
@@ -153,13 +175,12 @@ function OnboardingForm() {
         body: JSON.stringify({
           business_name: formData.businessName,
           cr_national_number: formData.crNumber,
-          city: formData.city,
+          city_of_operation: formData.city,
           sector: formData.sector,
           contact_person: formData.contactName,
           contact_person_number: formData.phone,
-          contact_email: formData.email,
+          email: formData.email,
           financing_type: formData.financingType,
-          amount_label: formData.amount,
           notes: formData.purpose,
         }),
       })
@@ -179,9 +200,9 @@ function OnboardingForm() {
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
       {/* Header */}
-      <nav className="border-b border-[hsl(var(--border))] bg-white/80 backdrop-blur-lg">
+      <nav className="border-b border-[hsl(var(--border))] bg-white/95 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link href="/" className="text-xl font-bold text-[hsl(var(--foreground))]">{t(n.brand)}</Link>
+          <Link href="/"><Image src="/logo/NewNesbahLogo.png" alt="Nesbah" height={26} width={86} className="object-contain" /></Link>
           <div className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
             <Shield className="h-4 w-4 text-[hsl(var(--primary))]" />
             <span className="hidden sm:inline">{t(o.privacyNote)}</span>
@@ -249,7 +270,12 @@ function OnboardingForm() {
                       </div>
                       <div>
                         <Label htmlFor="crNumber">{t(o.crNumber)} *</Label>
-                        <Input id="crNumber" placeholder={t(o.crNumberPh)} value={formData.crNumber} onChange={(e) => updateField('crNumber', e.target.value)} dir="ltr" />
+                        <Input id="crNumber" placeholder={t(o.crNumberPh)} value={formData.crNumber} onChange={(e) => updateField('crNumber', e.target.value)} onBlur={() => setCrTouched(true)} dir="ltr" />
+                        {crTouched && !crValid && (
+                          <p className="mt-1.5 text-xs text-red-500">
+                            {lang === 'ar' ? 'الرقم الوطني يجب أن يتكون من 10 أرقام ويبدأ بالرقم 7' : 'National number must be exactly 10 digits and start with 7'}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="grid gap-5 sm:grid-cols-2">
@@ -293,10 +319,13 @@ function OnboardingForm() {
                       <Label htmlFor="financingType">{t(o.financingType)} *</Label>
                       <Select
                         id="financingType"
-                        value={formData.financingType}
-                        onChange={(v) => updateField('financingType', v)}
+                        value={FINANCING_OPTIONS.find((opt) => opt.code === formData.financingType)?.label ?? ''}
+                        onChange={(label) => {
+                          const opt = FINANCING_OPTIONS.find((o) => o.label === label)
+                          updateField('financingType', opt?.code ?? '')
+                        }}
                         placeholder={t(o.financingTypePh)}
-                        options={o.financingTypes.map((type) => t(type))}
+                        options={FINANCING_OPTIONS.map((opt) => opt.label)}
                       />
                     </div>
                     <div>
@@ -330,7 +359,7 @@ function OnboardingForm() {
                   <h2 className="mb-2 text-2xl font-bold text-[hsl(var(--foreground))]">{t(o.step3Title)}</h2>
                   <p className="mb-8 text-[hsl(var(--muted-foreground))]">{t(o.step3Sub)}</p>
                   <div className="space-y-4">
-                    <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">
+                    <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 sm:p-6">
                       <h3 className="mb-4 text-sm font-semibold text-[hsl(var(--muted-foreground))]">{t(o.reviewBusiness)}</h3>
                       <dl className="space-y-3 text-sm">
                         {[
@@ -348,12 +377,12 @@ function OnboardingForm() {
                       </dl>
                     </div>
 
-                    <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">
+                    <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 sm:p-6">
                       <h3 className="mb-4 text-sm font-semibold text-[hsl(var(--muted-foreground))]">{t(o.reviewFinancing)}</h3>
                       <dl className="space-y-3 text-sm">
                         <div className="flex justify-between">
                           <dt className="text-[hsl(var(--muted-foreground))]">{t(o.reviewLabels.financingType)}</dt>
-                          <dd className="font-medium text-[hsl(var(--foreground))]">{formData.financingType || '—'}</dd>
+                          <dd className="font-medium text-[hsl(var(--foreground))]">{FINANCING_OPTIONS.find((opt) => opt.code === formData.financingType)?.label || '—'}</dd>
                         </div>
                         <div className="flex justify-between">
                           <dt className="text-[hsl(var(--muted-foreground))]">{t(o.reviewLabels.amount)}</dt>
@@ -394,11 +423,11 @@ function OnboardingForm() {
           </AnimatePresence>
 
           {/* Navigation */}
-          <div className="mt-10 flex items-center justify-between">
+          <div className="mt-10 flex items-center justify-between gap-3">
             {currentStep > 0 ? (
               <button
                 onClick={() => setCurrentStep((s) => s - 1)}
-                className="inline-flex items-center gap-2 rounded-xl border border-[hsl(var(--border))] bg-white px-5 py-2.5 text-sm font-semibold text-[hsl(var(--foreground))] transition hover:bg-[hsl(var(--muted))]"
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[hsl(var(--border))] bg-white px-5 py-2.5 text-sm font-semibold text-[hsl(var(--foreground))] transition hover:bg-[hsl(var(--muted))]"
               >
                 <BackArrow className="h-4 w-4" />
                 {t(o.prev)}
@@ -416,7 +445,7 @@ function OnboardingForm() {
               <button
                 onClick={() => setCurrentStep((s) => s + 1)}
                 disabled={!canProceed()}
-                className="inline-flex items-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {t(o.next)}
                 <NextArrow className="h-4 w-4" />

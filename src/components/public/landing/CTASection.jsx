@@ -26,7 +26,7 @@ export default function CTASection() {
       <div className="container relative mx-auto px-4 text-center">
         <ScrollReveal>
           <h2
-            className="text-balance text-3xl font-bold text-white md:text-4xl lg:text-5xl"
+            className="text-balance text-3xl font-extrabold text-white md:text-4xl lg:text-5xl"
             style={{ letterSpacing: '-0.03em' }}
           >
             {t(c.title)}
@@ -36,7 +36,7 @@ export default function CTASection() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/onboarding"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-[hsl(var(--primary))] shadow-elevated transition-all hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-6 py-3.5 text-sm font-semibold text-white shadow-elevated transition-all hover:opacity-90"
             >
               {t(c.cta)}
               <Arrow className="h-5 w-5" />
