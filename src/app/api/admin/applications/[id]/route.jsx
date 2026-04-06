@@ -208,10 +208,12 @@ export async function PUT(req, { params }) {
             trade_name,
             cr_number,
             city,
+            city_of_operation,
             contact_person,
             contact_person_number,
             business_email,
             notes,
+            financing_type,
             pos_provider_name,
             pos_age_duration_months,
             avg_monthly_pos_sales,
@@ -281,6 +283,14 @@ export async function PUT(req, { params }) {
             if (city !== undefined) {
                 updateFields.push(`city = $${paramCount++}`);
                 updateValues.push(city);
+            }
+            if (city_of_operation !== undefined) {
+                updateFields.push(`city_of_operation = $${paramCount++}`);
+                updateValues.push(city_of_operation);
+            }
+            if (financing_type !== undefined) {
+                updateFields.push(`financing_type = $${paramCount++}`);
+                updateValues.push(financing_type);
             }
             if (contact_person !== undefined) {
                 updateFields.push(`contact_person = $${paramCount++}`);

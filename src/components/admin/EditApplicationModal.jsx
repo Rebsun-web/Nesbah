@@ -29,13 +29,12 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
         trade_name: '',
         cr_number: '',
         city: '',
+        city_of_operation: '',
+        financing_type: '',
         contact_person: '',
         contact_person_number: '',
         business_email: '',
         notes: '',
-        pos_provider_name: '',
-        pos_age_duration_months: '',
-        avg_monthly_pos_sales: '',
         requested_financing_amount: '',
         preferred_repayment_period_months: '',
         assigned_user_id: null
@@ -94,13 +93,12 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                         trade_name: fullApp.trade_name || '',
                         cr_number: fullApp.cr_number || '',
                         city: fullApp.city || '',
+                        city_of_operation: fullApp.city_of_operation || '',
+                        financing_type: fullApp.financing_type || '',
                         contact_person: fullApp.contact_person || '',
                         contact_person_number: fullApp.contact_person_number || '',
                         business_email: fullApp.business_email || '',
                         notes: fullApp.notes || '',
-                        pos_provider_name: fullApp.pos_provider_name || '',
-                        pos_age_duration_months: fullApp.pos_age_duration_months ? String(fullApp.pos_age_duration_months) : '',
-                        avg_monthly_pos_sales: fullApp.avg_monthly_pos_sales ? String(fullApp.avg_monthly_pos_sales) : '',
                         requested_financing_amount: fullApp.requested_financing_amount ? String(fullApp.requested_financing_amount) : '',
                         preferred_repayment_period_months: fullApp.preferred_repayment_period_months ? String(fullApp.preferred_repayment_period_months) : '',
                         assigned_user_id: fullApp.assigned_user_id || null
@@ -135,13 +133,12 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                 trade_name: '',
                 cr_number: '',
                 city: '',
+                city_of_operation: '',
+                financing_type: '',
                 contact_person: '',
                 contact_person_number: '',
                 business_email: '',
                 notes: '',
-                pos_provider_name: '',
-                pos_age_duration_months: '',
-                avg_monthly_pos_sales: '',
                 requested_financing_amount: '',
                 preferred_repayment_period_months: '',
                 assigned_user_id: null
@@ -600,71 +597,63 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                         </div>
                     </div>
 
-                    {/* Application Details */}
+                    {/* Financing Details */}
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                         <h5 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
                             <DocumentTextIcon className="h-5 w-5 mr-2" />
-                            Application Details
+                            Financing Details
                         </h5>
-                        
-                        {/* POS Information */}
-                        <div className="mt-6">
-                            <h6 className="text-md font-medium text-gray-800 mb-3">POS Information</h6>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">POS Provider Name</label>
-                                    <input
-                                        type="text"
-                                        name="pos_provider_name"
-                                        value={formData.pos_provider_name}
-                                        onChange={handleInputChange}
-                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">POS Age Duration (months)</label>
-                                    <input
-                                        type="number"
-                                        name="pos_age_duration_months"
-                                        value={formData.pos_age_duration_months}
-                                        onChange={handleInputChange}
-                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Average Monthly POS Sales (SAR)</label>
-                                    <input
-                                        type="number"
-                                        name="avg_monthly_pos_sales"
-                                        value={formData.avg_monthly_pos_sales}
-                                        onChange={handleInputChange}
-                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Requested Financing Amount (SAR)</label>
-                                    <input
-                                        type="number"
-                                        name="requested_financing_amount"
-                                        value={formData.requested_financing_amount}
-                                        onChange={handleInputChange}
-                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Preferred Repayment Period (months)</label>
-                                    <input
-                                        type="number"
-                                        name="preferred_repayment_period_months"
-                                        value={formData.preferred_repayment_period_months}
-                                        onChange={handleInputChange}
-                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                    />
-                                </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Financing Type</label>
+                                <select
+                                    name="financing_type"
+                                    value={formData.financing_type}
+                                    onChange={handleInputChange}
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                >
+                                    <option value="">Select type</option>
+                                    <option value="business">Business Financing</option>
+                                    <option value="working_capital">Working Capital</option>
+                                    <option value="expansion">Expansion Financing</option>
+                                    <option value="equipment">Equipment Financing</option>
+                                    <option value="project">Project Financing</option>
+                                    <option value="real_estate">Real Estate</option>
+                                    <option value="pos">POS Financing</option>
+                                    <option value="general">General / Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">City of Operation</label>
+                                <input
+                                    type="text"
+                                    name="city_of_operation"
+                                    value={formData.city_of_operation}
+                                    onChange={handleInputChange}
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Requested Amount (SAR)</label>
+                                <input
+                                    type="number"
+                                    name="requested_financing_amount"
+                                    value={formData.requested_financing_amount}
+                                    onChange={handleInputChange}
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Repayment Period (months)</label>
+                                <input
+                                    type="number"
+                                    name="preferred_repayment_period_months"
+                                    value={formData.preferred_repayment_period_months}
+                                    onChange={handleInputChange}
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                />
                             </div>
                         </div>
-                        
-                        {/* Notes */}
                         <div className="mt-4">
                             <label className="text-sm font-medium text-gray-700">Notes</label>
                             <textarea
@@ -675,29 +664,6 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                                 placeholder="Application notes..."
                             />
-                        </div>
-
-                        {/* File Upload */}
-                        <div className="mt-4">
-                            <label className="text-sm font-medium text-gray-700">Upload Document</label>
-                            <div className="mt-1">
-                                <input
-                                    type="file"
-                                    onChange={handleFileChange}
-                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                                />
-                            </div>
-                            {application.uploaded_filename && (
-                                <p className="mt-2 text-sm text-gray-600">
-                                    Current file: {application.uploaded_filename}
-                                </p>
-                            )}
-                            {fileUpload && (
-                                <p className="mt-2 text-sm text-blue-600">
-                                    New file selected: {fileUpload.name}
-                                </p>
-                            )}
                         </div>
                     </div>
 

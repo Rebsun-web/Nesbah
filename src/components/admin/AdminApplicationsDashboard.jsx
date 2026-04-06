@@ -28,6 +28,7 @@ export default function AdminApplicationsDashboard() {
     const [error, setError] = useState('')
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
+    const [financingFilter, setFinancingFilter] = useState('all')
     const [sortBy, setSortBy] = useState('submitted_at')
     const [sortOrder, setSortOrder] = useState('desc')
     const [currentPage, setCurrentPage] = useState(1)
@@ -51,6 +52,7 @@ export default function AdminApplicationsDashboard() {
                 limit: '10',
                 search: searchTerm,
                 status: statusFilter,
+                financing_type: financingFilter,
                 sortBy,
                 sortOrder
             })
@@ -139,7 +141,7 @@ export default function AdminApplicationsDashboard() {
     useEffect(() => {
         fetchApplications()
         checkStatusUpdates()
-    }, [currentPage, searchTerm, statusFilter, sortBy, sortOrder])
+    }, [currentPage, searchTerm, statusFilter, financingFilter, sortBy, sortOrder])
 
     const handleNewApplicationSuccess = (newApplication) => {
         fetchApplications()
@@ -211,8 +213,6 @@ export default function AdminApplicationsDashboard() {
             {/* Header with Status Update Alert */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Applications Management</h2>
-                    <p className="text-gray-600">Manage business applications and track auction statuses</p>
                 </div>
                 
                 <div className="flex items-center space-x-3">
@@ -267,6 +267,21 @@ export default function AdminApplicationsDashboard() {
                         <option value="completed">Completed</option>
                         <option value="ignored">Ignored</option>
                     </select>
+                    <select
+                        value={financingFilter}
+                        onChange={(e) => setFinancingFilter(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                        <option value="all">All Types</option>
+                        <option value="business">Business</option>
+                        <option value="working_capital">Working Capital</option>
+                        <option value="expansion">Expansion</option>
+                        <option value="equipment">Equipment</option>
+                        <option value="project">Project</option>
+                        <option value="real_estate">Real Estate</option>
+                        <option value="pos">POS</option>
+                        <option value="general">General</option>
+                    </select>
                     
                     <select
                         value={sortBy}
@@ -301,7 +316,7 @@ export default function AdminApplicationsDashboard() {
                                     Business Info
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    POS Details
+                                    Financing
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Financial
@@ -361,20 +376,21 @@ export default function AdminApplicationsDashboard() {
                                             </div>
                                         </td>
 
-                                        {/* POS Details */}
+                                        {/* Financing Details */}
                                         <td className="px-6 py-4">
-                                            <div className="text-sm text-gray-900">
-                                                {application.pos_provider_name || 'N/A'}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                Age: {application.pos_age_duration_months || 'N/A'} months
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                {application.number_of_pos_devices || 'N/A'} devices
-                                            </div>
-                                            <div className="text-xs text-gray-400">
-                                                {application.city_of_operation || 'N/A'}
-                                            </div>
+                                            {application.financing_type ? (
+                                                <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
+                                                    {application.financing_type.replace(/_/g, ' ')}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">—</span>
+                                            )}
+                                            {application.city_of_operation && (
+                                                <div className="text-xs text-gray-500 mt-1">{application.city_of_operation}</div>
+                                            )}
+                                            {application.requested_financing_amount && (
+                                                <div className="text-xs text-gray-500 mt-0.5">{formatMoney(application.requested_financing_amount)}</div>
+                                            )}
                                         </td>
 
                                         {/* Financial Information */}

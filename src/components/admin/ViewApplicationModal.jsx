@@ -273,79 +273,42 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                         </div>
                     </div>
 
-                    {/* POS & Application Details */}
+                    {/* Financing Details */}
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                         <h5 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
                             <DocumentTextIcon className="h-5 w-5 mr-2" />
-                            POS & Application Details
+                            Financing Details
                         </h5>
-                        
-                        {/* POS Information */}
-                        <div className="mt-6">
-                            <h6 className="text-md font-medium text-gray-800 mb-3">POS Information</h6>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {application.financing_type && (
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">POS Provider Name</label>
-                                    <p className="text-sm text-gray-900">{application.pos_provider_name || 'N/A'}</p>
+                                    <label className="text-sm font-medium text-gray-700">Financing Type</label>
+                                    <p className="text-sm text-gray-900 capitalize">{application.financing_type.replace(/_/g, ' ')}</p>
                                 </div>
+                            )}
+                            {application.city_of_operation && (
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">POS Age Duration</label>
-                                    <p className="text-sm text-gray-900">
-                                        {application.pos_age_duration_months ? `${application.pos_age_duration_months} months` : 'N/A'}
-                                    </p>
+                                    <label className="text-sm font-medium text-gray-700">City of Operation</label>
+                                    <p className="text-sm text-gray-900">{application.city_of_operation}</p>
                                 </div>
+                            )}
+                            {application.requested_financing_amount && (
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">Average Monthly POS Sales</label>
-                                    <p className="text-sm text-gray-900">
-                                        {formatMoney(application.avg_monthly_pos_sales)}
-                                    </p>
+                                    <label className="text-sm font-medium text-gray-700">Requested Amount</label>
+                                    <p className="text-sm text-gray-900">{formatMoney(application.requested_financing_amount)}</p>
                                 </div>
-                            </div>
+                            )}
+                            {application.preferred_repayment_period_months && (
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">Repayment Period</label>
+                                    <p className="text-sm text-gray-900">{application.preferred_repayment_period_months} months</p>
+                                </div>
+                            )}
                         </div>
-                        
-                        {/* Financial Information */}
-                        <div className="mt-6">
-                            <h6 className="text-md font-medium text-gray-800 mb-3">Financial Information</h6>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Requested Financing Amount</label>
-                                    <p className="text-sm text-gray-900">
-                                        {formatMoney(application.requested_financing_amount)}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Preferred Repayment Period</label>
-                                    <p className="text-sm text-gray-900">
-                                        {application.preferred_repayment_period_months ? `${application.preferred_repayment_period_months} months` : 'N/A'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        {/* Notes */}
                         {application.notes && (
                             <div className="mt-4">
                                 <label className="text-sm font-medium text-gray-700">Notes</label>
                                 <p className="text-sm text-gray-900 mt-1">{application.notes}</p>
-                            </div>
-                        )}
-                        
-                        {/* Uploaded Document */}
-                        {application.uploaded_filename && (
-                            <div className="mt-4">
-                                <label className="text-sm font-medium text-gray-700">Uploaded Document</label>
-                                <div className="flex items-center space-x-3 mt-1">
-                                    <p className="text-sm text-gray-900">{application.uploaded_filename}</p>
-                                    <button
-                                        onClick={() => downloadDocument(application.application_id, application.uploaded_filename)}
-                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 border border-blue-200 rounded-md hover:bg-blue-200 transition-colors"
-                                    >
-                                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        Download
-                                    </button>
-                                </div>
                             </div>
                         )}
                     </div>
