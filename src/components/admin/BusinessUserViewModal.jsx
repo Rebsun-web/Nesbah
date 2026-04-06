@@ -14,29 +14,17 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
     const fetchDetailedUserInfo = async () => {
         setLoading(true);
         try {
-            console.log(`🔍 Fetching detailed user info for ID: ${user.user_id}`);
             const response = await fetch(`/api/admin/users/business/${user.user_id}`, {
                 credentials: 'include'
             });
-            
-            console.log(`🔍 Response status: ${response.status} ${response.statusText}`);
-            
             if (response.ok) {
                 const result = await response.json();
-                console.log(`🔍 API response:`, result);
-                if (result.success) {
-                    setDetailedUser(result.data);
-                } else {
-                    console.error('API returned error:', result.error);
-                    setDetailedUser(null);
-                }
+                if (result.success) setDetailedUser(result.data);
+                else setDetailedUser(null);
             } else {
-                const errorText = await response.text();
-                console.error('HTTP error:', response.status, response.statusText, errorText);
                 setDetailedUser(null);
             }
-        } catch (error) {
-            console.error('Error fetching detailed user info:', error);
+        } catch {
             setDetailedUser(null);
         } finally {
             setLoading(false);
@@ -45,337 +33,160 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
 
     if (!isOpen || !user) return null;
 
+    const d = detailedUser;
+
     const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return null;
         try {
-            return new Date(dateString).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
+            return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         } catch {
             return dateString;
         }
     };
 
-    const formatAuctionEndTime = (endTime) => {
-        if (!endTime) return 'N/A';
-        try {
-            const endDate = new Date(endTime);
-            const now = new Date();
-            const timeDiff = endDate - now;
-            
-            if (timeDiff <= 0) {
-                return 'Auction ended';
-            }
-            
-            const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-            const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-            
-            return `${hours}h ${minutes}m ${seconds}s remaining`;
-        } catch {
-            return endTime;
-        }
-    };
-
-    const formatCapital = (amount) => {
-        if (!amount) return 'N/A';
+    const formatMoney = (amount) => {
+        if (!amount) return null;
         return `SAR ${parseFloat(amount).toLocaleString()}`;
     };
 
-    const formatArray = (array) => {
-        if (!array) return 'N/A';
-        if (Array.isArray(array)) {
-            return array.join(', ');
-        }
-        return array;
-    };
-
-    const formatActivities = (activities) => {
-        if (!activities) return 'N/A';
-        
-        // If it's a string, try to split by comma
-        if (typeof activities === 'string') {
-            const activityList = activities.split(',').map(activity => activity.trim());
-            return activityList.map((activity, index) => (
-                <div key={index} className="mb-1">
-                    • {activity}
-                </div>
-            ));
-        }
-        
-        // If it's an array, format each item
-        if (Array.isArray(activities)) {
-            return activities.map((activity, index) => (
-                <div key={index} className="mb-1">
-                    • {activity}
-                </div>
-            ));
-        }
-        
-        return activities;
-    };
-
-    const formatContactInfo = (contactInfo) => {
-        if (!contactInfo) return 'N/A';
-        if (typeof contactInfo === 'string') {
-            try {
-                contactInfo = JSON.parse(contactInfo);
-            } catch {
-                return contactInfo;
-            }
-        }
-        
-        const parts = [];
-        if (contactInfo.email) parts.push(`Email: ${contactInfo.email}`);
-        if (contactInfo.phone) parts.push(`Phone: ${contactInfo.phone}`);
-        if (contactInfo.mobile) parts.push(`Mobile: ${contactInfo.mobile}`);
-        if (contactInfo.website) parts.push(`Website: ${contactInfo.website}`);
-        
-        return parts.length > 0 ? parts.join(', ') : 'N/A';
+    const Field = ({ label, value }) => {
+        if (!value) return null;
+        return (
+            <div>
+                <label className="block text-sm font-medium text-gray-700">{label}</label>
+                <p className="text-sm text-gray-900">{value}</p>
+            </div>
+        );
     };
 
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
                 <div className="mt-3">
                     {/* Header */}
                     <div className="flex items-center justify-between pb-4 border-b border-gray-200">
                         <div className="flex items-center space-x-2">
-                            <h3 className="text-lg font-medium text-gray-900">
-                                Business User Details
-                            </h3>
+                            <h3 className="text-lg font-medium text-gray-900">Business User Details</h3>
                             {loading && (
-                                <div className="flex items-center space-x-1">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                    <span className="text-sm text-gray-500">Loading...</span>
-                                </div>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
                             )}
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600"
-                        >
+                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
                             <XMarkIcon className="h-6 w-6" />
                         </button>
                     </div>
 
-                    {/* Content */}
                     <div className="mt-4 space-y-6">
-                        {/* Basic Information */}
+                        {/* Basic Info */}
                         <div>
-                            <h4 className="text-md font-semibold text-gray-900 mb-3">Basic Information</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                                    <p className="text-sm text-gray-900">{detailedUser?.email || user?.email || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Trade Name</label>
-                                    <p className="text-sm text-gray-900">{detailedUser?.trade_name || user?.trade_name || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">CR National Number</label>
-                                    <p className="text-sm text-gray-900">{detailedUser?.cr_national_number || user?.cr_national_number || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">CR Number</label>
-                                    <p className="text-sm text-gray-900">{detailedUser?.cr_number || user?.cr_number || 'N/A'}</p>
-                                </div>
+                            <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide text-gray-500">Business</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <Field label="Email" value={d?.email || user?.email} />
+                                <Field label="Trade Name" value={d?.trade_name || user?.trade_name} />
+                                <Field label="CR National Number" value={d?.cr_national_number || user?.cr_national_number} />
+                                <Field label="CR Number" value={d?.cr_number || user?.cr_number} />
+                                <Field label="City" value={d?.city || d?.headquarter_city_name || user?.city} />
                             </div>
                         </div>
 
-                        {/* Legal & Registration Information */}
+                        {/* Application Info */}
                         <div>
-                            <h4 className="text-md font-semibold text-gray-900 mb-3">Legal & Registration</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Legal Form</label>
-                                    <p className="text-sm text-gray-900">{detailedUser?.legal_form || user?.legal_form || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Issue Date</label>
-                                    <p className="text-sm text-gray-900">{formatDate(detailedUser?.issue_date_gregorian || user?.issue_date_gregorian)}</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Confirmation Date</label>
-                                    <p className="text-sm text-gray-900">{formatDate(detailedUser?.confirmation_date_gregorian || user?.confirmation_date_gregorian)}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Location Information */}
-                        <div>
-                            <h4 className="text-md font-semibold text-gray-900 mb-3">Location Information</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">City</label>
-                                    <p className="text-sm text-gray-900">{detailedUser?.city || detailedUser?.headquarter_city_name || user?.city || user?.headquarter_city_name || 'N/A'}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Business Activities */}
-                        <div>
-                            <h4 className="text-md font-semibold text-gray-900 mb-3">Business Activities</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700">Activities</label>
-                                    <div className="text-sm text-gray-900">
-                                        {formatActivities(detailedUser?.activities || user?.activities)}
+                            <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">Application</h4>
+                            {loading ? (
+                                <p className="text-sm text-gray-500">Loading...</p>
+                            ) : d?.application_id ? (
+                                <div className="bg-blue-50 border border-blue-200 rounded-md p-4 space-y-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {d.application_contact_person && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600">Contact Person</label>
+                                                <p className="text-sm text-gray-900">{d.application_contact_person}</p>
+                                            </div>
+                                        )}
+                                        {d.application_contact_phone && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600">Phone</label>
+                                                <p className="text-sm text-gray-900">{d.application_contact_phone}</p>
+                                            </div>
+                                        )}
+                                        {d.application_contact_email && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600">Email</label>
+                                                <p className="text-sm text-gray-900">{d.application_contact_email}</p>
+                                            </div>
+                                        )}
+                                        {d.financing_type && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600">Financing Type</label>
+                                                <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
+                                                    {d.financing_type.replace(/_/g, ' ')}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {d.city_of_operation && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600">City of Operation</label>
+                                                <p className="text-sm text-gray-900">{d.city_of_operation}</p>
+                                            </div>
+                                        )}
+                                        {d.requested_financing_amount && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600">Requested Amount</label>
+                                                <p className="text-sm text-gray-900">{formatMoney(d.requested_financing_amount)}</p>
+                                            </div>
+                                        )}
+                                        {d.application_submitted_at && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600">Submitted</label>
+                                                <p className="text-sm text-gray-900">{formatDate(d.application_submitted_at)}</p>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Capital Information */}
-                        <div>
-                            <h4 className="text-md font-semibold text-gray-900 mb-3">Capital Information</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">CR Capital</label>
-                                    <p className="text-sm text-gray-900">{formatCapital(detailedUser?.cr_capital || user?.cr_capital)}</p>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        {/* E-commerce Information */}
-                        <div>
-                            <h4 className="text-md font-semibold text-gray-900 mb-3">E-commerce Information</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Has E-commerce</label>
-                                    <p className="text-sm text-gray-900">
-                                        {(detailedUser?.has_ecommerce ?? user?.has_ecommerce) ? 'Yes' : 'No'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Management Information */}
-                        <div>
-                            <h4 className="text-md font-semibold text-gray-900 mb-3">Management Information</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Management Structure</label>
-                                    <p className="text-sm text-gray-900">{detailedUser?.management_structure || user?.management_structure || 'N/A'}</p>
-                                </div>
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700">Managers</label>
-                                    <p className="text-sm text-gray-900">{formatArray(detailedUser?.management_managers || user?.management_managers)}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Contact Information */}
-                        <div>
-                            <h4 className="text-md font-semibold text-gray-900 mb-3">Application Contact Information</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="md:col-span-2">
-                                    {loading ? (
-                                        <p className="text-sm text-gray-500">Loading application details...</p>
-                                    ) : detailedUser?.application_id ? (
-                                        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 space-y-2">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-600">Contact Person</label>
-                                                    <p className="text-sm text-gray-900">{detailedUser.application_contact_person || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-600">Contact Phone</label>
-                                                    <p className="text-sm text-gray-900">{detailedUser.application_contact_phone || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-600">Contact Email</label>
-                                                    <p className="text-sm text-gray-900">{detailedUser.application_contact_email || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-600">Application Date</label>
-                                                    <p className="text-sm text-gray-900">{formatDate(detailedUser.application_submitted_at)}</p>
-                                                </div>
-                                            </div>
-                                                                                            <div className="mt-2 pt-2 border-t border-blue-200 space-y-2">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs text-gray-600">Current Status:</span>
-                                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                            detailedUser.calculated_application_status === 'live_auction' ? 'bg-green-100 text-green-800' :
-                                                            detailedUser.calculated_application_status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                                            detailedUser.calculated_application_status === 'ignored' ? 'bg-red-100 text-red-800' :
-                                                            'bg-gray-100 text-gray-800'
-                                                        }`}>
-                                                            {detailedUser.calculated_application_status || 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                {detailedUser.auction_end_time && (
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs text-gray-600">Auction End:</span>
-                                                        <span className="text-xs text-gray-900">{formatAuctionEndTime(detailedUser.auction_end_time)}</span>
-                                                    </div>
-                                                )}
-                                                {detailedUser.offers_count !== null && (
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs text-gray-600">Offers Received:</span>
-                                                        <span className="text-xs text-gray-900">{detailedUser.offers_count}</span>
-                                                    </div>
-                                                )}
-                                                {detailedUser.status_was_corrected && (
-                                                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
-                                                        <p className="text-xs text-green-700">
-                                                            ✅ Status automatically corrected from {detailedUser.application_status} to {detailedUser.calculated_application_status}
-                                                        </p>
-                                                        <p className="text-xs text-green-600 mt-1">
-                                                            Reason: {detailedUser.status_correction_reason}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ) : detailedUser ? (
-                                        <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
-                                            <p className="text-sm text-gray-600">No application submitted yet</p>
-                                        </div>
-                                    ) : (
-                                        <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                                            <p className="text-sm text-red-600">Error loading user details. User may not exist in the database.</p>
+                                    {d.calculated_application_status && (
+                                        <div className="flex items-center gap-2 pt-2 border-t border-blue-200">
+                                            <span className="text-xs text-gray-600">Status:</span>
+                                            <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                                                d.calculated_application_status === 'live_auction' ? 'bg-green-100 text-green-800' :
+                                                d.calculated_application_status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                                d.calculated_application_status === 'ignored' ? 'bg-red-100 text-red-800' :
+                                                'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {d.calculated_application_status}
+                                            </span>
+                                            {d.offers_count !== null && (
+                                                <span className="text-xs text-gray-500">• {d.offers_count} offer{d.offers_count !== 1 ? 's' : ''}</span>
+                                            )}
                                         </div>
                                     )}
                                 </div>
-                            </div>
+                            ) : d ? (
+                                <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+                                    <p className="text-sm text-gray-600">No application submitted yet</p>
+                                </div>
+                            ) : (
+                                <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                                    <p className="text-sm text-red-600">Error loading user details</p>
+                                </div>
+                            )}
                         </div>
 
-                        {/* Verification Information */}
-                        <div>
-                            <h4 className="text-md font-semibold text-gray-900 mb-3">Verification Information</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Verification Status</label>
-                                    <p className="text-sm text-gray-900">
-                                        {(detailedUser?.is_verified ?? user?.is_verified) ? 'Verified' : 'Not Verified'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Verification Date</label>
-                                    <p className="text-sm text-gray-900">{formatDate(detailedUser?.verification_date || user?.verification_date)}</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Created At</label>
-                                    <p className="text-sm text-gray-900">{formatDate(detailedUser?.created_at || user?.created_at)}</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Last Updated</label>
-                                    <p className="text-sm text-gray-900">{formatDate(detailedUser?.updated_at || user?.updated_at)}</p>
-                                </div>
+                        {/* Account Info */}
+                        <div className="border-t border-gray-100 pt-4">
+                            <div className="flex items-center gap-6 text-xs text-gray-500">
+                                {(d?.is_verified ?? user?.is_verified) !== undefined && (
+                                    <span>{(d?.is_verified ?? user?.is_verified) ? '✓ Verified' : 'Not verified'}</span>
+                                )}
+                                {formatDate(d?.created_at || user?.created_at) && (
+                                    <span>Joined {formatDate(d?.created_at || user?.created_at)}</span>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Footer */}
                     <div className="mt-6 flex justify-end">
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm"
                         >
                             Close
                         </button>

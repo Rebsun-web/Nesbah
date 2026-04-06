@@ -45,7 +45,10 @@ export async function GET(req, { params }) {
                     pa.status as application_status,
                     pa.application_id,
                     pa.auction_end_time,
-                    pa.offers_count
+                    pa.offers_count,
+                    pa.financing_type,
+                    pa.city_of_operation,
+                    pa.requested_financing_amount
                 FROM business_users bu
                 JOIN users u ON bu.user_id = u.user_id
                 LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
