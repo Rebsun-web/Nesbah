@@ -333,6 +333,16 @@ export default function AdminApplicationsDashboard() {
                                             <div className="text-xs text-gray-400">
                                                 {formatCountdown(application.auction_end_time)}
                                             </div>
+                                            {application.financing_type && (
+                                                <span className="mt-1 inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
+                                                    {application.financing_type.replace(/_/g, ' ')}
+                                                </span>
+                                            )}
+                                            {application.reference_number && (
+                                                <div className="text-xs text-gray-400 mt-0.5">
+                                                    {application.reference_number}
+                                                </div>
+                                            )}
                                         </td>
 
                                         {/* Business Information */}

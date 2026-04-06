@@ -150,7 +150,7 @@ export const translations = {
     submit: { ar: 'إرسال الطلب', en: 'Submit Request' },
     backHome: { ar: 'العودة للرئيسية', en: 'Back to Home' },
     successTitle: { ar: 'تم إرسال طلبك بنجاح!', en: 'Request Submitted Successfully!' },
-    successMsg: { ar: 'سيتم التواصل معك من قبل جهات التمويل قريباً.', en: 'Financing providers will contact you soon.' },
+    successMsg: { ar: 'سيتواصل معك فريقنا قريباً عبر واتساب أو البريد الإلكتروني.', en: 'Our team will follow up with you shortly via WhatsApp or email.' },
     successCta: { ar: 'العودة للصفحة الرئيسية', en: 'Back to Homepage' },
     financingTypes: [
       { ar: 'تمويل الشركات', en: 'Business Financing' },
