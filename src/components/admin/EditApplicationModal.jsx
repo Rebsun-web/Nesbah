@@ -27,16 +27,14 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
         status: '',
         admin_notes: '',
         trade_name: '',
-        cr_number: '',
-        city: '',
         city_of_operation: '',
+        sector: '',
         financing_type: '',
+        approximate_financing_amount: '',
         contact_person: '',
         contact_person_number: '',
-        business_email: '',
+        business_contact_email: '',
         notes: '',
-        requested_financing_amount: '',
-        preferred_repayment_period_months: '',
         assigned_user_id: null
     })
     const [crNumberError, setCrNumberError] = useState('')
@@ -91,16 +89,14 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                         status: correctStatus || '',
                         admin_notes: fullApp.admin_notes || '',
                         trade_name: fullApp.trade_name || '',
-                        cr_number: fullApp.cr_number || '',
-                        city: fullApp.city || '',
                         city_of_operation: fullApp.city_of_operation || '',
+                        sector: fullApp.sector || '',
                         financing_type: fullApp.financing_type || '',
+                        approximate_financing_amount: fullApp.approximate_financing_amount || '',
                         contact_person: fullApp.contact_person || '',
                         contact_person_number: fullApp.contact_person_number || '',
-                        business_email: fullApp.business_email || '',
+                        business_contact_email: fullApp.business_contact_email || '',
                         notes: fullApp.notes || '',
-                        requested_financing_amount: fullApp.requested_financing_amount ? String(fullApp.requested_financing_amount) : '',
-                        preferred_repayment_period_months: fullApp.preferred_repayment_period_months ? String(fullApp.preferred_repayment_period_months) : '',
                         assigned_user_id: fullApp.assigned_user_id || null
                     })
                     console.log('EditApplicationModal: Full application data loaded:', fullApp)
@@ -131,16 +127,14 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                 status: '',
                 admin_notes: '',
                 trade_name: '',
-                cr_number: '',
-                city: '',
                 city_of_operation: '',
+                sector: '',
                 financing_type: '',
+                approximate_financing_amount: '',
                 contact_person: '',
                 contact_person_number: '',
-                business_email: '',
+                business_contact_email: '',
                 notes: '',
-                requested_financing_amount: '',
-                preferred_repayment_period_months: '',
                 assigned_user_id: null
             })
             setFileUpload(null)
@@ -520,7 +514,7 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                             </h5>
                             <div className="space-y-3">
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">Trade Name</label>
+                                    <label className="text-sm font-medium text-gray-700">Business Name</label>
                                     <input
                                         type="text"
                                         name="trade_name"
@@ -530,26 +524,21 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">CR Number</label>
-                                    <input
-                                        type="text"
-                                        name="cr_number"
-                                        value={formData.cr_number}
-                                        onChange={handleInputChange}
-                                        className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                                            crNumberError ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                    />
-                                    {crNumberError && (
-                                        <p className="mt-1 text-sm text-red-600">{crNumberError}</p>
-                                    )}
-                                </div>
-                                <div>
                                     <label className="text-sm font-medium text-gray-700">City</label>
                                     <input
                                         type="text"
-                                        name="city"
-                                        value={formData.city}
+                                        name="city_of_operation"
+                                        value={formData.city_of_operation}
+                                        onChange={handleInputChange}
+                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">Sector</label>
+                                    <input
+                                        type="text"
+                                        name="sector"
+                                        value={formData.sector}
                                         onChange={handleInputChange}
                                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                                     />
@@ -587,10 +576,10 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                                     <label className="text-sm font-medium text-gray-700">Business Email</label>
                                     <input
                                         type="email"
-                                        name="business_email"
-                                        value={formData.business_email}
+                                        name="business_contact_email"
+                                        value={formData.business_contact_email}
                                         onChange={handleInputChange}
-                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                                     />
                                 </div>
                             </div>
@@ -624,45 +613,30 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                                 </select>
                             </div>
                             <div>
-                                <label className="text-sm font-medium text-gray-700">City of Operation</label>
-                                <input
-                                    type="text"
-                                    name="city_of_operation"
-                                    value={formData.city_of_operation}
+                                <label className="text-sm font-medium text-gray-700">Approximate Amount Needed</label>
+                                <select
+                                    name="approximate_financing_amount"
+                                    value={formData.approximate_financing_amount}
                                     onChange={handleInputChange}
                                     className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-gray-700">Requested Amount (SAR)</label>
-                                <input
-                                    type="number"
-                                    name="requested_financing_amount"
-                                    value={formData.requested_financing_amount}
-                                    onChange={handleInputChange}
-                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-gray-700">Repayment Period (months)</label>
-                                <input
-                                    type="number"
-                                    name="preferred_repayment_period_months"
-                                    value={formData.preferred_repayment_period_months}
-                                    onChange={handleInputChange}
-                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                />
+                                >
+                                    <option value="">Select range</option>
+                                    <option value="Less than 250K SAR">Less than 250K SAR</option>
+                                    <option value="250K – 1M SAR">250K – 1M SAR</option>
+                                    <option value="1M – 5M SAR">1M – 5M SAR</option>
+                                    <option value="More than 5M SAR">More than 5M SAR</option>
+                                </select>
                             </div>
                         </div>
                         <div className="mt-4">
-                            <label className="text-sm font-medium text-gray-700">Notes</label>
+                            <label className="text-sm font-medium text-gray-700">Purpose of Financing</label>
                             <textarea
                                 name="notes"
                                 value={formData.notes}
                                 onChange={handleInputChange}
                                 rows={3}
                                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                placeholder="Application notes..."
+                                placeholder="Purpose of financing..."
                             />
                         </div>
                     </div>

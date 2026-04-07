@@ -211,9 +211,11 @@ export async function PUT(req, { params }) {
             city_of_operation,
             contact_person,
             contact_person_number,
-            business_email,
+            business_contact_email,
             notes,
             financing_type,
+            approximate_financing_amount,
+            sector,
             pos_provider_name,
             pos_age_duration_months,
             avg_monthly_pos_sales,
@@ -291,6 +293,14 @@ export async function PUT(req, { params }) {
             if (financing_type !== undefined) {
                 updateFields.push(`financing_type = $${paramCount++}`);
                 updateValues.push(financing_type);
+            }
+            if (approximate_financing_amount !== undefined) {
+                updateFields.push(`approximate_financing_amount = $${paramCount++}`);
+                updateValues.push(approximate_financing_amount || null);
+            }
+            if (sector !== undefined) {
+                updateFields.push(`sector = $${paramCount++}`);
+                updateValues.push(sector || null);
             }
             if (contact_person !== undefined) {
                 updateFields.push(`contact_person = $${paramCount++}`);
@@ -401,13 +411,12 @@ export async function PUT(req, { params }) {
                 console.log(`⚠️ Application ${applicationId}: reset_auction requested but status is not 'live_auction' (${status}), ignoring reset`);
             }
 
-            // Update business user email if provided (including empty string to clear it)
-            if (business_email !== undefined) {
+            // Update business_contact_email on pos_application if provided
+            if (business_contact_email !== undefined) {
                 await client.query(
-                    'UPDATE users SET email = $1 WHERE user_id = (SELECT business_user_id FROM pos_application WHERE application_id = $2)',
-                    [business_email || null, applicationId]
+                    'UPDATE pos_application SET business_contact_email = $1 WHERE application_id = $2',
+                    [business_contact_email || null, applicationId]
                 );
-                console.log(`✅ Business email updated to: ${business_email || 'null (cleared)'}`);
             }
 
             // Update POS application details if fields provided

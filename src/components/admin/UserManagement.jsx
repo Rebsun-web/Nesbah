@@ -477,10 +477,8 @@ export default function UserManagement() {
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trade Name</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CR Number</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Legal Form</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capital</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Financing</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
@@ -491,11 +489,26 @@ export default function UserManagement() {
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm font-medium text-gray-900">{user.email}</div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.trade_name || user.entity_name || 'N/A'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.cr_number || user.cr_national_number || 'N/A'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.legal_form || 'N/A'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {user.cr_capital ? `SAR ${user.cr_capital.toLocaleString()}` : 'N/A'}
+                                                <td className="px-6 py-4">
+                                                    <div className="text-sm font-medium text-gray-900">{user.trade_name || user.entity_name || '—'}</div>
+                                                    {(user.headquarter_city_name || user.city) && (
+                                                        <div className="text-xs text-gray-500">{user.headquarter_city_name || user.city}</div>
+                                                    )}
+                                                    {user.sector && (
+                                                        <div className="text-xs text-gray-400">{user.sector}</div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {user.financing_type ? (
+                                                        <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
+                                                            {user.financing_type.replace(/_/g, ' ')}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400">—</span>
+                                                    )}
+                                                    {user.approximate_financing_amount && (
+                                                        <div className="text-xs text-gray-500 mt-1">{user.approximate_financing_amount}</div>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                     <div className="flex space-x-2">
@@ -582,21 +595,29 @@ export default function UserManagement() {
                                         
                                         {/* User Info */}
                                         <div className="mb-3">
-                                            <h4 className="text-sm font-medium text-gray-900 mb-1">{user.trade_name || user.entity_name || 'N/A'}</h4>
+                                            <h4 className="text-sm font-medium text-gray-900 mb-1">{user.trade_name || user.entity_name || '—'}</h4>
                                             <div className="text-xs text-gray-500 space-y-1">
-                                                <div>{t('common.email')}: {user.email}</div>
-                                                <div>CR: {user.cr_number || user.cr_national_number || 'N/A'}</div>
-                                                <div>{user.legal_form || 'N/A'}</div>
+                                                <div>{user.email}</div>
+                                                {(user.headquarter_city_name || user.city) && (
+                                                    <div>{user.headquarter_city_name || user.city}</div>
+                                                )}
+                                                {user.sector && <div>{user.sector}</div>}
                                             </div>
                                         </div>
-                                        
-                                        {/* Capital */}
-                                        <div className="mb-3">
-                                            <span className="text-xs text-gray-500">{t('admin.capital')}:</span>
-                                            <div className="text-sm font-medium text-gray-900">
-                                                {user.cr_capital ? `SAR ${user.cr_capital.toLocaleString()}` : 'N/A'}
+
+                                        {/* Financing */}
+                                        {(user.financing_type || user.approximate_financing_amount) && (
+                                            <div className="mb-3">
+                                                {user.financing_type && (
+                                                    <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
+                                                        {user.financing_type.replace(/_/g, ' ')}
+                                                    </span>
+                                                )}
+                                                {user.approximate_financing_amount && (
+                                                    <div className="text-xs text-gray-500 mt-1">{user.approximate_financing_amount}</div>
+                                                )}
                                             </div>
-                                        </div>
+                                        )}
                                         
                                         {/* Actions */}
                                         <div className="flex justify-end space-x-2 pt-3 border-t border-gray-100">

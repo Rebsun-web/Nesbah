@@ -93,13 +93,14 @@ export async function GET(req) {
                     bu.management_managers,
                     bu.contact_info,
                     -- New POS Application Fields
-                    pa.pos_provider_name as pos_provider,
-                    pa.pos_age_duration_months as pos_age,
-                    pa.avg_monthly_pos_sales as monthly_sales,
                     pa.requested_financing_amount as financing_amount,
                     pa.preferred_repayment_period_months as repayment_period,
                     pa.financing_type,
                     pa.reference_number,
+                    COALESCE(pa.sector, bu.sector) as sector,
+                    pa.notes,
+                    pa.business_contact_email,
+                    pa.approximate_financing_amount,
                     -- Check if bank has already viewed this application
                     CASE WHEN $1 = ANY(pa.opened_by) THEN true ELSE false END as has_viewed,
                     -- Check if bank has already purchased this application

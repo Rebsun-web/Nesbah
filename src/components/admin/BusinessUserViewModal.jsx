@@ -129,10 +129,10 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
                                                 <p className="text-sm text-gray-900">{d.city_of_operation}</p>
                                             </div>
                                         )}
-                                        {d.requested_financing_amount && (
+                                        {d.approximate_financing_amount && (
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-600">Requested Amount</label>
-                                                <p className="text-sm text-gray-900">{formatMoney(d.requested_financing_amount)}</p>
+                                                <label className="block text-xs font-medium text-gray-600">Approximate Amount</label>
+                                                <p className="text-sm text-gray-900">{d.approximate_financing_amount}</p>
                                             </div>
                                         )}
                                         {d.application_submitted_at && (

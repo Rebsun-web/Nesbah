@@ -111,6 +111,8 @@ export async function GET(req) {
                     pa.cash_capital,
                     pa.management_structure,
                     pa.financing_type,
+                    pa.approximate_financing_amount,
+                    pa.business_contact_email,
                     pa.reference_number,
                     pa.offers_count,
                     pa.revenue_collected,
@@ -129,7 +131,7 @@ export async function GET(req) {
                     bu.headquarter_district_name,
                     bu.headquarter_street_name,
                     bu.headquarter_building_number,
-                    bu.sector,
+                    COALESCE(pa.sector, bu.sector) as sector,
                     bu.management_managers,
                     bu.is_verified,
                     bu.verification_date,
@@ -155,14 +157,7 @@ export async function GET(req) {
             
             queryParams.push(limit, offset);
             
-            console.log('🔍 API Debug - Pagination params:', { page, limit, offset, paramCount })
-            console.log('🔍 API Debug - Query params:', queryParams)
-
             const applicationsResult = await client.query(query, queryParams);
-            
-            console.log('🔍 API Debug - Total count:', total)
-            console.log('🔍 API Debug - Applications result rows:', applicationsResult.rows.length)
-            console.log('🔍 API Debug - Applications result:', applicationsResult.rows)
 
             return NextResponse.json({
                 success: true,
@@ -302,10 +297,6 @@ export async function POST(req) {
 
             const user_id = existingBusinessUser.rows[0].user_id;
             const businessUserData = existingBusinessUser.rows[0];
-            console.log(`Using existing business user: ${user_id} for CR: ${cr_national_number}`);
-
-            // Use existing business user data for the application
-            console.log(`Using business user data for application creation`);
 
             // Create POS application (same as business submission)
             const submitted_at = new Date();

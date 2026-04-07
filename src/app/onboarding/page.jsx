@@ -181,6 +181,7 @@ function OnboardingForm() {
           contact_person_number: formData.phone,
           email: formData.email,
           financing_type: formData.financingType,
+          approximate_financing_amount: formData.amount,
           notes: formData.purpose,
         }),
       })

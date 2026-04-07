@@ -37,6 +37,7 @@ export async function POST(req) {
             business_name,
             email,
             sector,
+            approximate_financing_amount,
         } = body;
 
         // Input validation
@@ -134,13 +135,17 @@ export async function POST(req) {
                     preferred_repayment_period_months,
                     auction_end_time,
                     opened_by,
-                    purchased_by
+                    purchased_by,
+                    sector,
+                    business_contact_email,
+                    approximate_financing_amount
                 ) VALUES (
                     NULL,
                     $1, $2, 'live_auction', $3, $4, $5,
                     $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
                     $18, $19, $20, $21, $22, $23,
-                    '{}', '{}'
+                    '{}', '{}',
+                    $24, $25, $26
                 )
                 RETURNING application_id`,
                 [
@@ -167,6 +172,9 @@ export async function POST(req) {
                     requested_financing_amount || null,                      // $21
                     preferred_repayment_period_months || null,               // $22
                     auction_end_time,                                        // $23
+                    sector || null,                                          // $24
+                    email || null,                                           // $25
+                    approximate_financing_amount || null,                    // $26
                 ]
             );
 

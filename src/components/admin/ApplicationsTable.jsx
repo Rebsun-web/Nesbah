@@ -291,10 +291,7 @@ export default function ApplicationsTable() {
                                     Business Info
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    POS Details
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Financial
+                                    Financing
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Status & Tracking
@@ -328,11 +325,6 @@ export default function ApplicationsTable() {
                                             <div className="text-xs text-gray-400">
                                                 {formatCountdown(application.auction_end_time)}
                                             </div>
-                                            {application.financing_type && (
-                                                <span className="mt-1 inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
-                                                    {application.financing_type.replace('_', ' ')}
-                                                </span>
-                                            )}
                                         </td>
 
                                         {/* Business Information */}
@@ -340,47 +332,26 @@ export default function ApplicationsTable() {
                                             <div className="text-sm font-medium text-gray-900">
                                                 {safeTextFormat(application.trade_name, 30)}
                                             </div>
-                                            <div className="text-sm text-gray-500">
-                                                CR: {safeTextFormat(application.cr_number)}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                {safeTextFormat(application.city)}
-                                            </div>
-                                            <div className="text-xs text-gray-400">
-                                                {safeTextFormat(application.legal_form)} • {safeTextFormat(application.registration_status)}
-                                            </div>
+                                            {application.city_of_operation && (
+                                                <div className="text-sm text-gray-500">{application.city_of_operation}</div>
+                                            )}
+                                            {application.sector && (
+                                                <div className="text-xs text-gray-400">{application.sector}</div>
+                                            )}
                                         </td>
 
-                                        {/* POS Details */}
+                                        {/* Financing Details */}
                                         <td className="px-6 py-4">
-                                            <div className="text-sm text-gray-900">
-                                                {application.pos_provider_name || 'N/A'}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                Age: {application.pos_age_duration_months || 'N/A'} months
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                {application.number_of_pos_devices || 'N/A'} devices
-                                            </div>
-                                            <div className="text-xs text-gray-400">
-                                                {application.city_of_operation || 'N/A'}
-                                            </div>
-                                        </td>
-
-                                        {/* Financial Information */}
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm font-medium text-gray-900">
-                                                {formatMoney(application.requested_financing_amount)}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                {application.preferred_repayment_period_months || 'N/A'} months
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                Sales: {formatMoney(application.avg_monthly_pos_sales)}
-                                            </div>
-                                            <div className="text-xs text-gray-400">
-                                                Capital: {formatMoney(application.cr_capital)}
-                                            </div>
+                                            {application.financing_type ? (
+                                                <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
+                                                    {application.financing_type.replace(/_/g, ' ')}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">—</span>
+                                            )}
+                                            {application.approximate_financing_amount && (
+                                                <div className="text-xs text-gray-500 mt-1">{application.approximate_financing_amount}</div>
+                                            )}
                                         </td>
 
                                         {/* Status & Tracking */}
@@ -472,28 +443,26 @@ export default function ApplicationsTable() {
                             <div className="mb-3">
                                 <h4 className="text-sm font-medium text-gray-900 mb-1">{safeTextFormat(application.trade_name, 30)}</h4>
                                 <div className="text-xs text-gray-500 space-y-1">
-                                    <div>CR: {safeTextFormat(application.cr_number)}</div>
-                                    <div>{safeTextFormat(application.city)} • {safeTextFormat(application.legal_form)}</div>
+                                    {application.city_of_operation && <div>{application.city_of_operation}</div>}
+                                    {application.sector && <div>{application.sector}</div>}
                                 </div>
                             </div>
-                            
-                            {/* Financial Info */}
+
+                            {/* Financing Info */}
                             <div className="grid grid-cols-2 gap-3 mb-3">
                                 <div>
-                                    <span className="text-xs text-gray-500">{t('admin.financingAmount')}:</span>
-                                    <div className="text-sm font-medium text-gray-900">{formatMoney(application.requested_financing_amount)}</div>
+                                    <span className="text-xs text-gray-500">Financing Type:</span>
+                                    <div className="text-sm font-medium text-gray-900">
+                                        {application.financing_type ? (
+                                            <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
+                                                {application.financing_type.replace(/_/g, ' ')}
+                                            </span>
+                                        ) : '—'}
+                                    </div>
                                 </div>
                                 <div>
-                                    <span className="text-xs text-gray-500">{t('admin.repaymentPeriod')}:</span>
-                                    <div className="text-sm font-medium text-gray-900">{application.preferred_repayment_period_months || 'N/A'} months</div>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-gray-500">{t('admin.monthlySales')}:</span>
-                                    <div className="text-sm font-medium text-gray-900">{formatMoney(application.avg_monthly_pos_sales)}</div>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-gray-500">{t('admin.posProvider')}:</span>
-                                    <div className="text-sm font-medium text-gray-900">{application.pos_provider_name || 'N/A'}</div>
+                                    <span className="text-xs text-gray-500">Amount:</span>
+                                    <div className="text-sm font-medium text-gray-900">{application.approximate_financing_amount || '—'}</div>
                                 </div>
                             </div>
                             

@@ -221,28 +221,24 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                                 Business Information
                             </h5>
                             <div className="space-y-3">
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Trade Name</label>
-                                    <p className="text-sm text-gray-900">{application.trade_name || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">CR Number</label>
-                                    <p className="text-sm text-gray-900">{application.cr_number || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">City</label>
-                                    <p className="text-sm text-gray-900 flex items-center">
-                                        {application.city || 'N/A'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Legal Form</label>
-                                    <p className="text-sm text-gray-900">{application.legal_form || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">CR Capital</label>
-                                    <p className="text-sm text-gray-900">{formatMoney(application.cr_capital)}</p>
-                                </div>
+                                {application.trade_name && (
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Business Name</label>
+                                        <p className="text-sm text-gray-900">{application.trade_name}</p>
+                                    </div>
+                                )}
+                                {application.city_of_operation && (
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">City</label>
+                                        <p className="text-sm text-gray-900">{application.city_of_operation}</p>
+                                    </div>
+                                )}
+                                {(application.sector) && (
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Sector</label>
+                                        <p className="text-sm text-gray-900">{application.sector}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -263,12 +259,12 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                                         {application.contact_person_number || 'N/A'}
                                     </p>
                                 </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Business Email</label>
-                                    <p className="text-sm text-gray-900">
-                                        {application.business_email && application.business_email.trim() !== '' ? application.business_email : 'N/A'}
-                                    </p>
-                                </div>
+                                {application.business_contact_email && (
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Business Email</label>
+                                        <p className="text-sm text-gray-900">{application.business_contact_email}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -283,32 +279,22 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                             {application.financing_type && (
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">Financing Type</label>
-                                    <p className="text-sm text-gray-900 capitalize">{application.financing_type.replace(/_/g, ' ')}</p>
+                                    <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
+                                        {application.financing_type.replace(/_/g, ' ')}
+                                    </span>
                                 </div>
                             )}
-                            {application.city_of_operation && (
+                            {application.approximate_financing_amount && (
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">City of Operation</label>
-                                    <p className="text-sm text-gray-900">{application.city_of_operation}</p>
-                                </div>
-                            )}
-                            {application.requested_financing_amount && (
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Requested Amount</label>
-                                    <p className="text-sm text-gray-900">{formatMoney(application.requested_financing_amount)}</p>
-                                </div>
-                            )}
-                            {application.preferred_repayment_period_months && (
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Repayment Period</label>
-                                    <p className="text-sm text-gray-900">{application.preferred_repayment_period_months} months</p>
+                                    <label className="text-sm font-medium text-gray-700">Approximate Amount Needed</label>
+                                    <p className="text-sm text-gray-900">{application.approximate_financing_amount}</p>
                                 </div>
                             )}
                         </div>
                         {application.notes && (
                             <div className="mt-4">
-                                <label className="text-sm font-medium text-gray-700">Notes</label>
-                                <p className="text-sm text-gray-900 mt-1">{application.notes}</p>
+                                <label className="text-sm font-medium text-gray-700">Purpose of Financing</label>
+                                <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{application.notes}</p>
                             </div>
                         )}
                     </div>

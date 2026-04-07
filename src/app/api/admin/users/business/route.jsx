@@ -29,7 +29,7 @@ export async function GET(req) {
         try {
             // Fetch all business users with comprehensive data
             const result = await client.query(`
-                SELECT 
+                SELECT
                     bu.user_id,
                     bu.cr_national_number,
                     bu.cr_number,
@@ -61,9 +61,19 @@ export async function GET(req) {
                     u.email,
                     u.user_type,
                     u.account_status,
-                    u.entity_name
+                    u.entity_name,
+                    -- Latest application onboarding fields
+                    pa.financing_type,
+                    pa.approximate_financing_amount
                 FROM business_users bu
                 JOIN users u ON bu.user_id = u.user_id
+                LEFT JOIN LATERAL (
+                    SELECT financing_type, approximate_financing_amount
+                    FROM pos_application
+                    WHERE user_id = bu.user_id
+                    ORDER BY submitted_at DESC
+                    LIMIT 1
+                ) pa ON true
                 ORDER BY bu.created_at DESC
             `);
 

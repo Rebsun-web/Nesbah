@@ -319,9 +319,6 @@ export default function AdminApplicationsDashboard() {
                                     Financing
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Financial
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Status & Tracking
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -348,11 +345,6 @@ export default function AdminApplicationsDashboard() {
                                             <div className="text-xs text-gray-400">
                                                 {formatCountdown(application.auction_end_time)}
                                             </div>
-                                            {application.financing_type && (
-                                                <span className="mt-1 inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
-                                                    {application.financing_type.replace(/_/g, ' ')}
-                                                </span>
-                                            )}
                                             {application.reference_number && (
                                                 <div className="text-xs text-gray-400 mt-0.5">
                                                     {application.reference_number}
@@ -365,15 +357,12 @@ export default function AdminApplicationsDashboard() {
                                             <div className="text-sm font-medium text-gray-900">
                                                 {safeTextFormat(application.trade_name, 30)}
                                             </div>
-                                            <div className="text-sm text-gray-500">
-                                                CR: {safeTextFormat(application.cr_number)}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                {safeTextFormat(application.city)}
-                                            </div>
-                                            <div className="text-xs text-gray-400">
-                                                {safeTextFormat(application.legal_form)} • {safeTextFormat(application.registration_status)}
-                                            </div>
+                                            {application.city_of_operation && (
+                                                <div className="text-sm text-gray-500">{application.city_of_operation}</div>
+                                            )}
+                                            {application.sector && (
+                                                <div className="text-xs text-gray-400">{application.sector}</div>
+                                            )}
                                         </td>
 
                                         {/* Financing Details */}
@@ -385,28 +374,9 @@ export default function AdminApplicationsDashboard() {
                                             ) : (
                                                 <span className="text-xs text-gray-400">—</span>
                                             )}
-                                            {application.city_of_operation && (
-                                                <div className="text-xs text-gray-500 mt-1">{application.city_of_operation}</div>
+                                            {application.approximate_financing_amount && (
+                                                <div className="text-xs text-gray-500 mt-1">{application.approximate_financing_amount}</div>
                                             )}
-                                            {application.requested_financing_amount && (
-                                                <div className="text-xs text-gray-500 mt-0.5">{formatMoney(application.requested_financing_amount)}</div>
-                                            )}
-                                        </td>
-
-                                        {/* Financial Information */}
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm font-medium text-gray-900">
-                                                {formatMoney(application.requested_financing_amount)}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                {application.preferred_repayment_period_months || 'N/A'} months
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                Sales: {formatMoney(application.avg_monthly_pos_sales)}
-                                            </div>
-                                            <div className="text-xs text-gray-400">
-                                                Capital: {formatMoney(application.cr_capital)}
-                                            </div>
                                         </td>
 
                                         {/* Status & Tracking */}

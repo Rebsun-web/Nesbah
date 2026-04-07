@@ -39,7 +39,7 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden items-center gap-8 md:flex">
-          <a href="/#how" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <a href="/#how" className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors">
             {t(n.howItWorks)}
           </a>
 
@@ -47,7 +47,7 @@ export default function Navbar() {
             <button
               onClick={() => setSolutionsOpen(!solutionsOpen)}
               onBlur={() => setTimeout(() => setSolutionsOpen(false), 200)}
-              className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1 text-base font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               {t(n.solutions)}
               <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${solutionsOpen ? 'rotate-180' : ''}`} />
@@ -68,13 +68,13 @@ export default function Navbar() {
             )}
           </div>
 
-          <a href="/#why-nesbah" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <a href="/#why-nesbah" className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors">
             {t(n.whyNesbah)}
           </a>
-          <Link href="/knowledge" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="/knowledge" className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors">
             {lang === 'ar' ? 'مركز المعرفة' : 'Knowledge Center'}
           </Link>
-          <a href="/#faq" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <a href="/#faq" className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors">
             {t(n.faq)}
           </a>
         </div>

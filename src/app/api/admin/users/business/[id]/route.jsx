@@ -40,7 +40,7 @@ export async function GET(req, { params }) {
                     -- Application contact information
                     pa.contact_person as application_contact_person,
                     pa.contact_person_number as application_contact_phone,
-                    u.email as application_contact_email,
+                    COALESCE(pa.business_contact_email, u.email) as application_contact_email,
                     pa.submitted_at as application_submitted_at,
                     pa.status as application_status,
                     pa.application_id,
@@ -48,7 +48,7 @@ export async function GET(req, { params }) {
                     pa.offers_count,
                     pa.financing_type,
                     pa.city_of_operation,
-                    pa.requested_financing_amount
+                    pa.approximate_financing_amount
                 FROM business_users bu
                 JOIN users u ON bu.user_id = u.user_id
                 LEFT JOIN pos_application pa ON bu.user_id = pa.user_id

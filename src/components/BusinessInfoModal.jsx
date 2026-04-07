@@ -108,117 +108,48 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                     Business Information
                                                 </h4>
                                                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                                                    <div className="flex justify-between items-start">
-                                                        <span className="text-sm font-medium text-gray-700">Business Name:</span>
-                                                        <span className="text-sm text-gray-900 text-right max-w-[60%] break-words">{businessData.trade_name || 'N/A'}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">CR Number:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.cr_number || 'N/A'}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">CR National Number:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.cr_national_number || 'N/A'}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Legal Form:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.legal_form || 'N/A'}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">CR Status:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.registration_status || 'N/A'}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">CR Issue Date:</span>
-                                                        <span className="text-sm text-gray-900">{formatDate(businessData.issue_date_gregorian)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">City:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.city_of_operation || businessData.address || 'N/A'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* POS & Financial Information */}
-                                            <div className="space-y-4">
-                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
-                                                    <CurrencyDollarIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                                                    POS & Financial Details
-                                                </h4>
-                                                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">POS Provider:</span>
-                                                        <span className="text-sm text-gray-900">
-                                                            {businessData.pos_provider_name || 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">POS Age (months):</span>
-                                                        <span className="text-sm text-gray-900">
-                                                            {businessData.pos_age_duration_months || 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Monthly POS Sales:</span>
-                                                        <span className="text-sm text-gray-900">
-                                                            {formatMoney(businessData.avg_monthly_pos_sales)}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Requested Amount:</span>
-                                                        <span className="text-sm text-gray-900">
-                                                            {formatMoney(businessData.requested_financing_amount)}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Repayment Period:</span>
-                                                        <span className="text-sm text-gray-900">
-                                                            {businessData.preferred_repayment_period_months ? 
-                                                                `${businessData.preferred_repayment_period_months} months` : 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                    {businessData.store_url && (
+                                                    {(businessData.company_name || businessData.trade_name) && (
+                                                        <div className="flex justify-between items-start">
+                                                            <span className="text-sm font-medium text-gray-700">Business Name:</span>
+                                                            <span className="text-sm text-gray-900 text-right max-w-[60%] break-words">{businessData.company_name || businessData.trade_name}</span>
+                                                        </div>
+                                                    )}
+                                                    {(businessData.city || businessData.city_of_operation) && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Store URL:</span>
-                                                            <span className="text-sm text-gray-900">
-                                                                <a href={businessData.store_url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
-                                                                    {businessData.store_url}
-                                                                </a>
-                                                            </span>
+                                                            <span className="text-sm font-medium text-gray-700">City:</span>
+                                                            <span className="text-sm text-gray-900">{businessData.city || businessData.city_of_operation}</span>
+                                                        </div>
+                                                    )}
+                                                    {businessData.sector && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-gray-700">Sector:</span>
+                                                            <span className="text-sm text-gray-900">{businessData.sector}</span>
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
 
-                                            {/* Business Activities */}
+                                            {/* Financing Details */}
                                             <div className="space-y-4">
                                                 <h4 className="text-md font-medium text-gray-900 flex items-center">
-                                                    <DocumentTextIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                                                    Business Activities
+                                                    <CurrencyDollarIcon className="h-5 w-5 text-indigo-600 mr-2" />
+                                                    Financing Details
                                                 </h4>
                                                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Activities:</span>
-                                                        <span className="text-sm text-gray-900">
-                                                            {(() => {
-                                                                try {
-                                                                    if (Array.isArray(businessData.activities)) {
-                                                                        return businessData.activities.join(', ');
-                                                                    } else if (businessData.activities) {
-                                                                        return businessData.activities.toString().split(',').map(activity => activity.trim()).join(', ');
-                                                                    }
-                                                                    return 'N/A';
-                                                                } catch (error) {
-                                                                    console.error('Error processing activities:', error);
-                                                                    return 'Error loading activities';
-                                                                }
-                                                            })()}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">E-commerce:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.has_ecommerce ? 'Yes' : 'No'}</span>
-                                                    </div>
+                                                    {businessData.financing_type && (
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-sm font-medium text-gray-700">Financing Type:</span>
+                                                            <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
+                                                                {businessData.financing_type.replace(/_/g, ' ')}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {businessData.approximate_financing_amount && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-gray-700">Approximate Amount Needed:</span>
+                                                            <span className="text-sm text-gray-900">{businessData.approximate_financing_amount}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -229,21 +160,40 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                     Contact Information
                                                 </h4>
                                                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Contact Person:</span>
-                                                        <span className="text-sm text-gray-900">{maskContactInfo('name', businessData.contact_person)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Phone:</span>
-                                                        <span className="text-sm text-gray-900">{maskContactInfo('phone', businessData.contact_person_number)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Email:</span>
-                                                        <span className="text-sm text-gray-900">{maskContactInfo('email', businessData.business_contact_email)}</span>
-                                                    </div>
+                                                    {businessData.contact_person && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-gray-700">Contact Person:</span>
+                                                            <span className="text-sm text-gray-900">{maskContactInfo('name', businessData.contact_person)}</span>
+                                                        </div>
+                                                    )}
+                                                    {businessData.contact_person_number && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-gray-700">Mobile Number:</span>
+                                                            <span className="text-sm text-gray-900">{maskContactInfo('phone', businessData.contact_person_number)}</span>
+                                                        </div>
+                                                    )}
+                                                    {businessData.business_contact_email && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-gray-700">Email:</span>
+                                                            <span className="text-sm text-gray-900">{maskContactInfo('email', businessData.business_contact_email)}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* Purpose of Financing */}
+                                        {businessData.notes && (
+                                            <div className="mt-6 space-y-2">
+                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                                    <DocumentTextIcon className="h-5 w-5 text-indigo-600 mr-2" />
+                                                    Purpose of Financing
+                                                </h4>
+                                                <div className="bg-gray-50 rounded-lg p-4">
+                                                    <p className="text-sm text-gray-900 whitespace-pre-wrap">{businessData.notes}</p>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* Additional Information */}
                                         <div className="mt-6 space-y-4">
@@ -271,22 +221,6 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
 
 
 
-                                        {/* Application Comments */}
-                                        {(businessData.notes || businessData.application_notes || businessData.comments) && (
-                                            <div className="mt-6 space-y-4">
-                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
-                                                    <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                                    </svg>
-                                                    Application Notes & Comments
-                                                </h4>
-                                                <div className="bg-gray-50 rounded-lg p-4">
-                                                    <p className="text-sm text-gray-900 whitespace-pre-wrap">
-                                                        {businessData.notes || businessData.application_notes || businessData.comments || 'No notes or comments available'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
 
                                         {/* Uploaded Files */}
                                         {businessData.uploaded_filename && (

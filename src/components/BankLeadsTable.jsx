@@ -149,15 +149,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
         }
     };
 
-    const formatMoney = (amount) => {
-        if (!amount) return 'N/A'
-        const num = typeof amount === 'string' ? parseFloat(amount.replace(/[^\d.]/g, '')) : amount
-        if (isNaN(num)) return 'N/A'
-        return `SAR ${num.toLocaleString('en-US', { 
-            minimumFractionDigits: 0, 
-            maximumFractionDigits: 2 
-        })}`
-    }
+
 
     const sortedData = [...data].sort((a, b) => {
         // Sort by countdown time (closest to expiry first)
@@ -193,20 +185,11 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                     <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 rounded-tl-md w-28">
                                         Type
                                     </th>
-                                    <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-24">
-                                        POS Provider
-                                    </th>
-                                    <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-20">
-                                        POS Age
-                                    </th>
-                                    <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-28">
-                                        Monthly Sales
+                                    <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-32">
+                                        City
                                     </th>
                                     <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-28">
                                         Financing Amount
-                                    </th>
-                                    <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-24">
-                                        Repayment
                                     </th>
                                     <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-24">
                                         Submitted
@@ -240,20 +223,11 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                                     <div className="text-xs text-purple-600 font-mono mt-0.5">{lead.reference_number}</div>
                                                 )}
                                             </td>
-                                            <td className="px-3 py-3 text-xs text-start text-gray-900 font-medium truncate" title={lead.pos_provider || 'N/A'}>
-                                                {lead.pos_provider || 'N/A'}
+                                            <td className="px-3 py-3 text-xs text-start text-gray-700 truncate" title={lead.city || '—'}>
+                                                {lead.city || '—'}
                                             </td>
-                                            <td className="px-3 py-3 text-xs text-start text-gray-700">
-                                                {lead.pos_age || 'N/A'}
-                                            </td>
-                                            <td className="px-3 py-3 text-xs text-start text-gray-700 truncate" title={formatMoney(lead.monthly_sales)}>
-                                                {formatMoney(lead.monthly_sales)}
-                                            </td>
-                                            <td className="px-3 py-3 text-xs text-start text-gray-700 truncate" title={formatMoney(lead.financing_amount)}>
-                                                {formatMoney(lead.financing_amount)}
-                                            </td>
-                                            <td className="px-3 py-3 text-xs text-start text-gray-700">
-                                                {lead.repayment_period ? `${lead.repayment_period}m` : 'N/A'}
+                                            <td className="px-3 py-3 text-xs text-start text-gray-700 truncate" title={lead.approximate_financing_amount || '—'}>
+                                                {lead.approximate_financing_amount || '—'}
                                             </td>
                                             <td className="px-3 py-3 text-xs text-start text-gray-700 truncate" title={new Date(lead.submitted_at).toLocaleString()}>
                                                 {new Date(lead.submitted_at).toLocaleDateString()}
@@ -291,7 +265,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                                     <div>
                                         <span className="text-sm font-medium text-gray-900">
-                                            {lead.pos_provider || 'N/A'}
+                                            {lead.city || lead.company_name || '—'}
                                         </span>
                                         <div className="flex items-center gap-1 mt-0.5">
                                             <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
@@ -311,20 +285,16 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                             
                             <div className="grid grid-cols-2 gap-3 text-xs">
                                 <div>
-                                    <span className="text-gray-500">Monthly Sales:</span>
-                                    <div className="font-medium text-gray-900">{formatMoney(lead.monthly_sales)}</div>
+                                    <span className="text-gray-500">City:</span>
+                                    <div className="font-medium text-gray-900">{lead.city || '—'}</div>
                                 </div>
                                 <div>
                                     <span className="text-gray-500">Financing Amount:</span>
-                                    <div className="font-medium text-gray-900">{formatMoney(lead.financing_amount)}</div>
+                                    <div className="font-medium text-gray-900">{lead.approximate_financing_amount || '—'}</div>
                                 </div>
                                 <div>
-                                    <span className="text-gray-500">POS Age:</span>
-                                    <div className="font-medium text-gray-900">{lead.pos_age || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <span className="text-gray-500">Repayment:</span>
-                                    <div className="font-medium text-gray-900">{lead.repayment_period ? `${lead.repayment_period}m` : 'N/A'}</div>
+                                    <span className="text-gray-500">Contact:</span>
+                                    <div className="font-medium text-gray-900">{lead.contact_person || '—'}</div>
                                 </div>
                             </div>
                             

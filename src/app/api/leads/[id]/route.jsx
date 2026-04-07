@@ -64,23 +64,18 @@ export async function GET(req, { params }) {
                 pa.uploaded_mimetype,
                 pa.contact_person,
                 pa.contact_person_number,
-                
-                -- POS Application Specific Fields
-                pa.pos_provider_name,
-                pa.pos_age_duration_months,
-                pa.avg_monthly_pos_sales,
-                pa.requested_financing_amount,
-                pa.preferred_repayment_period_months,
-                pa.has_ecommerce,
-                pa.store_url,
-                
-                -- Business Information (Wathiq API data)
-                bu.trade_name,
+                pa.financing_type,
+                pa.approximate_financing_amount,
+                pa.reference_number,
+
+                -- Business Information (onboarding + Wathiq fallback)
+                COALESCE(pa.trade_name, bu.trade_name) as trade_name,
+                COALESCE(pa.sector, bu.sector) as sector,
+                COALESCE(pa.business_contact_email, u.email) as business_contact_email,
                 bu.cr_number,
                 bu.cr_national_number,
                 bu.registration_status,
                 bu.address,
-                bu.sector,
                 bu.cr_capital,
                 bu.cash_capital,
                 bu.in_kind_capital,
@@ -95,9 +90,8 @@ export async function GET(req, { params }) {
                 bu.admin_notes,
                 bu.is_verified,
                 bu.verification_date,
-                
+
                 -- User Information
-                u.email as business_contact_email,
                 u.entity_name as business_entity_name
             FROM pos_application pa
             LEFT JOIN business_users bu ON pa.user_id = bu.user_id
@@ -108,14 +102,13 @@ export async function GET(req, { params }) {
         if (isOpened && !isPurchased) {
             // Hide sensitive information for opened but not purchased applications
             appQuery = appQuery.replace('bu.contact_info,', `'{}'::jsonb AS contact_info,`);
-            appQuery = appQuery.replace('pa.contact_person as business_contact_person,', `'' as business_contact_person,`);
-            appQuery = appQuery.replace('pa.contact_person_number as business_contact_telephone,', `'' as business_contact_person_number,`);
-            appQuery = appQuery.replace('u.email as business_contact_email', `'' as business_contact_email`);
+            // Contact fields are masked client-side in BusinessInfoModal (maskContactInfo)
+            // Server returns the data; client shows t***, 05********, ***@***.com
             
             // Hide some Wathiq data for opened but not purchased applications
             appQuery = appQuery.replace('bu.management_managers,', `'{}'::jsonb AS management_managers,`);
-            appQuery = appQuery.replace('COALESCE(bu.activities, ARRAY[]::text[]) as activities,', `ARRAY[]::text[] AS activities,`);
-            appQuery = appQuery.replace('COALESCE(bu.admin_notes, \'\') as admin_notes,', `'' as admin_notes,`);
+            appQuery = appQuery.replace('bu.activities,', `ARRAY[]::text[] AS activities,`);
+            appQuery = appQuery.replace('bu.admin_notes,', `'' as admin_notes,`);
         }
 
         if (!isOpened) {
