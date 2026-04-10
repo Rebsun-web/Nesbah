@@ -7,8 +7,12 @@ const isBuildEnvironment = process.env.NODE_ENV === 'production' && process.env.
 
 // In production, prioritize individual env vars to avoid URL encoding issues
 // In development, use DATABASE_URL if available
-const useIndividualVars = process.env.NODE_ENV === 'production' && 
+const useIndividualVars = process.env.NODE_ENV === 'production' &&
   (process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD);
+
+// Cloud SQL Auth Proxy connects via Unix socket — SSL is handled by the proxy itself
+// and must NOT be enabled on the pg client side when using a socket path
+const isUnixSocket = process.env.PGHOST && process.env.PGHOST.startsWith('/');
 
 const poolConfig = useIndividualVars ? {
   host: process.env.PGHOST,
@@ -16,9 +20,9 @@ const poolConfig = useIndividualVars ? {
   database: process.env.PGDATABASE,
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
-  ssl: {
+  ssl: isUnixSocket ? false : {
     rejectUnauthorized: false,
-    checkServerIdentity: () => undefined, // Skip hostname verification
+    checkServerIdentity: () => undefined,
   }
 } : process.env.DATABASE_URL ? {
   connectionString: process.env.DATABASE_URL,
