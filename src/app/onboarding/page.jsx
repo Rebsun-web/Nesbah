@@ -185,8 +185,13 @@ function OnboardingForm() {
           notes: formData.purpose,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Submission failed')
+      let data
+      try {
+        data = await res.json()
+      } catch {
+        throw new Error('حدث خطأ في الاتصال بالخادم. يرجى المحاولة مجدداً. / Server error, please try again.')
+      }
+      if (!res.ok) throw new Error(data.error || 'حدث خطأ. يرجى المحاولة مجدداً. / Submission failed, please try again.')
       setReferenceNumber(data.reference_number)
       setSubmitted(true)
     } catch (err) {
