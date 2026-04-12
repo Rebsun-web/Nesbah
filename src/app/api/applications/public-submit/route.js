@@ -40,9 +40,9 @@ export async function POST(req) {
         } = body;
 
         // Input validation
-        if (!cr_national_number || !contact_person || !contact_person_number || !city_of_operation || !financing_type) {
+        if (!cr_national_number || !contact_person || !contact_person_number || !financing_type) {
             return NextResponse.json(
-                { success: false, error: 'Missing required fields: cr_national_number, contact_person, contact_person_number, city_of_operation, financing_type' },
+                { success: false, error: 'Missing required fields: cr_national_number, contact_person, contact_person_number, financing_type' },
                 { status: 400 }
             );
         }
@@ -196,6 +196,13 @@ export async function POST(req) {
             });
 
         } catch (err) {
+            console.error('❌ public-submit INSERT failed:', {
+                message: err.message,
+                code: err.code,
+                detail: err.detail,
+                cr_national_number,
+                financing_type,
+            });
             await client.query('ROLLBACK');
             return NextResponse.json(
                 { success: false, error: 'Internal server error' },
@@ -206,6 +213,11 @@ export async function POST(req) {
         }
 
     } catch (err) {
+        console.error('❌ public-submit outer error:', {
+            message: err.message,
+            code: err.code,
+            stack: err.stack?.split('\n').slice(0, 4).join('\n'),
+        });
         return NextResponse.json(
             { success: false, error: 'Internal server error' },
             { status: 500 }
