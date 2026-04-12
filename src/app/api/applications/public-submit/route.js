@@ -61,16 +61,23 @@ export async function POST(req) {
             );
         }
 
-        // Attempt Wathiq verification
+        // Attempt Wathiq verification — 8s timeout so a hung API never blocks submission
         let wathiqData = null;
         let verification_status = 'pending';
         try {
-            wathiqData = await wathiqAPIService.fetchBusinessData(cr_national_number);
+            const wathiqTimeout = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Wathiq timeout after 8000ms')), 8000)
+            );
+            wathiqData = await Promise.race([
+                wathiqAPIService.fetchBusinessData(cr_national_number),
+                wathiqTimeout,
+            ]);
             if (wathiqData) {
                 verification_status = 'verified';
             }
         } catch (wathiqError) {
             const msg = wathiqError.message || '';
+            console.warn('⚠️ Wathiq verification skipped:', msg);
             // 400 from Wathiq = invalid CR number — reject the submission
             if (msg.includes('400')) {
                 return NextResponse.json(
@@ -78,7 +85,7 @@ export async function POST(req) {
                     { status: 422 }
                 );
             }
-            // Any other error (network, 5xx, auth) — proceed with pending status
+            // Timeout, network error, auth error — proceed with pending status
             verification_status = 'pending';
         }
 
