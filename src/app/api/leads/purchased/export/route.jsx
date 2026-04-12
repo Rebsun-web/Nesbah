@@ -52,7 +52,7 @@ export async function GET(req) {
                 pa.pos_provider_name,
                 pa.pos_age_duration_months,
                 pa.avg_monthly_pos_sales,
-                pa.requested_financing_amount,
+                pa.approximate_financing_amount,
                 pa.preferred_repayment_period_months,
                 
                 -- Business Contact Information (NOT from Wathiq)
@@ -176,7 +176,7 @@ export async function GET(req) {
             { header: 'POS Provider Name', key: 'pos_provider_name', width: 25 },
             { header: 'POS Age Duration (months)', key: 'pos_age_duration_months', width: 25 },
             { header: 'Average Monthly POS Sales (SAR)', key: 'avg_monthly_pos_sales', width: 30 },
-            { header: 'Requested Financing Amount (SAR)', key: 'requested_financing_amount', width: 30 },
+            { header: 'Approximate Financing Amount', key: 'approximate_financing_amount', width: 30 },
             { header: 'Preferred Repayment Period (months)', key: 'preferred_repayment_period_months', width: 30 },
             { header: 'Number of POS Devices', key: 'number_of_pos_devices', width: 20 },
             { header: 'Own POS System', key: 'own_pos_system', width: 15 },
@@ -246,7 +246,7 @@ export async function GET(req) {
                 pos_provider_name: row.pos_provider_name || 'Not specified',
                 pos_age_duration_months: row.pos_age_duration_months || 'Not specified',
                 avg_monthly_pos_sales: row.avg_monthly_pos_sales ? `SAR ${parseFloat(row.avg_monthly_pos_sales).toFixed(2)}` : 'Not specified',
-                requested_financing_amount: row.requested_financing_amount ? `SAR ${parseFloat(row.requested_financing_amount).toFixed(2)}` : 'Not specified',
+                approximate_financing_amount: row.approximate_financing_amount || 'Not specified',
                 preferred_repayment_period_months: row.preferred_repayment_period_months ? `${row.preferred_repayment_period_months} months` : 'Not specified',
                 number_of_pos_devices: row.number_of_pos_devices || '',
                 own_pos_system: row.own_pos_system ? 'Yes' : 'No',

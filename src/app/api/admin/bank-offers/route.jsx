@@ -88,7 +88,7 @@ export async function GET(req) {
                     pa.registration_status,
                     bu_user.email as business_email,
                     pa.preferred_repayment_period_months as preferred_repayment_period,
-                    pa.requested_financing_amount,
+                    pa.approximate_financing_amount,
                     -- Calculated application status using standardized logic
                     ${STATUS_CALCULATION_SQL}
                 FROM application_offers ao

@@ -401,7 +401,7 @@ function BankLeadsPage() {
                                                         <div className="flex justify-between">
                                                             <span className="text-sm font-medium text-gray-700">Requested Financing Amount:</span>
                                                             <span className="text-sm text-gray-900">
-                                                                {selectedLead.requested_financing_amount ? `SAR ${parseFloat(selectedLead.requested_financing_amount).toLocaleString()}` : 'N/A'}
+                                                                {selectedLead.approximate_financing_amount || 'N/A'}
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between">

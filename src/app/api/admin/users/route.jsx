@@ -340,6 +340,7 @@ export async function POST(req) {
             user_type,
             email,
             entity_name,
+            cr_national_number,
             first_name,
             last_name,
             registration_status = 'active',
@@ -394,11 +395,19 @@ export async function POST(req) {
                     );
                 }
 
+                if (!cr_national_number || !/^70\d{8}$/.test(cr_national_number)) {
+                    await client.query('ROLLBACK');
+                    return NextResponse.json(
+                        { success: false, error: 'cr_national_number must be exactly 10 digits and start with 70' },
+                        { status: 400 }
+                    );
+                }
+
                 await client.query(
-                    `INSERT INTO business_users 
+                    `INSERT INTO business_users
                         (user_id, cr_national_number, trade_name, address, sector, registration_status)
                     VALUES ($1, $2, $3, $4, $5, $6)`,
-                    [userId, `CR${Date.now()}`, entity_name, 'Default Address', 'Technology', registration_status]
+                    [userId, cr_national_number, entity_name, 'Default Address', 'Technology', registration_status]
                 );
             } else if (user_type === 'individual') {
                 if (!first_name || !last_name) {
@@ -441,7 +450,7 @@ export async function POST(req) {
                     user_id: userId,
                     user_type,
                     email,
-                    password: userPassword,
+                    password: plainPassword,
                     registration_status,
                     timestamp: new Date().toISOString()
                 }

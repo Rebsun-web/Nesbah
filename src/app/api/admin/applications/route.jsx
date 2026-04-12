@@ -96,7 +96,6 @@ export async function GET(req) {
                     pa.pos_provider_name,
                     pa.pos_age_duration_months,
                     pa.avg_monthly_pos_sales,
-                    pa.requested_financing_amount,
                     pa.preferred_repayment_period_months,
                     pa.trade_name,
                     pa.cr_number,
@@ -252,7 +251,7 @@ export async function POST(req) {
             pos_provider_name,
             pos_age_duration_months,
             avg_monthly_pos_sales,
-            requested_financing_amount,
+            approximate_financing_amount,
             preferred_repayment_period_months
         } = body;
 
@@ -266,7 +265,7 @@ export async function POST(req) {
 
         // Validate required POS application fields (same as business submission)
         if (!pos_provider_name || !pos_age_duration_months || 
-            !avg_monthly_pos_sales || !requested_financing_amount || 
+            !avg_monthly_pos_sales || !approximate_financing_amount ||
             !preferred_repayment_period_months) {
             return NextResponse.json(
                 { success: false, error: 'POS provider name, age duration, monthly sales, financing amount, and repayment period are required' },
@@ -311,7 +310,7 @@ export async function POST(req) {
                     contact_person, contact_person_number, number_of_pos_devices, 
                     city_of_operation, auction_end_time, opened_by, purchased_by,
                     pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
-                    requested_financing_amount, preferred_repayment_period_months
+                    approximate_financing_amount, preferred_repayment_period_months
                 ) VALUES (
                     $1, 'live_auction', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
                     $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
@@ -332,7 +331,7 @@ export async function POST(req) {
                     '{}', '{}', // Initialize empty arrays for tracking
                     // Use form data for POS-specific fields
                     pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
-                    requested_financing_amount, preferred_repayment_period_months
+                    approximate_financing_amount, preferred_repayment_period_months
                 ]
             );
 

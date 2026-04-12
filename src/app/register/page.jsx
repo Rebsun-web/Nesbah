@@ -49,7 +49,7 @@ export default function Register() {
     };
 
     const validateCRNumber = (crNumber) => {
-        const crRegex = /^\d{10}$/;
+        const crRegex = /^70\d{8}$/;
         return crRegex.test(crNumber);
     };
 
@@ -175,11 +175,16 @@ export default function Register() {
                     } else {
                         errorMsg = 'This business is already registered. Please log in with your existing account.';
                     }
+                } else if (response.status === 400 && (data.errorCode === 'INVALID_CR_FORMAT' || data.errorCode === 'INVALID_CR_PREFIX')) {
+                    setFieldErrors(prev => ({
+                        ...prev,
+                        cr_national_number: 'CR number must be exactly 10 digits and start with 70 (e.g. 7012345678)'
+                    }));
                 }
-                
+
                 setErrorMessage(errorMsg);
                 setIsModalOpen(true);
-                
+
                 // If it's an existing account, also show a prominent banner
                 if (isExistingAccount) {
                     setFieldErrors(prev => ({

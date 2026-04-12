@@ -113,7 +113,6 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                         pos_provider_name: fullApp.pos_provider_name || '',
                         pos_age_duration_months: fullApp.pos_age_duration_months ? String(fullApp.pos_age_duration_months) : '',
                         avg_monthly_pos_sales: fullApp.avg_monthly_pos_sales ? String(fullApp.avg_monthly_pos_sales) : '',
-                        requested_financing_amount: fullApp.requested_financing_amount ? String(fullApp.requested_financing_amount) : '',
                         preferred_repayment_period_months: fullApp.preferred_repayment_period_months ? String(fullApp.preferred_repayment_period_months) : '',
                         assigned_user_id: fullApp.assigned_user_id || null
                     })
@@ -309,7 +308,6 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                 ...formData,
                 pos_age_duration_months: formData.pos_age_duration_months === '' ? null : formData.pos_age_duration_months,
                 avg_monthly_pos_sales: formData.avg_monthly_pos_sales === '' ? null : formData.avg_monthly_pos_sales,
-                requested_financing_amount: formData.requested_financing_amount === '' ? null : formData.requested_financing_amount,
                 preferred_repayment_period_months: formData.preferred_repayment_period_months === '' ? null : formData.preferred_repayment_period_months,
                 assigned_user_id: formData.assigned_user_id === '' ? null : formData.assigned_user_id
             }

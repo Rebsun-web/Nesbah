@@ -31,7 +31,6 @@ export async function POST(req) {
             city_of_operation,
             financing_type,
             notes,
-            requested_financing_amount,
             preferred_repayment_period_months,
             // Additional fields from Lovable form
             business_name,
@@ -169,7 +168,7 @@ export async function POST(req) {
                     contact_person,                                          // $18
                     contact_person_number,                                   // $19
                     city_of_operation,                                       // $20
-                    requested_financing_amount || null,                      // $21
+                    null,                                                    // $21 (requested_financing_amount — legacy, unused)
                     preferred_repayment_period_months || null,               // $22
                     auction_end_time,                                        // $23
                     sector || null,                                          // $24

@@ -51,20 +51,27 @@ console.log('🔧 Database configuration:', {
   configType: useIndividualVars ? 'individual_vars' : process.env.DATABASE_URL ? 'connection_string' : 'fallback_individual'
 });
 
-const pool = new Pool({
-  ...poolConfig,
-  // Production-optimized connection pool configuration
-  max: process.env.NODE_ENV === 'production' ? 20 : 10, // Higher limit for production
-  min: process.env.NODE_ENV === 'production' ? 3 : 2, // More baseline connections in production
-  idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 60000 : 30000, // Longer idle time in production
-  connectionTimeoutMillis: 30000, // 30 seconds to establish connection (increased for stability)
-  acquireTimeoutMillis: 45000, // 45 seconds to acquire connection (increased for stability)
-  reapIntervalMillis: 1000, // Check for dead connections every second
-  maxUses: process.env.NODE_ENV === 'production' ? 100 : 50, // More uses per connection in production
-  allowExitOnIdle: process.env.NODE_ENV !== 'production', // Don't exit on idle in production
-  // Enhanced SSL configuration
-  ssl: poolConfig.ssl
-});
+// In dev, Next.js hot-reload re-evaluates this module on every file change,
+// creating a new Pool each time while old idle connections linger until timeout.
+// Storing the pool on `global` makes hot-reload reuse the existing instance.
+const globalForPool = /** @type {any} */ (global);
+
+if (!globalForPool._pgPool) {
+  globalForPool._pgPool = new Pool({
+    ...poolConfig,
+    max: process.env.NODE_ENV === 'production' ? 20 : 5,   // dev: cap low — shared Cloud SQL instance
+    min: process.env.NODE_ENV === 'production' ? 3 : 0,    // dev: no idle connections held speculatively
+    idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 60000 : 10000, // dev: release idle connections quickly
+    connectionTimeoutMillis: 30000,
+    acquireTimeoutMillis: 45000,
+    reapIntervalMillis: 1000,
+    maxUses: process.env.NODE_ENV === 'production' ? 100 : 50,
+    allowExitOnIdle: process.env.NODE_ENV !== 'production',
+    ssl: poolConfig.ssl
+  });
+}
+
+const pool = globalForPool._pgPool;
 
 
 // Add safeguard to prevent multiple pool.end() calls

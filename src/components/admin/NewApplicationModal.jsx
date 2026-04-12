@@ -15,11 +15,10 @@ const FINANCING_OPTIONS = [
 ]
 
 const AMOUNT_OPTIONS = [
-    'Less than 50,000 SAR',
-    '50,000 - 200,000 SAR',
-    '200,000 - 500,000 SAR',
-    '500,000 - 1,000,000 SAR',
-    'More than 1,000,000 SAR',
+    'Less than 250K SAR',
+    '250K – 1M SAR',
+    '1M – 5M SAR',
+    'More than 5M SAR',
 ]
 
 export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
@@ -63,8 +62,8 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!formData.cr_national_number || !formData.contact_person || !formData.contact_person_number || !formData.financing_type) {
-            setError('CR number, contact person, phone, and financing type are required.')
+        if (!formData.cr_national_number || !formData.contact_person || !formData.contact_person_number || !formData.city_of_operation || !formData.financing_type) {
+            setError('CR number, city, contact person, phone, and financing type are required.')
             return
         }
         setLoading(true)
@@ -82,11 +81,17 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
                     contact_person_number: formData.contact_person_number,
                     email: formData.email,
                     financing_type: formData.financing_type,
+                    approximate_financing_amount: formData.amount || null,
                     notes: formData.notes,
                 }),
             })
             const data = await res.json()
-            if (!res.ok || !data.success) throw new Error(data.error || 'Submission failed')
+            if (!res.ok || !data.success) {
+                if (res.status === 409) {
+                    throw new Error(`CR number ${formData.cr_national_number} already has an active application.`)
+                }
+                throw new Error(data.error || 'Submission failed')
+            }
             onSuccess(data)
             onClose()
         } catch (err) {

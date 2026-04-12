@@ -39,7 +39,7 @@ export async function sendApplicationSubmissionEmail(businessEmail, applicationD
                 }),
                 city_of_operation: applicationData.city_of_operation,
                 number_of_pos_devices: applicationData.number_of_pos_devices,
-                requested_amount: applicationData.requested_financing_amount,
+                requested_amount: applicationData.approximate_financing_amount,
                 repayment_period: applicationData.preferred_repayment_period_months
             },
             {
@@ -91,7 +91,7 @@ export async function sendAuctionCompletionEmail(businessEmail, applicationData,
                 }),
                 offers_received: offersCount,
                 city_of_operation: applicationData.city_of_operation,
-                requested_amount: applicationData.requested_financing_amount
+                requested_amount: applicationData.approximate_financing_amount
             }
         );
         
@@ -126,7 +126,7 @@ export async function sendNewApplicationNotificationToBanks(bankEmails, applicat
                         application_id: applicationData.application_id,
                         city_of_operation: applicationData.city_of_operation,
                         number_of_pos_devices: applicationData.number_of_pos_devices,
-                        requested_amount: applicationData.requested_financing_amount,
+                        requested_amount: applicationData.approximate_financing_amount,
                         repayment_period: applicationData.preferred_repayment_period_months,
                         auction_end_date: new Date(applicationData.auction_end_time).toLocaleDateString('en-US', {
                             year: 'numeric',
@@ -187,7 +187,7 @@ export async function sendOfferReceivedEmail(businessEmail, applicationData, ban
                     day: 'numeric'
                 }),
                 city_of_operation: applicationData.city_of_operation,
-                requested_amount: applicationData.requested_financing_amount
+                requested_amount: applicationData.approximate_financing_amount
             }
         );
         
@@ -225,7 +225,7 @@ export async function sendApplicationStatusUpdateEmail(businessEmail, applicatio
                     day: 'numeric'
                 }),
                 city_of_operation: applicationData.city_of_operation,
-                requested_amount: applicationData.requested_financing_amount,
+                requested_amount: applicationData.approximate_financing_amount,
                 additional_info: additionalInfo.message || '',
                 next_steps: additionalInfo.nextSteps || ''
             }
@@ -345,7 +345,7 @@ export async function sendAuctionExpirationEmail(businessEmail, applicationData,
                     hour: '2-digit',
                     minute: '2-digit'
                 }),
-                requested_amount: applicationData.requested_financing_amount,
+                requested_amount: applicationData.approximate_financing_amount,
                 offers_received: offersCount,
                 has_offers: offersCount > 0,
                 city_of_operation: applicationData.city_of_operation

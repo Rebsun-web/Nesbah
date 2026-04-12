@@ -71,7 +71,7 @@ export async function GET(req, { params }) {
                 pa.pos_provider_name,
                 pa.pos_age_duration_months,
                 pa.avg_monthly_pos_sales,
-                pa.requested_financing_amount,
+                pa.approximate_financing_amount,
                 pa.preferred_repayment_period_months,
                 bu.contact_info,
                 bu.address,
@@ -117,7 +117,7 @@ export async function GET(req, { params }) {
             pos_provider_name: application.pos_provider_name,
             pos_age_duration_months: application.pos_age_duration_months,
             avg_monthly_pos_sales: application.avg_monthly_pos_sales,
-            requested_financing_amount: application.requested_financing_amount,
+            approximate_financing_amount: application.approximate_financing_amount,
             preferred_repayment_period_months: application.preferred_repayment_period_months
         };
 

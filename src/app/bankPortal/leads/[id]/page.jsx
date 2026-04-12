@@ -321,7 +321,7 @@ function LeadPageContent({ params }) {
 
           <DescriptionTerm>Financing Amount</DescriptionTerm>
           <DescriptionDetails>
-            {application.requested_financing_amount ? `SAR ${application.requested_financing_amount.toLocaleString()}` : 'N/A'}
+            {application.approximate_financing_amount || 'N/A'}
           </DescriptionDetails>
 
           <DescriptionTerm>Repayment Period</DescriptionTerm>

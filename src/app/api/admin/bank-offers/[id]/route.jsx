@@ -47,7 +47,7 @@ export async function GET(req, { params }) {
                     pa.city as application_city,
                     pa.legal_form as application_legal_form,
                     pa.registration_status as application_registration_status,
-                    pa.requested_financing_amount as application_requested_amount,
+                    pa.approximate_financing_amount as application_requested_amount,
                     pa.preferred_repayment_period_months as application_preferred_period,
                     pa.contact_person as application_contact_person,
                     pa.contact_person_number as application_contact_number,

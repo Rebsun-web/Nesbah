@@ -70,7 +70,7 @@ export async function GET(req) {
                 pa.pos_provider_name,
                 pa.pos_age_duration_months,
                 pa.avg_monthly_pos_sales,
-                pa.requested_financing_amount,
+                pa.approximate_financing_amount,
                 pa.preferred_repayment_period_months,
                 
                 -- Business Owner Personal Details (NOT from Wathiq API)

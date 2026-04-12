@@ -28,7 +28,7 @@ export async function POST(req) {
             pos_provider_name,
             pos_age_duration_months,
             avg_monthly_pos_sales,
-            requested_financing_amount,
+            approximate_financing_amount,
             preferred_repayment_period_months
         } = body;
 
@@ -103,7 +103,7 @@ export async function POST(req) {
                 number_of_pos_devices || null, city_of_operation || null, auction_end_time,
                 [], [], // Initialize empty arrays for tracking (no ignored_by needed)
                 pos_provider_name || null, pos_age_duration_months || null, avg_monthly_pos_sales || null,
-                requested_financing_amount || null, preferred_repayment_period_months || null
+                approximate_financing_amount || null, preferred_repayment_period_months || null
             ];
 
             console.log('🔍 POS Application API: Inserting with params:', queryParams.map((p, i) => {
@@ -124,7 +124,7 @@ export async function POST(req) {
                      contact_person, contact_person_number, number_of_pos_devices, 
                      city_of_operation, auction_end_time, opened_by, purchased_by,
                      pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
-                     requested_financing_amount, preferred_repayment_period_months)
+                     approximate_financing_amount, preferred_repayment_period_months)
                 VALUES 
                     ($1, 'live_auction', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
                      $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
@@ -154,7 +154,7 @@ export async function POST(req) {
                 auction_end_time,
                 city_of_operation,
                 number_of_pos_devices,
-                requested_financing_amount,
+                approximate_financing_amount,
                 preferred_repayment_period_months
             };
 

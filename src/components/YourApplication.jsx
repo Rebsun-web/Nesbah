@@ -240,7 +240,7 @@ export default function YourApplication({ user }) {
                     )}
 
                     {/* Requested Financing Amount */}
-                    {app.requested_financing_amount && (
+                    {app.approximate_financing_amount && (
                       <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 hover:bg-gray-50 transition-colors">
                         <div className="flex items-center space-x-3">
                           <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-purple-100 flex-shrink-0">
@@ -249,7 +249,7 @@ export default function YourApplication({ user }) {
                           <span className="text-xs sm:text-sm font-medium text-gray-700">Requested Financing Amount</span>
                         </div>
                         <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
-                          SAR {parseFloat(app.requested_financing_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {app.approximate_financing_amount}
                         </span>
                       </div>
                     )}

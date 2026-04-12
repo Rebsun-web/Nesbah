@@ -71,7 +71,7 @@ export async function sendApplicationSubmissionEmail(businessEmail, applicationD
                 }),
                 city_of_operation: applicationData.city_of_operation,
                 number_of_pos_devices: applicationData.number_of_pos_devices,
-                requested_amount: applicationData.requested_financing_amount,
+                requested_amount: applicationData.approximate_financing_amount,
                 repayment_period: applicationData.preferred_repayment_period_months
             },
             {

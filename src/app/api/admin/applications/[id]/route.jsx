@@ -66,13 +66,16 @@ export async function GET(req, { params }) {
                     pa.management_managers as management_names,
                     pa.contact_person,
                     pa.contact_person_number,
+                    pa.business_contact_email,
                     pa.number_of_pos_devices,
                     pa.city_of_operation,
+                    pa.sector,
+                    pa.financing_type,
+                    pa.approximate_financing_amount,
                     pa.own_pos_system,
                     pa.pos_provider_name,
                     pa.pos_age_duration_months,
                     pa.avg_monthly_pos_sales,
-                    pa.requested_financing_amount,
                     pa.preferred_repayment_period_months,
                     pa.notes,
                     pa.uploaded_filename,
@@ -219,7 +222,6 @@ export async function PUT(req, { params }) {
             pos_provider_name,
             pos_age_duration_months,
             avg_monthly_pos_sales,
-            requested_financing_amount,
             preferred_repayment_period_months,
             uploaded_document,
             uploaded_filename,
@@ -228,27 +230,26 @@ export async function PUT(req, { params }) {
             assigned_user_id
         } = body;
 
-        // Validate and convert numeric fields
-        const validatedPosAgeDurationMonths = pos_age_duration_months === '' || pos_age_duration_months === null ? null : parseInt(pos_age_duration_months);
-        const validatedAvgMonthlyPosSales = avg_monthly_pos_sales === '' || avg_monthly_pos_sales === null ? null : parseInt(avg_monthly_pos_sales);
-        const validatedRequestedFinancingAmount = requested_financing_amount === '' || requested_financing_amount === null ? null : parseInt(requested_financing_amount);
-        const validatedPreferredRepaymentPeriodMonths = preferred_repayment_period_months === '' || preferred_repayment_period_months === null ? null : parseInt(preferred_repayment_period_months);
-        const validatedAssignedUserId = assigned_user_id === '' || assigned_user_id === null ? null : parseInt(assigned_user_id);
+        // Validate and convert numeric fields.
+        // When a field is absent from the request body it arrives as undefined — keep it undefined
+        // so the dynamic UPDATE builder skips it. parseInt(undefined) = NaN which crashes Postgres.
+        const toInt = (v) => v === undefined ? undefined : (v === '' || v === null ? null : parseInt(v));
+        const validatedPosAgeDurationMonths = toInt(pos_age_duration_months);
+        const validatedAvgMonthlyPosSales = toInt(avg_monthly_pos_sales);
+        const validatedPreferredRepaymentPeriodMonths = toInt(preferred_repayment_period_months);
+        const validatedAssignedUserId = toInt(assigned_user_id);
 
-        // Validate numeric fields
-        if (pos_age_duration_months !== undefined && pos_age_duration_months !== '' && isNaN(validatedPosAgeDurationMonths)) {
+        // Validate numeric fields — only reject if a value was supplied but couldn't be parsed
+        if (validatedPosAgeDurationMonths !== undefined && validatedPosAgeDurationMonths !== null && isNaN(validatedPosAgeDurationMonths)) {
             return NextResponse.json({ success: false, error: 'Invalid POS age duration months' }, { status: 400 });
         }
-        if (avg_monthly_pos_sales !== undefined && avg_monthly_pos_sales !== '' && isNaN(validatedAvgMonthlyPosSales)) {
+        if (validatedAvgMonthlyPosSales !== undefined && validatedAvgMonthlyPosSales !== null && isNaN(validatedAvgMonthlyPosSales)) {
             return NextResponse.json({ success: false, error: 'Invalid average monthly POS sales' }, { status: 400 });
         }
-        if (requested_financing_amount !== undefined && requested_financing_amount !== '' && isNaN(validatedRequestedFinancingAmount)) {
-            return NextResponse.json({ success: false, error: 'Invalid requested financing amount' }, { status: 400 });
-        }
-        if (preferred_repayment_period_months !== undefined && preferred_repayment_period_months !== '' && isNaN(validatedPreferredRepaymentPeriodMonths)) {
+        if (validatedPreferredRepaymentPeriodMonths !== undefined && validatedPreferredRepaymentPeriodMonths !== null && isNaN(validatedPreferredRepaymentPeriodMonths)) {
             return NextResponse.json({ success: false, error: 'Invalid preferred repayment period months' }, { status: 400 });
         }
-        if (assigned_user_id !== undefined && assigned_user_id !== '' && isNaN(validatedAssignedUserId)) {
+        if (validatedAssignedUserId !== undefined && validatedAssignedUserId !== null && isNaN(validatedAssignedUserId)) {
             return NextResponse.json({ success: false, error: 'Invalid assigned user ID' }, { status: 400 });
         }
 
@@ -325,10 +326,6 @@ export async function PUT(req, { params }) {
             if (validatedAvgMonthlyPosSales !== undefined) {
                 updateFields.push(`avg_monthly_pos_sales = $${paramCount++}`);
                 updateValues.push(validatedAvgMonthlyPosSales);
-            }
-            if (validatedRequestedFinancingAmount !== undefined) {
-                updateFields.push(`requested_financing_amount = $${paramCount++}`);
-                updateValues.push(validatedRequestedFinancingAmount);
             }
             if (validatedPreferredRepaymentPeriodMonths !== undefined) {
                 updateFields.push(`preferred_repayment_period_months = $${paramCount++}`);
@@ -421,7 +418,7 @@ export async function PUT(req, { params }) {
 
             // Update POS application details if fields provided
             if (trade_name || cr_number || city || contact_person || contact_person_number || notes || 
-                pos_provider_name || pos_age_duration_months || avg_monthly_pos_sales || requested_financing_amount || 
+                pos_provider_name || pos_age_duration_months || avg_monthly_pos_sales ||
                 preferred_repayment_period_months || uploaded_filename) {
                 const posDetailsUpdateQuery = `
                     UPDATE pos_application 
@@ -435,7 +432,7 @@ export async function PUT(req, { params }) {
                         pos_provider_name = COALESCE($7, pos_provider_name),
                         pos_age_duration_months = COALESCE($8, pos_age_duration_months),
                         avg_monthly_pos_sales = COALESCE($9, avg_monthly_pos_sales),
-                        requested_financing_amount = COALESCE($10, requested_financing_amount),
+                        approximate_financing_amount = COALESCE($10, approximate_financing_amount),
                         preferred_repayment_period_months = COALESCE($11, preferred_repayment_period_months),
                         uploaded_filename = COALESCE($12, uploaded_filename)
                     WHERE application_id = $13
@@ -443,7 +440,7 @@ export async function PUT(req, { params }) {
                 
                 await client.query(posDetailsUpdateQuery, [
                     trade_name, cr_number, city, contact_person, contact_person_number, notes,
-                    pos_provider_name, validatedPosAgeDurationMonths, validatedAvgMonthlyPosSales, validatedRequestedFinancingAmount,
+                    pos_provider_name, validatedPosAgeDurationMonths, validatedAvgMonthlyPosSales, approximate_financing_amount,
                     validatedPreferredRepaymentPeriodMonths, uploaded_filename, applicationId
                 ]);
             }
@@ -454,7 +451,7 @@ export async function PUT(req, { params }) {
                 const hasChanges = trade_name !== undefined || cr_number !== undefined || city !== undefined || 
                                  contact_person !== undefined || contact_person_number !== undefined || notes !== undefined ||
                                  pos_provider_name !== undefined || pos_age_duration_months !== undefined || 
-                                 avg_monthly_pos_sales !== undefined || requested_financing_amount !== undefined ||
+                                 avg_monthly_pos_sales !== undefined || approximate_financing_amount !== undefined ||
                                  preferred_repayment_period_months !== undefined || uploaded_filename !== undefined;
 
                 if (hasChanges) {

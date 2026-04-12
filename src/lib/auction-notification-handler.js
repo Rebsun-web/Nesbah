@@ -73,7 +73,7 @@ class AuctionNotificationHandler {
                         pa.submitted_at,
                         pa.auction_end_time,
                         pa.city_of_operation,
-                        pa.requested_financing_amount,
+                        pa.approximate_financing_amount,
                         pa.offers_count,
                         u.email as business_email
                      FROM pos_application pa
@@ -194,7 +194,7 @@ class AuctionNotificationHandler {
                         pa.submitted_at,
                         pa.auction_end_time,
                         pa.city_of_operation,
-                        pa.requested_financing_amount,
+                        pa.approximate_financing_amount,
                         pa.offers_count,
                         u.email as business_email
                      FROM pos_application pa

@@ -93,7 +93,7 @@ export async function GET(req) {
                     bu.management_managers,
                     bu.contact_info,
                     -- New POS Application Fields
-                    pa.requested_financing_amount as financing_amount,
+                    pa.approximate_financing_amount as financing_amount,
                     pa.preferred_repayment_period_months as repayment_period,
                     pa.financing_type,
                     pa.reference_number,

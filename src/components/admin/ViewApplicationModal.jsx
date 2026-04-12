@@ -227,13 +227,21 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                                         <p className="text-sm text-gray-900">{application.trade_name}</p>
                                     </div>
                                 )}
+                                {(application.cr_national_number || application.cr_number) && (
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">CR Number</label>
+                                        <p className="text-sm text-gray-900 font-mono">
+                                            {application.cr_national_number || application.cr_number}
+                                        </p>
+                                    </div>
+                                )}
                                 {application.city_of_operation && (
                                     <div>
                                         <label className="text-sm font-medium text-gray-700">City</label>
                                         <p className="text-sm text-gray-900">{application.city_of_operation}</p>
                                     </div>
                                 )}
-                                {(application.sector) && (
+                                {application.sector && (
                                     <div>
                                         <label className="text-sm font-medium text-gray-700">Sector</label>
                                         <p className="text-sm text-gray-900">{application.sector}</p>
@@ -284,12 +292,12 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                                     </span>
                                 </div>
                             )}
-                            {application.approximate_financing_amount && (
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Approximate Amount Needed</label>
-                                    <p className="text-sm text-gray-900">{application.approximate_financing_amount}</p>
-                                </div>
-                            )}
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Requested Amount</label>
+                                <p className="text-sm text-gray-900">
+                                    {application.approximate_financing_amount || 'N/A'}
+                                </p>
+                            </div>
                         </div>
                         {application.notes && (
                             <div className="mt-4">

@@ -9,9 +9,11 @@ const UserCreationForm = () => {
         email: '',
         password: '',
         entityName: '',
+        crNationalNumber: '',
         firstName: '',
         lastName: ''
     });
+    const [crError, setCrError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
 
@@ -30,10 +32,21 @@ const UserCreationForm = () => {
         }));
     };
 
+    const validateCRNumber = (value) => /^70\d{8}$/.test(value);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
         setMessage('');
+        setCrError('');
+
+        if (formData.userType === 'business') {
+            if (!validateCRNumber(formData.crNationalNumber)) {
+                setCrError('CR number must be exactly 10 digits and start with 70 (e.g. 7012345678)');
+                return;
+            }
+        }
+
+        setIsLoading(true);
 
         try {
             const response = await fetch('/api/admin/users', {
@@ -46,9 +59,9 @@ const UserCreationForm = () => {
                     email: formData.email,
                     password: formData.password,
                     entity_name: formData.entityName,
+                    cr_national_number: formData.crNationalNumber,
                     first_name: formData.firstName,
                     last_name: formData.lastName,
-
                 })
             });
 
@@ -62,6 +75,7 @@ const UserCreationForm = () => {
                     email: '',
                     password: '',
                     entityName: '',
+                    crNationalNumber: '',
                     firstName: '',
                     lastName: ''
                 });
@@ -156,6 +170,36 @@ const UserCreationForm = () => {
                             placeholder="Company or Bank Name"
                             required
                         />
+                    </div>
+                )}
+
+                {/* CR National Number (business users only) */}
+                {formData.userType === 'business' && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            CR National Number (الرقم الموحد للمنشأة) *
+                        </label>
+                        <input
+                            type="text"
+                            name="crNationalNumber"
+                            value={formData.crNationalNumber}
+                            onChange={(e) => {
+                                handleInputChange(e);
+                                setCrError('');
+                            }}
+                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                                crError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                            placeholder="70XXXXXXXX"
+                            maxLength={10}
+                            required
+                        />
+                        {crError && (
+                            <p className="mt-1 text-sm text-red-600">{crError}</p>
+                        )}
+                        <p className="mt-1 text-xs text-gray-500">
+                            Must be exactly 10 digits starting with 70
+                        </p>
                     </div>
                 )}
 

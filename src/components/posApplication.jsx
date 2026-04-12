@@ -20,7 +20,7 @@ export function PosApplication({ user, onSuccess}) {
   const [posProviderName, setPosProviderName] = useState('');
   const [posAgeDuration, setPosAgeDuration] = useState('');
   const [avgMonthlyPosSales, setAvgMonthlyPosSales] = useState('');
-  const [requestedFinancingAmount, setRequestedFinancingAmount] = useState('');
+  const [approximateFinancingAmount, setApproximateFinancingAmount] = useState('');
   const [preferredRepaymentPeriod, setPreferredRepaymentPeriod] = useState('');
 
   // Safety checks to prevent React error #31 - moved after all hooks
@@ -104,8 +104,8 @@ export function PosApplication({ user, onSuccess}) {
       return;
     }
 
-    if (!requestedFinancingAmount.trim()) {
-      alert('Please enter the requested financing amount.');
+    if (!approximateFinancingAmount) {
+      alert('Please select the requested financing amount.');
       return;
     }
 
@@ -126,7 +126,7 @@ export function PosApplication({ user, onSuccess}) {
       pos_provider_name: posProviderName,
       pos_age_duration_months: parseInt(posAgeDuration) || 0,
       avg_monthly_pos_sales: parseFloat(avgMonthlyPosSales) || 0,
-      requested_financing_amount: parseFloat(requestedFinancingAmount) || 0,
+      approximate_financing_amount: approximateFinancingAmount,
       preferred_repayment_period_months: preferredRepaymentPeriod ? parseInt(preferredRepaymentPeriod) : null
     };
 
@@ -367,23 +367,23 @@ export function PosApplication({ user, onSuccess}) {
             </div>
 
             <div>
-              <label htmlFor="requestedFinancingAmount" className="block text-xs sm:text-sm font-medium text-gray-900">
-                Requested Financing Amount (SAR) *
+              <label htmlFor="approximateFinancingAmount" className="block text-xs sm:text-sm font-medium text-gray-900">
+                Requested Financing Amount *
               </label>
               <div className="mt-2">
-                <div className="flex items-center rounded-md bg-white pl-2 sm:pl-3 outline outline-1 outline-gray-300 focus-within:outline-indigo-600">
-                  <input
-                    id="requestedFinancingAmount"
-                    name="requestedFinancingAmount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={requestedFinancingAmount}
-                    onChange={(e) => setRequestedFinancingAmount(e.target.value)}
-                    className="block min-w-0 grow bg-white py-2 sm:py-1.5 pl-1 pr-2 sm:pr-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                    placeholder="e.g., 100000.00"
-                  />
-                </div>
+                <select
+                  id="approximateFinancingAmount"
+                  name="approximateFinancingAmount"
+                  value={approximateFinancingAmount}
+                  onChange={(e) => setApproximateFinancingAmount(e.target.value)}
+                  className="block w-full rounded-md bg-white px-3 py-2 sm:py-1.5 text-xs sm:text-sm text-gray-900 outline outline-1 outline-gray-300 focus:outline-indigo-600"
+                >
+                  <option value="">Select range</option>
+                  <option value="Less than 250K SAR">Less than 250K SAR</option>
+                  <option value="250K – 1M SAR">250K – 1M SAR</option>
+                  <option value="1M – 5M SAR">1M – 5M SAR</option>
+                  <option value="More than 5M SAR">More than 5M SAR</option>
+                </select>
               </div>
             </div>
 
