@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { AnalyticsService } from '@/lib/analytics/analytics-service';
+import { authenticateAPIRequest } from '@/lib/auth/api-auth';
 
 export async function GET(req, { params }) {
     const applicationId = parseInt((await params).id);
-    let bankUserId = parseInt(req.headers.get('x-user-id'));
 
-    console.log('🔍 Parsed applicationId:', applicationId);
-    console.log('🔍 Parsed bankUserId:', bankUserId);
+    const authResult = await authenticateAPIRequest(req, 'bank_user');
+    if (!authResult.success) {
+        return NextResponse.json({ success: false, error: authResult.error }, { status: authResult.status || 401 });
+    }
+
+    let bankUserId = authResult.user.user_id;
 
     if (!bankUserId) {
         return NextResponse.json({ success: false, error: 'Missing bank user ID' }, { status: 400 });
@@ -15,16 +19,15 @@ export async function GET(req, { params }) {
 
     try {
         // If this is a bank employee, get the main bank user ID
-        if (req.headers.get('x-user-type') === 'bank_employee') {
+        if (authResult.user.user_type === 'bank_employee') {
             try {
                 const bankEmployeeResult = await pool.query(
                     'SELECT bank_user_id FROM bank_employees WHERE user_id = $1',
                     [bankUserId]
                 );
-                
+
                 if (bankEmployeeResult.rows.length > 0) {
                     bankUserId = bankEmployeeResult.rows[0].bank_user_id;
-                    console.log('🔍 Updated bankUserId for employee:', bankUserId);
                 }
             } catch (error) {
                 console.error('Error getting bank user ID for employee:', error);

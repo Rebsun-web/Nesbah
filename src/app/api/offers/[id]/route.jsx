@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server'
-import { Pool } from 'pg'
-
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-})
+import pool from '@/lib/db'
+import { authenticateAPIRequest } from '@/lib/auth/api-auth'
 
 export async function GET(request, { params }) {
     const { id } = await params
@@ -16,12 +12,20 @@ export async function GET(request, { params }) {
         )
     }
 
+    const authResult = await authenticateAPIRequest(request)
+    if (!authResult.success) {
+        return NextResponse.json(
+            { success: false, error: authResult.error },
+            { status: authResult.status || 401 }
+        )
+    }
+
     const client = await pool.connectWithRetry(2, 1000, 'app_api_offers_[id]_route.jsx_route')
 
     try {
         // Get offer details with all related information
         const query = `
-            SELECT 
+            SELECT
                 ao.offer_id,
                 ao.submitted_application_id,
                 ao.bank_user_id,
@@ -35,7 +39,7 @@ export async function GET(request, { params }) {
                 ao.bank_contact_person,
                 ao.bank_contact_email,
                 ao.bank_contact_phone,
-                
+
                 ao.admin_notes,
                 ao.is_featured,
                 ao.featured_reason,
@@ -69,6 +73,18 @@ export async function GET(request, { params }) {
 
         const offer = result.rows[0]
 
+        // Ownership check: bank_user can only see their own offers; admin sees all
+        const userType = authResult.user.user_type
+        if (userType !== 'admin_user') {
+            const requestingUserId = parseInt(authResult.user.user_id)
+            if (offer.bank_user_id !== requestingUserId) {
+                return NextResponse.json(
+                    { success: false, error: 'Forbidden' },
+                    { status: 403 }
+                )
+            }
+        }
+
         // Format the offer data
         const formattedOffer = {
             offer_id: offer.offer_id,
@@ -84,7 +100,7 @@ export async function GET(request, { params }) {
             bank_contact_person: offer.bank_contact_person,
             bank_contact_email: offer.bank_contact_email,
             bank_contact_phone: offer.bank_contact_phone,
-            
+
             admin_notes: offer.admin_notes,
             is_featured: offer.is_featured,
             featured_reason: offer.featured_reason,
@@ -107,7 +123,7 @@ export async function GET(request, { params }) {
     } catch (error) {
         console.error('Error fetching offer details:', error)
         return NextResponse.json(
-            { success: false, error: 'Failed to fetch offer details' },
+            { success: false, error: 'Internal server error' },
             { status: 500 }
         )
     } finally {

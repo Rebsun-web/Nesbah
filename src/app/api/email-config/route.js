@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
+import { authenticateAPIRequest } from '@/lib/auth/api-auth'
 
-export async function GET() {
+export async function GET(req) {
+    const authResult = await authenticateAPIRequest(req, 'admin_user')
+    if (!authResult.success) {
+        return NextResponse.json({ success: false, error: authResult.error }, { status: authResult.status || 401 })
+    }
+
     try {
         // Return current email configuration (without sensitive keys)
         const config = {

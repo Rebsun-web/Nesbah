@@ -3,8 +3,33 @@ import pool from '@/lib/db';
 import bcrypt from 'bcrypt';
 import JWTUtils from '@/lib/auth/jwt-utils';
 
+// In-memory rate limiter: max 10 attempts per IP per 15 minutes
+const loginAttempts = new Map();
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const RATE_LIMIT_MAX = 10;
+
+function checkRateLimit(ip) {
+    const now = Date.now();
+    const entry = loginAttempts.get(ip);
+    if (!entry || now > entry.resetAt) {
+        loginAttempts.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+        return true;
+    }
+    if (entry.count >= RATE_LIMIT_MAX) return false;
+    entry.count += 1;
+    return true;
+}
+
 export async function POST(req) {
     try {
+        const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+        if (!checkRateLimit(ip)) {
+            return NextResponse.json(
+                { success: false, error: 'Too many login attempts. Try again in 15 minutes.' },
+                { status: 429 }
+            );
+        }
+
         const { email, password } = await req.json();
         console.log('🔐 Login attempt for:', email);
 

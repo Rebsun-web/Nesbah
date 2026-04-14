@@ -19,6 +19,10 @@ RUN npm run build
 # Remove dev dependencies to reduce image size
 RUN npm prune --production
 
+# Run as non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
 # Expose port 8080 (Google Cloud Run default)
 EXPOSE 8080
 

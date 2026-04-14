@@ -11,9 +11,24 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({ subsets: ['arabic', 'latin'], weigh
 
 export const metadata = {
   title: {
-    template: '%s - Nesbah',
-    default: 'Nesbah - Grow your business with us',
+    template: '%s | Nesbah',
+    default: 'Nesbah — POS & Business Financing Marketplace in Saudi Arabia',
   },
+  description:
+    'Compare POS financing, business loans, and working capital offers from top Saudi banks. Free to use. Submit one request, receive multiple offers.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://nesbah.com.sa'),
+  openGraph: {
+    type: 'website',
+    locale: 'ar_SA',
+    alternateLocale: 'en_US',
+    siteName: 'Nesbah',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@nesbah_sa',
+  },
+  // After GSC verification: uncomment and add your code
+  // verification: { google: 'YOUR_VERIFICATION_CODE' },
 }
 
 export const viewport = {

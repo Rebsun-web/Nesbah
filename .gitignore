@@ -43,3 +43,6 @@ next-env.d.ts
 /.idea
 /.vscode
 lovable-reference/
+
+# Files with credentials — never commit
+DEPLOYMENT_COMMANDS.md

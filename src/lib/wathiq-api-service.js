@@ -22,16 +22,25 @@ class WathiqAPIService {
 
             console.log(`🔍 Fetching Wathiq data for CR: ${crNationalNumber} (cleaned: ${cleanCRNumber})`);
 
-            const response = await fetch(
-                `${this.baseUrl}/fullinfo/${cleanCRNumber}?language=${language}`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'apiKey': this.apiKey,
-                    },
-                }
-            );
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+            let response;
+            try {
+                response = await fetch(
+                    `${this.baseUrl}/fullinfo/${cleanCRNumber}?language=${language}`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apiKey': this.apiKey,
+                        },
+                        signal: controller.signal,
+                    }
+                );
+            } finally {
+                clearTimeout(timeoutId);
+            }
 
             if (!response.ok) {
                 const errorText = await response.text();
