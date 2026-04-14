@@ -319,6 +319,11 @@ export default function ApplicationsTable() {
                                                     {application.reference_number}
                                                 </div>
                                             )}
+                                            {application.verification_status === 'pending' && (
+                                                <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                                                    ⏳ Pending Verification
+                                                </span>
+                                            )}
                                             <div className="text-sm text-gray-500">
                                                 {new Date(application.submitted_at).toLocaleDateString()}
                                             </div>

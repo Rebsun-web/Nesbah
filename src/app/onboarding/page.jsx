@@ -191,7 +191,22 @@ function OnboardingForm() {
       } catch {
         throw new Error('حدث خطأ في الاتصال بالخادم. يرجى المحاولة مجدداً. / Server error, please try again.')
       }
-      if (!res.ok) throw new Error(data.error || 'حدث خطأ. يرجى المحاولة مجدداً. / Submission failed, please try again.')
+      if (!res.ok) {
+        const errorMessages = {
+          CR_NOT_FOUND: {
+            ar: 'رقم السجل التجاري غير موجود أو غير صحيح. يرجى التحقق من الرقم والمحاولة مجدداً.',
+            en: 'The CR number does not exist or is invalid. Please check and try again.',
+          },
+          DUPLICATE_CR: {
+            ar: 'تم تقديم طلب بهذا الرقم الوطني مسبقاً.',
+            en: 'A request with this CR number has already been submitted.',
+          },
+        }
+        const msg = data.errorCode && errorMessages[data.errorCode]
+          ? errorMessages[data.errorCode][lang]
+          : (data.error || (lang === 'ar' ? 'حدث خطأ. يرجى المحاولة مجدداً.' : 'Submission failed, please try again.'))
+        throw new Error(msg)
+      }
       setReferenceNumber(data.reference_number)
       setSubmitted(true)
     } catch (err) {

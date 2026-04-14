@@ -61,32 +61,31 @@ export async function POST(req) {
             );
         }
 
-        // Attempt Wathiq verification — 8s timeout so a hung API never blocks submission
+        // Attempt Wathiq verification (AbortController timeout is inside the service — 7s)
         let wathiqData = null;
         let verification_status = 'pending';
         try {
-            const wathiqTimeout = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Wathiq timeout after 8000ms')), 8000)
-            );
-            wathiqData = await Promise.race([
-                wathiqAPIService.fetchBusinessData(cr_national_number),
-                wathiqTimeout,
-            ]);
+            wathiqData = await wathiqAPIService.fetchBusinessData(cr_national_number);
             if (wathiqData) {
                 verification_status = 'verified';
             }
         } catch (wathiqError) {
-            const msg = wathiqError.message || '';
-            console.warn('⚠️ Wathiq verification skipped:', msg);
-            // 400 from Wathiq = invalid CR number — reject the submission
-            if (msg.includes('400')) {
+            const isUnreachable =
+                wathiqError.name === 'AbortError' ||
+                !wathiqError.message?.includes('Wathiq API error:');
+
+            if (isUnreachable) {
+                // Wathiq timed out or network error — not the user's fault, proceed
+                console.warn('⚠️ Wathiq unreachable, proceeding with pending status:', wathiqError.message);
+                verification_status = 'pending';
+            } else {
+                // Wathiq responded but rejected the CR — number doesn't exist or is invalid
+                console.warn('⚠️ Wathiq rejected CR number:', wathiqError.message);
                 return NextResponse.json(
-                    { success: false, error: 'الرقم الوطني غير صحيح. يرجى التحقق من الرقم والمحاولة مجدداً. / Invalid national number. Please check and try again.' },
+                    { success: false, errorCode: 'CR_NOT_FOUND' },
                     { status: 422 }
                 );
             }
-            // Timeout, network error, auth error — proceed with pending status
-            verification_status = 'pending';
         }
 
         const reference_number = generateReferenceNumber();
@@ -95,20 +94,19 @@ export async function POST(req) {
 
         const client = await pool.connectWithRetry(2, 1000, 'api_applications_public-submit_route.js');
 
-        // Check uniqueness — one submission per national number
-        const existing = await client.query(
-            'SELECT application_id FROM pos_application WHERE cr_national_number = $1 LIMIT 1',
-            [cr_national_number]
-        );
-        if (existing.rows.length > 0) {
-            client.release();
-            return NextResponse.json(
-                { success: false, error: 'تم تقديم طلب بهذا الرقم الوطني مسبقاً / A request with this national number has already been submitted' },
-                { status: 409 }
-            );
-        }
-
         try {
+            // Check uniqueness — one submission per national number
+            const existing = await client.query(
+                'SELECT application_id FROM pos_application WHERE cr_national_number = $1 LIMIT 1',
+                [cr_national_number]
+            );
+            if (existing.rows.length > 0) {
+                return NextResponse.json(
+                    { success: false, errorCode: 'DUPLICATE_CR' },
+                    { status: 409 }
+                );
+            }
+
             await client.query('BEGIN');
 
             const result = await client.query(
@@ -203,14 +201,14 @@ export async function POST(req) {
             });
 
         } catch (err) {
-            console.error('❌ public-submit INSERT failed:', {
+            console.error('❌ public-submit DB error:', {
                 message: err.message,
                 code: err.code,
                 detail: err.detail,
                 cr_national_number,
                 financing_type,
             });
-            await client.query('ROLLBACK');
+            try { await client.query('ROLLBACK'); } catch {}
             return NextResponse.json(
                 { success: false, error: 'Internal server error' },
                 { status: 500 }

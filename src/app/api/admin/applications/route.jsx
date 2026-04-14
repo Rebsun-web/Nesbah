@@ -113,6 +113,7 @@ export async function GET(req) {
                     pa.approximate_financing_amount,
                     pa.business_contact_email,
                     pa.reference_number,
+                    pa.verification_status,
                     pa.offers_count,
                     pa.revenue_collected,
                     pa.opened_by,
