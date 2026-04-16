@@ -7,7 +7,18 @@ import AdminAuth from '@/lib/auth/admin-auth';
 export async function POST(req) {
     try {
         const { email, password, mfaToken } = await req.json();
-        console.log('🔐 Unified login attempt for:', email);
+
+        // Env diagnostic — visible in Cloud Run logs
+        console.log('🔐 Login attempt:', email, {
+            NODE_ENV: process.env.NODE_ENV,
+            PGHOST: process.env.PGHOST || '(not set)',
+            PGPORT: process.env.PGPORT || '(not set)',
+            PGDATABASE: process.env.PGDATABASE || '(not set)',
+            PGUSER: process.env.PGUSER || '(not set)',
+            PGPASSWORD: process.env.PGPASSWORD ? '(set)' : '(not set)',
+            JWT_SECRET: process.env.JWT_SECRET ? '(set)' : '(not set)',
+            DATABASE_URL: process.env.DATABASE_URL ? '(set)' : '(not set)',
+        });
 
         const client = await pool.connectWithRetry(2, 1000, 'app_api_auth_unified-login_route.jsx_route');
         
@@ -68,7 +79,12 @@ export async function POST(req) {
         }
 
     } catch (error) {
-        console.error('Unified login error:', error);
+        console.error('Unified login error:', {
+            message: error.message,
+            code: error.code,
+            address: error.address,
+            port: error.port,
+        });
         return NextResponse.json(
             { success: false, error: 'Internal server error' },
             { status: 500 }
