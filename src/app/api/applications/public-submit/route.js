@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import wathiqAPIService from '@/lib/wathiq-api-service';
-import { sendSubmissionConfirmationEmail } from '@/lib/email/serverEmailNotifications';
+import { sendSubmissionConfirmationEmail, sendAdminNewLeadAlert, sendBankNewLeadNotifications } from '@/lib/email/serverEmailNotifications';
+import { sendAdminWhatsAppAlert } from '@/lib/whatsapp-notifications';
 import { auctionConfig } from '@/lib/config/auction-config';
 
 const VALID_FINANCING_TYPES = [
@@ -250,6 +251,26 @@ export async function POST(req) {
                     business_name: wathiqData?.trade_name || business_name || null,
                 }).catch(() => {});
             }
+
+            // Notify admin via email + WhatsApp — fire and forget
+            const alertData = {
+                reference_number,
+                financing_type,
+                contact_person,
+                contact_person_number,
+                city_of_operation: city_of_operation || null,
+                business_name: wathiqData?.trade_name || business_name || null,
+            };
+            sendAdminNewLeadAlert(alertData).catch(() => {});
+            sendAdminWhatsAppAlert(alertData).catch(() => {});
+
+            // Notify all active bank users — fire and forget
+            pool.query(
+                `SELECT u.email FROM users u WHERE u.user_type = 'bank_user' AND u.account_status = 'active'`
+            ).then(result => {
+                const emails = result.rows.map(r => r.email);
+                return sendBankNewLeadNotifications(emails);
+            }).catch(() => {});
 
             return NextResponse.json({
                 success: true,
