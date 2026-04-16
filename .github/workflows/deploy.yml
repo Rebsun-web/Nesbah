@@ -43,10 +43,37 @@ jobs:
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
 
+      - name: Write env vars file
+        run: |
+          cat > /tmp/env-vars.yaml << 'ENVEOF'
+          NODE_ENV: "production"
+          ENVEOF
+          # Append secrets (written individually to avoid shell escaping issues)
+          echo "PGHOST: \"${{ secrets.PGHOST }}\"" >> /tmp/env-vars.yaml
+          echo "PGPORT: \"${{ secrets.PGPORT }}\"" >> /tmp/env-vars.yaml
+          echo "PGDATABASE: \"${{ secrets.PGDATABASE }}\"" >> /tmp/env-vars.yaml
+          echo "PGUSER: \"${{ secrets.PGUSER }}\"" >> /tmp/env-vars.yaml
+          echo "PGPASSWORD: \"${{ secrets.PGPASSWORD }}\"" >> /tmp/env-vars.yaml
+          echo "JWT_SECRET: \"${{ secrets.JWT_SECRET }}\"" >> /tmp/env-vars.yaml
+          echo "JWT_EXPIRES_IN: \"${{ secrets.JWT_EXPIRES_IN }}\"" >> /tmp/env-vars.yaml
+          echo "JWT_REFRESH_EXPIRES_IN: \"${{ secrets.JWT_REFRESH_EXPIRES_IN }}\"" >> /tmp/env-vars.yaml
+          echo "WATHIQ_API_KEY: \"${{ secrets.WATHIQ_API_KEY }}\"" >> /tmp/env-vars.yaml
+          echo "WATHIQ_API_SECRET: \"${{ secrets.WATHIQ_API_SECRET }}\"" >> /tmp/env-vars.yaml
+          echo "GCS_BUCKET_NAME: \"${{ secrets.GCS_BUCKET_NAME }}\"" >> /tmp/env-vars.yaml
+          echo "GCLOUD_PROJECT_ID: \"${{ secrets.GCLOUD_PROJECT_ID }}\"" >> /tmp/env-vars.yaml
+          echo "EMAILJS_SERVICE_ID: \"${{ secrets.EMAILJS_SERVICE_ID }}\"" >> /tmp/env-vars.yaml
+          echo "EMAILJS_PUBLIC_KEY: \"${{ secrets.EMAILJS_PUBLIC_KEY }}\"" >> /tmp/env-vars.yaml
+          echo "EMAILJS_PRIVATE_KEY: \"${{ secrets.EMAILJS_PRIVATE_KEY }}\"" >> /tmp/env-vars.yaml
+          echo "EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID: \"${{ secrets.EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID }}\"" >> /tmp/env-vars.yaml
+          echo "EMAILJS_SUBMISSION_TEMPLATE_ID: \"${{ secrets.EMAILJS_SUBMISSION_TEMPLATE_ID }}\"" >> /tmp/env-vars.yaml
+          echo "DISABLE_EMAIL_NOTIFICATIONS: \"${{ secrets.DISABLE_EMAIL_NOTIFICATIONS }}\"" >> /tmp/env-vars.yaml
+
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy $SERVICE \
             --image $IMAGE:${{ github.sha }} \
             --platform managed \
             --region $REGION \
+            --add-cloudsql-instances=nesbahdev:me-central2:production \
+            --env-vars-file=/tmp/env-vars.yaml \
             --quiet
