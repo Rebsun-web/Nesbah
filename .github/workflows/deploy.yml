@@ -91,11 +91,13 @@ jobs:
 
           with open("/tmp/env-vars.yaml", "w") as f:
               for key, value in mapping.items():
+                  value = value.strip()
                   escaped = value.replace("\\", "\\\\").replace('"', '\\"')
                   f.write(f'{key}: "{escaped}"\n')
 
           print("=== env-vars.yaml contents (keys + lengths, not values) ===")
           for key, value in mapping.items():
+              value = value.strip()
               status = f"len={len(value)}" if value else "*** EMPTY ***"
               print(f"  {key}: {status}")
           PYEOF
