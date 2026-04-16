@@ -43,6 +43,63 @@ jobs:
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
 
+      - name: Write env vars file
+        env:
+          S_PGHOST: ${{ secrets.PGHOST }}
+          S_PGPORT: ${{ secrets.PGPORT }}
+          S_PGDATABASE: ${{ secrets.PGDATABASE }}
+          S_PGUSER: ${{ secrets.PGUSER }}
+          S_PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          S_JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          S_JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+          S_JWT_REFRESH_EXPIRES_IN: ${{ secrets.JWT_REFRESH_EXPIRES_IN }}
+          S_WATHIQ_API_KEY: ${{ secrets.WATHIQ_API_KEY }}
+          S_WATHIQ_API_SECRET: ${{ secrets.WATHIQ_API_SECRET }}
+          S_GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
+          S_GCLOUD_PROJECT_ID: ${{ secrets.GCLOUD_PROJECT_ID }}
+          S_EMAILJS_SERVICE_ID: ${{ secrets.EMAILJS_SERVICE_ID }}
+          S_EMAILJS_PUBLIC_KEY: ${{ secrets.EMAILJS_PUBLIC_KEY }}
+          S_EMAILJS_PRIVATE_KEY: ${{ secrets.EMAILJS_PRIVATE_KEY }}
+          S_EMAILJS_NEWSLETTER_TEMPLATE_ID: ${{ secrets.EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID }}
+          S_EMAILJS_SUBMISSION_TEMPLATE_ID: ${{ secrets.EMAILJS_SUBMISSION_TEMPLATE_ID }}
+          S_DISABLE_EMAIL_NOTIFICATIONS: ${{ secrets.DISABLE_EMAIL_NOTIFICATIONS }}
+        run: |
+          python3 - <<'PYEOF'
+          import os
+
+          mapping = {
+              "NODE_ENV": "production",
+              "PGHOST": os.environ.get("S_PGHOST", ""),
+              "PGPORT": os.environ.get("S_PGPORT", ""),
+              "PGDATABASE": os.environ.get("S_PGDATABASE", ""),
+              "PGUSER": os.environ.get("S_PGUSER", ""),
+              "PGPASSWORD": os.environ.get("S_PGPASSWORD", ""),
+              "JWT_SECRET": os.environ.get("S_JWT_SECRET", ""),
+              "JWT_EXPIRES_IN": os.environ.get("S_JWT_EXPIRES_IN", ""),
+              "JWT_REFRESH_EXPIRES_IN": os.environ.get("S_JWT_REFRESH_EXPIRES_IN", ""),
+              "WATHIQ_API_KEY": os.environ.get("S_WATHIQ_API_KEY", ""),
+              "WATHIQ_API_SECRET": os.environ.get("S_WATHIQ_API_SECRET", ""),
+              "GCS_BUCKET_NAME": os.environ.get("S_GCS_BUCKET_NAME", ""),
+              "GCLOUD_PROJECT_ID": os.environ.get("S_GCLOUD_PROJECT_ID", ""),
+              "EMAILJS_SERVICE_ID": os.environ.get("S_EMAILJS_SERVICE_ID", ""),
+              "EMAILJS_PUBLIC_KEY": os.environ.get("S_EMAILJS_PUBLIC_KEY", ""),
+              "EMAILJS_PRIVATE_KEY": os.environ.get("S_EMAILJS_PRIVATE_KEY", ""),
+              "EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID": os.environ.get("S_EMAILJS_NEWSLETTER_TEMPLATE_ID", ""),
+              "EMAILJS_SUBMISSION_TEMPLATE_ID": os.environ.get("S_EMAILJS_SUBMISSION_TEMPLATE_ID", ""),
+              "DISABLE_EMAIL_NOTIFICATIONS": os.environ.get("S_DISABLE_EMAIL_NOTIFICATIONS", ""),
+          }
+
+          with open("/tmp/env-vars.yaml", "w") as f:
+              for key, value in mapping.items():
+                  escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+                  f.write(f'{key}: "{escaped}"\n')
+
+          print("=== env-vars.yaml contents (keys + lengths, not values) ===")
+          for key, value in mapping.items():
+              status = f"len={len(value)}" if value else "*** EMPTY ***"
+              print(f"  {key}: {status}")
+          PYEOF
+
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy $SERVICE \
@@ -50,5 +107,5 @@ jobs:
             --platform managed \
             --region $REGION \
             --add-cloudsql-instances=nesbahdev:me-central2:production \
-            --set-env-vars "^|^NODE_ENV=production|PGHOST=${{ secrets.PGHOST }}|PGPORT=${{ secrets.PGPORT }}|PGDATABASE=${{ secrets.PGDATABASE }}|PGUSER=${{ secrets.PGUSER }}|PGPASSWORD=${{ secrets.PGPASSWORD }}|JWT_SECRET=${{ secrets.JWT_SECRET }}|JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}|JWT_REFRESH_EXPIRES_IN=${{ secrets.JWT_REFRESH_EXPIRES_IN }}|WATHIQ_API_KEY=${{ secrets.WATHIQ_API_KEY }}|WATHIQ_API_SECRET=${{ secrets.WATHIQ_API_SECRET }}|GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}|GCLOUD_PROJECT_ID=${{ secrets.GCLOUD_PROJECT_ID }}|EMAILJS_SERVICE_ID=${{ secrets.EMAILJS_SERVICE_ID }}|EMAILJS_PUBLIC_KEY=${{ secrets.EMAILJS_PUBLIC_KEY }}|EMAILJS_PRIVATE_KEY=${{ secrets.EMAILJS_PRIVATE_KEY }}|EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID=${{ secrets.EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID }}|EMAILJS_SUBMISSION_TEMPLATE_ID=${{ secrets.EMAILJS_SUBMISSION_TEMPLATE_ID }}|DISABLE_EMAIL_NOTIFICATIONS=${{ secrets.DISABLE_EMAIL_NOTIFICATIONS }}" \
+            --env-vars-file=/tmp/env-vars.yaml \
             --quiet
