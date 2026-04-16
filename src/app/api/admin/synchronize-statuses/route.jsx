@@ -90,17 +90,18 @@ export async function GET(req) {
         
         try {
             const query = `
-                SELECT 
-                    application_id,
-                    status,
-                    current_application_status,
-                    auction_end_time,
-                    offers_count,
-                    submitted_at,
-                    trade_name
-                FROM pos_application 
-                WHERE status IN ('live_auction', 'completed', 'ignored')
-                ORDER BY application_id
+                SELECT
+                    pa.application_id,
+                    pa.status,
+                    pa.current_application_status,
+                    pa.auction_end_time,
+                    pa.offers_count,
+                    pa.submitted_at,
+                    wd.trade_name
+                FROM pos_application pa
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
+                WHERE pa.status IN ('live_auction', 'completed', 'ignored')
+                ORDER BY pa.application_id
             `;
             
             const result = await client.query(query);

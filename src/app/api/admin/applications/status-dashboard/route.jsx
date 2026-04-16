@@ -58,14 +58,15 @@ export async function GET(req) {
             
             // Get recent applications using standardized calculation
             const recentApplicationsQuery = `
-                SELECT 
+                SELECT
                     pa.application_id,
                     ${STATUS_CALCULATION_SQL},
                     pa.submitted_at,
-                    pa.trade_name,
+                    wd.trade_name,
                     pa.offers_count,
                     pa.revenue_collected
                 FROM pos_application pa
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 ORDER BY pa.submitted_at DESC
                 LIMIT 20
             `;

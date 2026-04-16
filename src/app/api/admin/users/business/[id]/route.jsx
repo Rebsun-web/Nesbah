@@ -31,8 +31,40 @@ export async function GET(req, { params }) {
         try {
             // Get detailed business user information including application contact details
             const query = `
-                SELECT 
-                    bu.*,
+                SELECT
+                    bu.user_id,
+                    bu.cr_national_number,
+                    bu.wathiq_data_id,
+                    bu.contact_person,
+                    bu.contact_person_number,
+                    bu.created_at AS bu_created_at,
+                    bu.updated_at AS bu_updated_at,
+                    -- Wathiq data (canonical source)
+                    wd.cr_number,
+                    wd.trade_name,
+                    wd.legal_form,
+                    wd.registration_status,
+                    wd.city AS headquarter_city_name,
+                    wd.city,
+                    wd.headquarter_district_name,
+                    wd.headquarter_street_name,
+                    wd.headquarter_building_number,
+                    wd.issue_date_gregorian,
+                    wd.confirmation_date_gregorian,
+                    wd.contact_info,
+                    wd.activities,
+                    wd.has_ecommerce,
+                    wd.store_url,
+                    wd.cr_capital,
+                    wd.cash_capital,
+                    wd.management_structure,
+                    wd.management_managers,
+                    wd.sector,
+                    wd.in_kind_capital,
+                    wd.avg_capital,
+                    wd.is_verified,
+                    wd.verification_date,
+                    wd.admin_notes,
                     u.email,
                     u.account_status,
                     u.created_at,
@@ -51,6 +83,7 @@ export async function GET(req, { params }) {
                     pa.approximate_financing_amount
                 FROM business_users bu
                 JOIN users u ON bu.user_id = u.user_id
+                LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                 LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
                 WHERE bu.user_id = $1
                 ORDER BY pa.submitted_at DESC

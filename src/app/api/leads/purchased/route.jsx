@@ -43,23 +43,22 @@ export async function GET(req) {
                 pa.offers_count,
                 pa.revenue_collected,
                 
-                -- Business Information (Wathiq API data)
-                bu.trade_name,
-                bu.cr_number,
-                bu.cr_national_number,
-                bu.registration_status,
-                bu.address,
-                bu.sector,
-                bu.cr_capital,
-                bu.cash_capital,
-                bu.in_kind_capital,
-                bu.has_ecommerce,
-                bu.store_url,
-                bu.legal_form,
-                bu.issue_date_gregorian,
-                bu.management_structure,
-                bu.management_managers,
-                bu.contact_info,
+                -- Wathiq Business Data (canonical source)
+                wd.trade_name,
+                wd.cr_number,
+                pa.cr_national_number,
+                wd.registration_status,
+                wd.sector,
+                wd.cr_capital,
+                wd.cash_capital,
+                wd.in_kind_capital,
+                wd.has_ecommerce,
+                wd.store_url,
+                wd.legal_form,
+                wd.issue_date_gregorian,
+                wd.management_structure,
+                wd.management_managers,
+                wd.contact_info,
                 
                 -- Application Details
                 pa.notes,
@@ -87,7 +86,8 @@ export async function GET(req) {
                 
              FROM pos_application pa
              LEFT JOIN business_users bu ON pa.user_id = bu.user_id
-             LEFT JOIN users u ON bu.user_id = u.user_id
+             LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
+             LEFT JOIN users u ON pa.user_id = u.user_id
              WHERE $1 = ANY(pa.purchased_by)
                 OR EXISTS (SELECT 1 FROM application_offers WHERE submitted_application_id = pa.application_id AND submitted_by_user_id = $1)
              ORDER BY pa.submitted_at DESC`,

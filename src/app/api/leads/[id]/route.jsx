@@ -71,47 +71,53 @@ export async function GET(req, { params }) {
                 pa.approximate_financing_amount,
                 pa.reference_number,
 
-                -- Business Information (onboarding + Wathiq fallback)
-                COALESCE(pa.trade_name, bu.trade_name) as trade_name,
-                COALESCE(pa.sector, bu.sector) as sector,
+                -- Business Information
+                wd.trade_name,
+                COALESCE(pa.sector, wd.sector) as sector,
                 COALESCE(pa.business_contact_email, u.email) as business_contact_email,
-                bu.cr_number,
-                bu.cr_national_number,
-                bu.registration_status,
-                bu.address,
-                bu.cr_capital,
-                bu.cash_capital,
-                bu.in_kind_capital,
-                bu.avg_capital,
-                bu.legal_form,
-                bu.issue_date_gregorian,
-                bu.confirmation_date_gregorian,
-                bu.management_structure,
-                bu.management_managers,
-                bu.contact_info,
-                bu.activities,
-                bu.admin_notes,
-                bu.is_verified,
-                bu.verification_date,
+                wd.cr_number,
+                pa.cr_national_number,
+                wd.registration_status,
+                wd.cr_capital,
+                wd.cash_capital,
+                wd.in_kind_capital,
+                wd.avg_capital,
+                wd.legal_form,
+                wd.issue_date_gregorian,
+                wd.confirmation_date_gregorian,
+                wd.management_structure,
+                wd.management_managers,
+                wd.contact_info,
+                wd.activities,
+                wd.admin_notes,
+                wd.is_verified,
+                wd.verification_date,
+                wd.city AS hq_city,
+                wd.has_ecommerce,
+                wd.store_url,
+                wd.headquarter_district_name,
+                wd.headquarter_street_name,
+                wd.headquarter_building_number,
 
                 -- User Information
                 u.entity_name as business_entity_name
             FROM pos_application pa
             LEFT JOIN business_users bu ON pa.user_id = bu.user_id
-            LEFT JOIN users u ON bu.user_id = u.user_id
+            LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
+            LEFT JOIN users u ON pa.user_id = u.user_id
             WHERE pa.application_id = $1
         `;
 
         if (isOpened && !isPurchased) {
             // Hide sensitive information for opened but not purchased applications
-            appQuery = appQuery.replace('bu.contact_info,', `'{}'::jsonb AS contact_info,`);
+            appQuery = appQuery.replace('wd.contact_info,', `'{}'::jsonb AS contact_info,`);
             // Contact fields are masked client-side in BusinessInfoModal (maskContactInfo)
             // Server returns the data; client shows t***, 05********, ***@***.com
-            
+
             // Hide some Wathiq data for opened but not purchased applications
-            appQuery = appQuery.replace('bu.management_managers,', `'{}'::jsonb AS management_managers,`);
-            appQuery = appQuery.replace('bu.activities,', `ARRAY[]::text[] AS activities,`);
-            appQuery = appQuery.replace('bu.admin_notes,', `'' as admin_notes,`);
+            appQuery = appQuery.replace('wd.management_managers,', `'{}'::jsonb AS management_managers,`);
+            appQuery = appQuery.replace('wd.activities,', `ARRAY[]::text[] AS activities,`);
+            appQuery = appQuery.replace('wd.admin_notes,', `'' as admin_notes,`);
         }
 
         if (!isOpened) {

@@ -70,9 +70,7 @@ export async function GET(req) {
                     u.entity_name as bank_entity_name,
                     u.email as bank_email,
                     bu.logo_url as bank_logo_url,
-                    -- Application information (same as business-bank actions)
-                    pa.trade_name as business_name,
-                    pa.city as business_city,
+                    -- Application information
                     pa.contact_person as business_contact,
                     pa.contact_person_number as business_phone,
                     pa.application_id,
@@ -81,18 +79,22 @@ export async function GET(req) {
                     pa.offers_count,
                     pa.opened_by,
                     pa.purchased_by,
-                    pa.cr_number,
                     pa.cr_national_number,
-                    pa.cr_capital,
-                    pa.legal_form,
-                    pa.registration_status,
                     bu_user.email as business_email,
+                    -- Wathiq data (canonical source)
+                    wd.trade_name as business_name,
+                    wd.city as business_city,
+                    wd.cr_number,
+                    wd.cr_capital,
+                    wd.legal_form,
+                    wd.registration_status,
                     pa.preferred_repayment_period_months as preferred_repayment_period,
                     pa.approximate_financing_amount,
                     -- Calculated application status using standardized logic
                     ${STATUS_CALCULATION_SQL}
                 FROM application_offers ao
                 LEFT JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 LEFT JOIN users u ON ao.bank_user_id = u.user_id
                 LEFT JOIN bank_users bu ON ao.bank_user_id = bu.user_id
                 LEFT JOIN users bu_user ON pa.user_id = bu_user.user_id
@@ -177,25 +179,26 @@ export async function POST(req) {
             
             // 1. Validate CR Number and find business application
             const businessCheck = await client.query(`
-                SELECT 
+                SELECT
                     pa.application_id,
                     pa.status,
                     pa.auction_end_time,
                     pa.offers_count,
-                    pa.trade_name,
-                    pa.city,
-                    pa.cr_capital,
+                    wd.trade_name,
+                    wd.city,
+                    wd.cr_capital,
                     pa.preferred_repayment_period_months,
-                    pa.legal_form,
-                    pa.registration_status,
+                    wd.legal_form,
+                    wd.registration_status,
                     pa.contact_person,
                     pa.contact_person_number,
                     u.email as business_email,
                     bu.user_id as business_user_id
                 FROM pos_application pa
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 LEFT JOIN business_users bu ON pa.user_id = bu.user_id
                 LEFT JOIN users u ON bu.user_id = u.user_id
-                WHERE bu.cr_number = $1
+                WHERE wd.cr_number = $1
                 ORDER BY pa.submitted_at DESC
                 LIMIT 1
             `, [cr_number]);
@@ -331,17 +334,18 @@ export async function POST(req) {
             
             // Get the created offer details
             const createdOffer = await client.query(`
-                SELECT 
+                SELECT
                     ao.*,
-                    pa.trade_name as business_name,
-                    pa.cr_number,
-                    pa.city as business_city,
-                    pa.cr_capital,
+                    wd.trade_name as business_name,
+                    wd.cr_number,
+                    wd.city as business_city,
+                    wd.cr_capital,
                     pa.contact_person as business_contact,
                     pa.contact_person_number as business_phone,
                     u.email as business_email
                 FROM application_offers ao
                 JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 LEFT JOIN business_users bu ON pa.user_id = bu.user_id
                 LEFT JOIN users u ON bu.user_id = u.user_id
                 WHERE ao.offer_id = $1

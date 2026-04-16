@@ -46,8 +46,8 @@ export async function GET(request, { params }) {
                 ao.uploaded_document,
                 ao.uploaded_mimetype,
                 ao.uploaded_filename,
-                pa.trade_name as business_name,
-                pa.city as business_city,
+                wd.trade_name as business_name,
+                wd.city as business_city,
                 pa.contact_person as business_contact,
                 pa.contact_person_number as business_phone,
                 pa.application_id,
@@ -57,6 +57,7 @@ export async function GET(request, { params }) {
                 COALESCE(pa.current_application_status, pa.status) as application_status
             FROM application_offers ao
             LEFT JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+            LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
             LEFT JOIN users u ON ao.bank_user_id = u.user_id
             LEFT JOIN bank_users bu ON ao.bank_user_id = bu.user_id
             WHERE ao.offer_id = $1

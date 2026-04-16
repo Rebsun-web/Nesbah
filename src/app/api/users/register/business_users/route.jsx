@@ -34,7 +34,6 @@ export async function POST(req) {
             management_structure,
             management_managers,
             // Additional fields for completeness
-            address,
             sector,
             in_kind_capital,
             avg_capital,
@@ -103,76 +102,120 @@ export async function POST(req) {
             const user_id = userRes.rows[0].user_id;
             console.log(`✅ User record created with ID: ${user_id}`);
 
-            console.log('📝 Creating business user record...');
-            // Insert business user data with all required Wathiq API fields
-            await client.query(
-                `INSERT INTO business_users (
-                    user_id, 
-                    cr_national_number, 
-                    cr_number, 
-                    trade_name, 
+            // Upsert into wathiq_data — canonical store for all Wathiq fields
+            console.log('📝 Upserting wathiq_data record...');
+            const wathiqResult = await client.query(
+                `INSERT INTO wathiq_data (
+                    cr_national_number,
+                    cr_number,
+                    trade_name,
                     legal_form,
                     registration_status,
-                    headquarter_city_name,
                     issue_date_gregorian,
                     confirmation_date_gregorian,
-                    contact_info,
-                    activities,
+                    city,
+                    headquarter_district_name,
+                    headquarter_street_name,
+                    headquarter_building_number,
                     has_ecommerce,
                     store_url,
                     cr_capital,
                     cash_capital,
-                    management_structure,
-                    management_managers,
-                    address,
-                    sector,
                     in_kind_capital,
                     avg_capital,
-                    headquarter_district_name,
-                    headquarter_street_name,
-                    headquarter_building_number,
-                    city,
+                    management_structure,
+                    management_managers,
+                    activities,
+                    contact_info,
+                    sector,
+                    is_verified,
+                    verification_date,
+                    wathiq_fetched_at,
+                    created_at,
+                    updated_at
+                ) VALUES (
+                    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,
+                    TRUE, NOW(), NOW(), NOW(), NOW()
+                )
+                ON CONFLICT (cr_national_number) DO UPDATE SET
+                    cr_number                   = EXCLUDED.cr_number,
+                    trade_name                  = EXCLUDED.trade_name,
+                    legal_form                  = EXCLUDED.legal_form,
+                    registration_status         = EXCLUDED.registration_status,
+                    issue_date_gregorian        = EXCLUDED.issue_date_gregorian,
+                    confirmation_date_gregorian = EXCLUDED.confirmation_date_gregorian,
+                    city                        = EXCLUDED.city,
+                    headquarter_district_name   = EXCLUDED.headquarter_district_name,
+                    headquarter_street_name     = EXCLUDED.headquarter_street_name,
+                    headquarter_building_number = EXCLUDED.headquarter_building_number,
+                    has_ecommerce               = EXCLUDED.has_ecommerce,
+                    store_url                   = EXCLUDED.store_url,
+                    cr_capital                  = EXCLUDED.cr_capital,
+                    cash_capital                = EXCLUDED.cash_capital,
+                    in_kind_capital             = EXCLUDED.in_kind_capital,
+                    avg_capital                 = EXCLUDED.avg_capital,
+                    management_structure        = EXCLUDED.management_structure,
+                    management_managers         = EXCLUDED.management_managers,
+                    activities                  = EXCLUDED.activities,
+                    contact_info                = EXCLUDED.contact_info,
+                    sector                      = EXCLUDED.sector,
+                    is_verified                 = TRUE,
+                    verification_date           = NOW(),
+                    wathiq_fetched_at           = NOW(),
+                    updated_at                  = NOW()
+                RETURNING id`,
+                [
+                    cr_national_number,                                                                            // $1
+                    cr_number,                                                                                     // $2
+                    trade_name,                                                                                    // $3
+                    legal_form,                                                                                    // $4
+                    registration_status || 'active',                                                              // $5
+                    issue_date_gregorian,                                                                         // $6
+                    confirmation_date_gregorian,                                                                  // $7
+                    city || headquarter_city_name,                                                                // $8
+                    headquarter_district_name,                                                                    // $9
+                    headquarter_street_name,                                                                      // $10
+                    headquarter_building_number,                                                                  // $11
+                    has_ecommerce || false,                                                                       // $12
+                    store_url,                                                                                    // $13
+                    cr_capital,                                                                                   // $14
+                    cash_capital,                                                                                 // $15
+                    in_kind_capital,                                                                              // $16
+                    avg_capital,                                                                                  // $17
+                    management_structure,                                                                         // $18
+                    management_managers ? JSON.stringify(Array.isArray(management_managers) ? management_managers : [management_managers]) : null, // $19
+                    activities ? (Array.isArray(activities) ? activities : [activities]) : null,                  // $20
+                    contact_info ? (typeof contact_info === 'string' ? contact_info : JSON.stringify(contact_info)) : null, // $21
+                    sector || 'General',                                                                          // $22
+                ]
+            );
+            const wathiq_data_id = wathiqResult.rows[0].id;
+            console.log(`✅ wathiq_data record upserted, id=${wathiq_data_id}`);
+
+            console.log('📝 Creating business user record...');
+            // Insert business user record — all Wathiq fields are in wathiq_data (FK: wathiq_data_id)
+            await client.query(
+                `INSERT INTO business_users (
+                    user_id,
+                    cr_national_number,
+                    wathiq_data_id,
                     contact_person,
                     contact_person_number,
                     is_verified,
                     verification_date,
                     created_at,
                     updated_at
-                ) VALUES (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
-                )`,
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
                 [
-                    user_id, 
-                    cr_national_number, 
-                    cr_number, 
-                    trade_name, 
-                    legal_form,
-                    registration_status || 'active',
-                    headquarter_city_name,
-                    issue_date_gregorian,
-                    confirmation_date_gregorian,
-                    contact_info ? (typeof contact_info === 'string' ? contact_info : JSON.stringify(contact_info)) : null,
-                    activities ? (Array.isArray(activities) ? activities : [activities]) : null,
-                    has_ecommerce || false,
-                    store_url, 
-                    cr_capital,
-                    cash_capital,
-                    management_structure,
-                    management_managers ? (Array.isArray(management_managers) ? JSON.stringify(management_managers) : JSON.stringify([management_managers])) : null,
-                    address, 
-                    sector || 'General', // Add default value if sector is null
-                    in_kind_capital, 
-                    avg_capital,
-                    headquarter_district_name,
-                    headquarter_street_name,
-                    headquarter_building_number,
-                    city,
-                    contact_person,
-                    contact_person_number,
-                    true, // is_verified - data from Wathiq is verified
-                    new Date().toISOString(), // verification_date
-                    new Date().toISOString(), // created_at
-                    new Date().toISOString()  // updated_at
+                    user_id,                        // $1
+                    cr_national_number,             // $2
+                    wathiq_data_id,                 // $3
+                    contact_person,                 // $4
+                    contact_person_number,          // $5
+                    true,                           // $6 is_verified
+                    new Date().toISOString(),       // $7 verification_date
+                    new Date().toISOString(),       // $8 created_at
+                    new Date().toISOString(),       // $9 updated_at
                 ]
             );
             console.log(`✅ Business user record created`);

@@ -38,15 +38,16 @@ export async function GET(req) {
                     GROUP BY COALESCE(pa.current_application_status, pa.status)
                 ),
                 city_stats AS (
-                    SELECT 
-                        pa.city,
+                    SELECT
+                        wd.city,
                         COUNT(DISTINCT pa.application_id) as total_applications,
                         COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'completed' THEN pa.application_id END) as completed_applications,
                         COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'ignored' THEN pa.application_id END) as ignored_applications,
                         COUNT(DISTINCT CASE WHEN COALESCE(pa.current_application_status, pa.status) = 'live_auction' THEN pa.application_id END) as live_auction_applications
                     FROM pos_application pa
+                    LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                     WHERE COALESCE(pa.current_application_status, pa.status) IN ('live_auction', 'ignored', 'completed')
-                    GROUP BY pa.city
+                    GROUP BY wd.city
                 ),
                 sector_stats AS (
                     SELECT 

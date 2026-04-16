@@ -41,91 +41,91 @@ export async function GET(req) {
             if (crNumber && crNationalNumber) {
                 // Search by both CR number and CR national number
                 query = `
-                    SELECT 
+                    SELECT
                         bu.user_id,
-                        bu.cr_number,
+                        wd.cr_number,
                         bu.cr_national_number,
-                        bu.trade_name,
-                        bu.legal_form,
-                        bu.registration_status,
-                        bu.issue_date_gregorian,
-                        bu.city,
-                        bu.address,
-                        bu.sector as activities,
-                        bu.has_ecommerce,
-                        bu.store_url,
-                        bu.cr_capital,
-                        bu.cash_capital,
-                        bu.management_structure,
-                        bu.management_managers,
+                        wd.trade_name,
+                        wd.legal_form,
+                        wd.registration_status,
+                        wd.issue_date_gregorian,
+                        wd.city,
+                        wd.sector as activities,
+                        wd.has_ecommerce,
+                        wd.store_url,
+                        wd.cr_capital,
+                        wd.cash_capital,
+                        wd.management_structure,
+                        wd.management_managers,
                         bu.contact_person,
                         bu.contact_person_number,
                         u.email,
                         u.created_at
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
-                    WHERE bu.cr_number = $1 AND bu.cr_national_number = $2
-                    AND bu.registration_status = 'active'
+                    LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
+                    WHERE wd.cr_number = $1 AND bu.cr_national_number = $2
+                    AND wd.registration_status = 'active'
                 `;
                 queryParams = [crNumber, crNationalNumber];
             } else if (crNumber) {
                 // Search by CR number only
                 query = `
-                    SELECT 
+                    SELECT
                         bu.user_id,
-                        bu.cr_number,
+                        wd.cr_number,
                         bu.cr_national_number,
-                        bu.trade_name,
-                        bu.legal_form,
-                        bu.registration_status,
-                        bu.issue_date_gregorian,
-                        bu.city,
-                        bu.address,
-                        bu.sector as activities,
-                        bu.has_ecommerce,
-                        bu.store_url,
-                        bu.cr_capital,
-                        bu.cash_capital,
-                        bu.management_structure,
-                        bu.management_managers,
+                        wd.trade_name,
+                        wd.legal_form,
+                        wd.registration_status,
+                        wd.issue_date_gregorian,
+                        wd.city,
+                        wd.sector as activities,
+                        wd.has_ecommerce,
+                        wd.store_url,
+                        wd.cr_capital,
+                        wd.cash_capital,
+                        wd.management_structure,
+                        wd.management_managers,
                         bu.contact_person,
                         bu.contact_person_number,
                         u.email,
                         u.created_at
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
-                    WHERE bu.cr_number = $1
-                    AND bu.registration_status = 'active'
+                    LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
+                    WHERE wd.cr_number = $1
+                    AND wd.registration_status = 'active'
                 `;
                 queryParams = [crNumber];
             } else {
                 // Search by CR national number only
                 query = `
-                    SELECT 
+                    SELECT
                         bu.user_id,
-                        bu.cr_number,
+                        wd.cr_number,
                         bu.cr_national_number,
-                        bu.trade_name,
-                        bu.legal_form,
-                        bu.registration_status,
-                        bu.issue_date_gregorian,
-                        bu.city,
-                        bu.address,
-                        bu.sector as activities,
-                        bu.has_ecommerce,
-                        bu.store_url,
-                        bu.cr_capital,
-                        bu.cash_capital,
-                        bu.management_structure,
-                        bu.management_managers,
+                        wd.trade_name,
+                        wd.legal_form,
+                        wd.registration_status,
+                        wd.issue_date_gregorian,
+                        wd.city,
+                        wd.sector as activities,
+                        wd.has_ecommerce,
+                        wd.store_url,
+                        wd.cr_capital,
+                        wd.cash_capital,
+                        wd.management_structure,
+                        wd.management_managers,
                         bu.contact_person,
                         bu.contact_person_number,
                         u.email,
                         u.created_at
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
+                    LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                     WHERE bu.cr_national_number = $1
-                    AND bu.registration_status = 'active'
+                    AND wd.registration_status = 'active'
                 `;
                 queryParams = [crNationalNumber];
             }

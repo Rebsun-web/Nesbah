@@ -41,12 +41,7 @@ export async function GET(req, { params }) {
                     bu.contact_person_number as bank_contact_number,
                     bu.email as bank_email,
                     -- Application information
-                    pa.trade_name as application_trade_name,
-                    pa.cr_number as application_cr_number,
                     pa.cr_national_number as application_cr_national_number,
-                    pa.city as application_city,
-                    pa.legal_form as application_legal_form,
-                    pa.registration_status as application_registration_status,
                     pa.approximate_financing_amount as application_requested_amount,
                     pa.preferred_repayment_period_months as application_preferred_period,
                     pa.contact_person as application_contact_person,
@@ -54,21 +49,28 @@ export async function GET(req, { params }) {
                     pa.number_of_pos_devices as application_pos_devices,
                     pa.pos_provider_name as application_pos_provider,
                     pa.avg_monthly_pos_sales as application_monthly_sales,
-                    pa.activities as application_activities,
-                    pa.has_ecommerce as application_has_ecommerce,
-                    pa.store_url as application_store_url,
-                    pa.cr_capital as application_cr_capital,
-                    pa.cash_capital as application_cash_capital,
-                    pa.management_structure as application_management_structure,
                     pa.notes as application_notes,
                     pa.submitted_at as application_submitted_at,
                     pa.status as application_status,
+                    -- Wathiq data (canonical source)
+                    wd.trade_name as application_trade_name,
+                    wd.cr_number as application_cr_number,
+                    wd.city as application_city,
+                    wd.legal_form as application_legal_form,
+                    wd.registration_status as application_registration_status,
+                    wd.activities as application_activities,
+                    wd.has_ecommerce as application_has_ecommerce,
+                    wd.store_url as application_store_url,
+                    wd.cr_capital as application_cr_capital,
+                    wd.cash_capital as application_cash_capital,
+                    wd.management_structure as application_management_structure,
                     -- User information
                     u.email as business_user_email,
                     u.user_type as business_user_type
                 FROM application_offers ao
                 LEFT JOIN bank_users bu ON ao.bank_user_id = bu.user_id
                 LEFT JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 LEFT JOIN users u ON pa.user_id = u.user_id
                 WHERE ao.offer_id = $1
             `;

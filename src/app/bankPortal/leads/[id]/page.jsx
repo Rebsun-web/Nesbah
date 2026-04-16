@@ -213,21 +213,21 @@ function LeadPageContent({ params }) {
   const sector = Array.isArray(application.sector)
       ? (() => {
           try {
-            return application.sector.map((a) => a.name || 'N/A').join(', ');
+            return application.sector.map((a) => a.name || 'Not specified').join(', ');
           } catch (error) {
             console.error('Error processing sector array:', error);
             return 'Error loading sector data';
           }
         })()
-      : application.sector || 'Not Provided'
+      : application.sector || 'Not specified'
   
   // Format sector data to display each activity on a new line
-  const formattedSector = sector !== 'Not Provided' 
+  const formattedSector = sector !== 'Not specified' 
     ? (() => {
         try {
           return sector.split(', ').map((activity, index) => (
             <div key={index} className="mb-1">
-              {activity.trim() || 'N/A'}
+              {activity.trim() || 'Not specified'}
             </div>
           ));
         } catch (error) {
@@ -235,7 +235,7 @@ function LeadPageContent({ params }) {
           return <div className="text-red-600">Error loading sector data</div>;
         }
       })()
-    : 'Not Provided'
+    : 'Not specified'
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
@@ -275,12 +275,12 @@ function LeadPageContent({ params }) {
           <div className="flex flex-wrap gap-x-10 gap-y-4 py-1.5">
             <span className="flex items-center gap-3 text-sm text-zinc-800">
               <BanknotesIcon className="size-4 shrink-0 fill-zinc-400" />
-              Cash capital: {application.cash_capital ?? 'Not Provided'}
+              Cash capital: {application.cash_capital ?? 'Not specified'}
             </span>
 
             <span className="flex items-center gap-3 text-sm text-zinc-800">
               <BanknotesIcon className="size-4 shrink-0 fill-zinc-400" />
-              In kind capital: {application.in_kind_capital ?? 'Not Provided'}
+              In kind capital: {application.in_kind_capital ?? 'Not specified'}
             </span>
 
             <span className="flex items-center gap-3 text-sm text-zinc-800">
@@ -306,48 +306,52 @@ function LeadPageContent({ params }) {
         <DescriptionList>
           <DescriptionTerm>POS Provider</DescriptionTerm>
           <DescriptionDetails>
-            {application.pos_provider_name || 'N/A'}
+            {application.pos_provider_name || 'Not specified'}
           </DescriptionDetails>
 
           <DescriptionTerm>POS Age</DescriptionTerm>
           <DescriptionDetails>
-            {application.pos_age_duration_months ? `${application.pos_age_duration_months} months` : 'N/A'}
+            {application.pos_age_duration_months ? `${application.pos_age_duration_months} months` : 'Not specified'}
           </DescriptionDetails>
 
           <DescriptionTerm>Monthly Sales</DescriptionTerm>
           <DescriptionDetails>
-            {application.avg_monthly_pos_sales ? `SAR ${application.avg_monthly_pos_sales.toLocaleString()}` : 'N/A'}
+            {application.avg_monthly_pos_sales ? `SAR ${application.avg_monthly_pos_sales.toLocaleString()}` : 'Not specified'}
           </DescriptionDetails>
 
           <DescriptionTerm>Financing Amount</DescriptionTerm>
           <DescriptionDetails>
-            {application.approximate_financing_amount || 'N/A'}
+            {application.approximate_financing_amount || 'Not specified'}
           </DescriptionDetails>
 
           <DescriptionTerm>Repayment Period</DescriptionTerm>
           <DescriptionDetails>
-            {application.preferred_repayment_period_months ? `${application.preferred_repayment_period_months} months` : 'N/A'}
+            {application.preferred_repayment_period_months ? `${application.preferred_repayment_period_months} months` : 'Not specified'}
           </DescriptionDetails>
 
           <DescriptionTerm>Own POS System</DescriptionTerm>
           <DescriptionDetails>
-            {application.own_pos_system ? 'Yes' : 'No'}
+            {application.own_pos_system === null || application.own_pos_system === undefined
+              ? 'Not specified'
+              : application.own_pos_system ? 'Yes' : 'No'}
           </DescriptionDetails>
 
           <DescriptionTerm>Number of POS Devices</DescriptionTerm>
-          <DescriptionDetails>{application.number_of_pos_devices || 'N/A'}</DescriptionDetails>
+          <DescriptionDetails>{application.number_of_pos_devices || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>City of Operations</DescriptionTerm>
-          <DescriptionDetails>{application.city_of_operation || 'N/A'}</DescriptionDetails>
+          <DescriptionDetails>{application.city_of_operation || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>Has E-commerce</DescriptionTerm>
           <DescriptionDetails>
-            {application.has_ecommerce ? 'Yes' : 'No'}
-            {application.store_url && ` (${application.store_url})`}
+            {application.has_ecommerce === null || application.has_ecommerce === undefined
+              ? 'Not specified'
+              : application.has_ecommerce ? 'Yes' : 'No'}
+            {application.store_url ? ` (${application.store_url})` : ''}
           </DescriptionDetails>
 
           <DescriptionTerm>Notes</DescriptionTerm>
-          <DescriptionDetails>{application.notes || 'N/A'}</DescriptionDetails>
+          <DescriptionDetails>{application.notes || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>Uploaded Document</DescriptionTerm>
           <DescriptionDetails>
@@ -361,7 +365,7 @@ function LeadPageContent({ params }) {
                 📎 {application.uploaded_filename || 'Download file'}
               </a>
             ) : (
-              'N/A'
+              'Not specified'
             )}
           </DescriptionDetails>
         </DescriptionList>
@@ -372,58 +376,77 @@ function LeadPageContent({ params }) {
         <Divider className="mt-4" />
         <DescriptionList>
           <DescriptionTerm>Business Name</DescriptionTerm>
-          <DescriptionDetails>{application.trade_name || 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.trade_name || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>CR National Number</DescriptionTerm>
-          <DescriptionDetails>{application.cr_national_number || 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.cr_national_number || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>CR Number</DescriptionTerm>
-          <DescriptionDetails>{application.cr_number || 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.cr_number || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>Registration Status</DescriptionTerm>
-          <DescriptionDetails>{application.registration_status || 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.registration_status || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>Legal Form</DescriptionTerm>
-          <DescriptionDetails>{application.legal_form || 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.legal_form || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>Issue Date (Gregorian)</DescriptionTerm>
-          <DescriptionDetails>{application.issue_date_gregorian || 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.issue_date_gregorian || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>Confirmation Date (Gregorian)</DescriptionTerm>
-          <DescriptionDetails>{application.confirmation_date_gregorian || 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.confirmation_date_gregorian || 'Not specified'}</DescriptionDetails>
 
-          <DescriptionTerm>Address</DescriptionTerm>
-          <DescriptionDetails>{application.address || 'N/A'}</DescriptionDetails>
+          <DescriptionTerm>City (HQ)</DescriptionTerm>
+          <DescriptionDetails>{application.city || 'Not specified'}</DescriptionDetails>
 
-          <DescriptionTerm>City</DescriptionTerm>
-          <DescriptionDetails>{application.city || 'Not Provided'}</DescriptionDetails>
+          <DescriptionTerm>District</DescriptionTerm>
+          <DescriptionDetails>{application.headquarter_district_name || 'Not specified'}</DescriptionDetails>
+
+          <DescriptionTerm>Street</DescriptionTerm>
+          <DescriptionDetails>{application.headquarter_street_name || 'Not specified'}</DescriptionDetails>
+
+          <DescriptionTerm>Building Number</DescriptionTerm>
+          <DescriptionDetails>{application.headquarter_building_number || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>Sector</DescriptionTerm>
           <DescriptionDetails>{formattedSector}</DescriptionDetails>
 
           <DescriptionTerm>CR Capital</DescriptionTerm>
-          <DescriptionDetails>{application.cr_capital ? `${application.cr_capital.toLocaleString()} SAR` : 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.cr_capital ? `${application.cr_capital.toLocaleString()} SAR` : 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>Cash Capital</DescriptionTerm>
-          <DescriptionDetails>{application.cash_capital ? `${application.cash_capital.toLocaleString()} SAR` : 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.cash_capital ? `${application.cash_capital.toLocaleString()} SAR` : 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>In-Kind Capital</DescriptionTerm>
-          <DescriptionDetails>{application.in_kind_capital || 'N/A'}</DescriptionDetails>
+          <DescriptionDetails>{application.in_kind_capital || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>Average Capital</DescriptionTerm>
-          <DescriptionDetails>{application.avg_capital ? `${application.avg_capital.toLocaleString()} SAR` : 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.avg_capital ? `${application.avg_capital.toLocaleString()} SAR` : 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>Has eCommerce</DescriptionTerm>
           <DescriptionDetails>
-            {application.has_ecommerce ? 'Yes' : 'No'}{' '}
-            {application.store_url ? `(${application.store_url})` : ''}
+            {application.has_ecommerce === null || application.has_ecommerce === undefined
+              ? 'Not specified'
+              : application.has_ecommerce ? 'Yes' : 'No'}
+            {application.store_url ? ` (${application.store_url})` : ''}
           </DescriptionDetails>
 
           <DescriptionTerm>Store URL</DescriptionTerm>
-          <DescriptionDetails>{application.store_url || 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.store_url || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>Management Structure</DescriptionTerm>
-          <DescriptionDetails>{application.management_structure || 'Not Provided'}</DescriptionDetails>
+          <DescriptionDetails>{application.management_structure || 'Not specified'}</DescriptionDetails>
+
+          <DescriptionTerm>Management Managers</DescriptionTerm>
+          <DescriptionDetails>
+            {application.management_managers && Array.isArray(application.management_managers) && application.management_managers.length > 0
+              ? application.management_managers.map((m, index) => (
+                  <div key={index} className="mb-1">
+                    {m.name || 'Not specified'}{m.role ? ` — ${m.role}` : ''}
+                  </div>
+                ))
+              : 'Not specified'}
+          </DescriptionDetails>
 
           <DescriptionTerm>Activities</DescriptionTerm>
           <DescriptionDetails>
@@ -432,7 +455,7 @@ function LeadPageContent({ params }) {
                   try {
                     return (
                       <div key={index} className="mb-1">
-                        {activity || 'N/A'}
+                        {activity || 'Not specified'}
                       </div>
                     );
                   } catch (error) {
@@ -444,21 +467,35 @@ function LeadPageContent({ params }) {
                     );
                   }
                 })
-              : 'Not Provided'}
+              : 'Not specified'}
+          </DescriptionDetails>
+
+          <DescriptionTerm>Contact Info</DescriptionTerm>
+          <DescriptionDetails>
+            {application.contact_info && typeof application.contact_info === 'object' && Object.keys(application.contact_info).length > 0
+              ? (
+                <div className="space-y-1">
+                  {application.contact_info.email && <div>Email: {application.contact_info.email}</div>}
+                  {application.contact_info.mobile && <div>Mobile: {application.contact_info.mobile}</div>}
+                  {application.contact_info.phone && <div>Phone: {application.contact_info.phone}</div>}
+                </div>
+              )
+              : 'Not specified'}
           </DescriptionDetails>
 
           <DescriptionTerm>Is Verified</DescriptionTerm>
-          <DescriptionDetails>{application.is_verified ? 'Yes' : 'No'}</DescriptionDetails>
+          <DescriptionDetails>
+            {application.is_verified === null || application.is_verified === undefined
+              ? 'Not specified'
+              : application.is_verified ? 'Yes' : 'No'}
+          </DescriptionDetails>
 
           <DescriptionTerm>Verification Date</DescriptionTerm>
           <DescriptionDetails>
-            {application.verification_date 
-              ? new Date(application.verification_date).toLocaleDateString() 
-              : 'Not Provided'}
+            {application.verification_date
+              ? new Date(application.verification_date).toLocaleDateString()
+              : 'Not specified'}
           </DescriptionDetails>
-
-          <DescriptionTerm>Admin Notes</DescriptionTerm>
-          <DescriptionDetails>{application.admin_notes || 'Not Provided'}</DescriptionDetails>
         </DescriptionList>
       </div>
 
@@ -471,19 +508,19 @@ function LeadPageContent({ params }) {
           <Divider className="mt-4" />
           <DescriptionList>
             <DescriptionTerm>Device Setup Fee</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_device_setup_fee || 'Not Provided'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_device_setup_fee || 'Not specified'}</DescriptionDetails>
             <DescriptionTerm>Transaction Fee MADA</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_transaction_fee_mada || 'Not Provided'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_transaction_fee_mada || 'Not specified'}</DescriptionDetails>
             <DescriptionTerm>Transaction Fee Visa/MC</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_transaction_fee_visa_mc || 'Not Provided'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_transaction_fee_visa_mc || 'Not specified'}</DescriptionDetails>
             <DescriptionTerm>Settlement Time MADA</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_settlement_time_mada || 'Not Provided'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_settlement_time_mada || 'Not specified'}</DescriptionDetails>
             <DescriptionTerm>Settlement Time Visa/MC</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_settlement_time_visa_mc || 'Not Provided'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_settlement_time_visa_mc || 'Not specified'}</DescriptionDetails>
             <DescriptionTerm>Comment</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_comment || 'Not Provided'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_comment || 'Not specified'}</DescriptionDetails>
             <DescriptionTerm>Terms</DescriptionTerm>
-            <DescriptionDetails>{submittedOffer.offer_terms || 'Not Provided'}</DescriptionDetails>
+            <DescriptionDetails>{submittedOffer.offer_terms || 'Not specified'}</DescriptionDetails>
             <DescriptionTerm>Status</DescriptionTerm>
             <DescriptionDetails>
               <Badge color={submittedOffer.status === 'live_auction' ? 'blue' : 'green'}>
@@ -496,7 +533,7 @@ function LeadPageContent({ params }) {
             </DescriptionDetails>
             <DescriptionTerm>Expires At</DescriptionTerm>
             <DescriptionDetails>
-              {submittedOffer.expires_at ? new Date(submittedOffer.expires_at).toLocaleString() : 'Not Set'}
+              {submittedOffer.expires_at ? new Date(submittedOffer.expires_at).toLocaleString() : 'Not specified'}
             </DescriptionDetails>
             <DescriptionTerm>Uploaded File</DescriptionTerm>
             <DescriptionDetails>
@@ -510,7 +547,7 @@ function LeadPageContent({ params }) {
                   📎 {submittedOffer.uploaded_filename}
                 </a>
               ) : (
-                'Not Provided'
+                'Not specified'
               )}
             </DescriptionDetails>
           </DescriptionList>
@@ -529,34 +566,34 @@ function LeadPageContent({ params }) {
                   <div key={offer.offer_id || index} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-lg font-semibold text-gray-900">
-                        Offer #{offer.offer_id || 'N/A'} by {offer.bank_name || 'Unknown Bank'}
+                        Offer #{offer.offer_id || 'Not specified'} by {offer.bank_name || 'Unknown Bank'}
                       </h4>
                       <Badge color={offer.status === 'live_auction' ? 'blue' : 'green'}>
-                        {offer.status || 'N/A'}
+                        {offer.status || 'Not specified'}
                       </Badge>
                     </div>
                 <DescriptionList>
                   <DescriptionTerm>Device Setup Fee</DescriptionTerm>
-                  <DescriptionDetails>{offer.setup_fee || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionDetails>{offer.setup_fee || 'Not specified'}</DescriptionDetails>
                   <DescriptionTerm>Transaction Fee MADA</DescriptionTerm>
-                  <DescriptionDetails>{offer.transaction_fee_mada || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionDetails>{offer.transaction_fee_mada || 'Not specified'}</DescriptionDetails>
                   <DescriptionTerm>Transaction Fee Visa/MC</DescriptionTerm>
-                  <DescriptionDetails>{offer.transaction_fee_visa_mc || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionDetails>{offer.transaction_fee_visa_mc || 'Not specified'}</DescriptionDetails>
                   <DescriptionTerm>Settlement Time MADA</DescriptionTerm>
-                  <DescriptionDetails>{offer.offer_settlement_time_mada || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionDetails>{offer.offer_settlement_time_mada || 'Not specified'}</DescriptionDetails>
                   <DescriptionTerm>Settlement Time Visa/MC</DescriptionTerm>
-                  <DescriptionDetails>{offer.offer_settlement_time_visa_mc || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionDetails>{offer.offer_settlement_time_visa_mc || 'Not specified'}</DescriptionDetails>
                   <DescriptionTerm>Comment</DescriptionTerm>
-                  <DescriptionDetails>{offer.offer_comment || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionDetails>{offer.offer_comment || 'Not specified'}</DescriptionDetails>
                   <DescriptionTerm>Terms</DescriptionTerm>
-                  <DescriptionDetails>{offer.offer_terms || 'Not Provided'}</DescriptionDetails>
+                  <DescriptionDetails>{offer.offer_terms || 'Not specified'}</DescriptionDetails>
                   <DescriptionTerm>Submitted At</DescriptionTerm>
                   <DescriptionDetails>
                     {new Date(offer.submitted_at).toLocaleString()}
                   </DescriptionDetails>
                   <DescriptionTerm>Expires At</DescriptionTerm>
                   <DescriptionDetails>
-                    {offer.expires_at ? new Date(offer.expires_at).toLocaleString() : 'Not Set'}
+                    {offer.expires_at ? new Date(offer.expires_at).toLocaleString() : 'Not specified'}
                   </DescriptionDetails>
                   <DescriptionTerm>Uploaded File</DescriptionTerm>
                   <DescriptionDetails>
@@ -570,7 +607,7 @@ function LeadPageContent({ params }) {
                         📎 {offer.uploaded_filename}
                       </a>
                     ) : (
-                      'Not Provided'
+                      'Not specified'
                     )}
                   </DescriptionDetails>
                 </DescriptionList>
@@ -821,7 +858,7 @@ function LeadPageContent({ params }) {
                           </p>
                           {(selectedFile || offerForm.file) && (
                             <div className="mt-4 text-sm text-gray-700">
-                              <p><strong>Selected file:</strong> {(selectedFile?.name || offerForm.file?.name) ?? 'N/A'}</p>
+                              <p><strong>Selected file:</strong> {(selectedFile?.name || offerForm.file?.name) ?? 'Not specified'}</p>
                             </div>
                           )}
                         </div>

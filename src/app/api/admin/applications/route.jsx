@@ -48,7 +48,7 @@ export async function GET(req) {
 
             if (search) {
                 paramCount++;
-                whereConditions.push(`(pa.trade_name ILIKE $${paramCount} OR pa.application_id::text ILIKE $${paramCount} OR pa.cr_number ILIKE $${paramCount})`);
+                whereConditions.push(`(wd.trade_name ILIKE $${paramCount} OR pa.application_id::text ILIKE $${paramCount} OR wd.cr_number ILIKE $${paramCount})`);
                 queryParams.push(`%${search}%`);
             }
 
@@ -97,18 +97,7 @@ export async function GET(req) {
                     pa.pos_age_duration_months,
                     pa.avg_monthly_pos_sales,
                     pa.preferred_repayment_period_months,
-                    pa.trade_name,
-                    pa.cr_number,
                     pa.cr_national_number,
-                    pa.legal_form,
-                    pa.registration_status,
-                    pa.issue_date_gregorian,
-                    pa.city,
-                    pa.has_ecommerce,
-                    pa.store_url,
-                    pa.cr_capital,
-                    pa.cash_capital,
-                    pa.management_structure,
                     pa.financing_type,
                     pa.approximate_financing_amount,
                     pa.business_contact_email,
@@ -118,23 +107,34 @@ export async function GET(req) {
                     pa.revenue_collected,
                     pa.opened_by,
                     pa.purchased_by,
-                    -- Business user information
-                    bu.cr_national_number as business_cr_national_number,
-                    bu.legal_form as business_legal_form,
-                    bu.registration_status as business_registration_status,
-                    bu.headquarter_city_name,
-                    bu.confirmation_date_gregorian,
-                    bu.contact_info,
-                    bu.activities,
-                    bu.in_kind_capital,
-                    bu.avg_capital,
-                    bu.headquarter_district_name,
-                    bu.headquarter_street_name,
-                    bu.headquarter_building_number,
-                    COALESCE(pa.sector, bu.sector) as sector,
-                    bu.management_managers,
-                    bu.is_verified,
-                    bu.verification_date,
+                    -- Wathiq data (canonical source)
+                    wd.trade_name,
+                    wd.cr_number,
+                    wd.legal_form,
+                    wd.registration_status,
+                    wd.issue_date_gregorian,
+                    wd.confirmation_date_gregorian,
+                    wd.city,
+                    wd.has_ecommerce,
+                    wd.store_url,
+                    wd.cr_capital,
+                    wd.cash_capital,
+                    wd.management_structure,
+                    wd.management_managers,
+                    wd.contact_info,
+                    wd.activities,
+                    wd.in_kind_capital,
+                    wd.avg_capital,
+                    wd.city AS headquarter_city_name,
+                    wd.headquarter_district_name,
+                    wd.headquarter_street_name,
+                    wd.headquarter_building_number,
+                    COALESCE(pa.sector, wd.sector) as sector,
+                    wd.is_verified,
+                    wd.verification_date,
+                    -- Kept from business_users: user-specific fields only
+                    bu.contact_person as business_contact_person,
+                    bu.contact_person_number as business_contact_person_number,
                     -- User information
                     u.email as business_email,
                     u.account_status as user_account_status,
@@ -149,6 +149,7 @@ export async function GET(req) {
                     EXTRACT(EPOCH FROM (pa.auction_end_time - NOW())) / 3600 as hours_remaining
                 FROM pos_application pa
                 LEFT JOIN business_users bu ON pa.user_id = bu.user_id
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 LEFT JOIN users u ON pa.user_id = u.user_id
                 WHERE 1=1 ${whereClause}
                 ORDER BY ${sortBy} ${sortOrder.toUpperCase()}
@@ -279,11 +280,15 @@ export async function POST(req) {
         try {
             await client.query('BEGIN');
 
-            // Check if business user already exists and get their data
+            // Check if business user already exists and get their data (JOIN wathiq_data for display fields)
             const existingBusinessUser = await client.query(
-                `SELECT bu.*, u.email 
-                 FROM business_users bu 
-                 JOIN users u ON bu.user_id = u.user_id 
+                `SELECT bu.user_id, bu.cr_national_number, bu.wathiq_data_id,
+                        bu.contact_person, bu.contact_person_number,
+                        wd.trade_name, wd.cr_number, wd.city,
+                        u.email
+                 FROM business_users bu
+                 JOIN users u ON bu.user_id = u.user_id
+                 LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                  WHERE bu.cr_national_number = $1`,
                 [cr_national_number]
             );
@@ -304,35 +309,40 @@ export async function POST(req) {
 
             const posAppResult = await client.query(
                 `INSERT INTO pos_application (
-                    user_id, status, submitted_at, notes, uploaded_document, own_pos_system, 
-                    uploaded_filename, uploaded_mimetype, trade_name, cr_number, cr_national_number, 
-                    legal_form, registration_status, issue_date_gregorian, city, 
-                    has_ecommerce, store_url, cr_capital, cash_capital, management_structure, 
-                    contact_person, contact_person_number, number_of_pos_devices, 
+                    user_id, status, submitted_at, notes, uploaded_document, own_pos_system,
+                    uploaded_filename, uploaded_mimetype,
+                    wathiq_data_id, cr_national_number,
+                    contact_person, contact_person_number, number_of_pos_devices,
                     city_of_operation, auction_end_time, opened_by, purchased_by,
                     pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
                     approximate_financing_amount, preferred_repayment_period_months
                 ) VALUES (
-                    $1, 'live_auction', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-                    $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
-                ) RETURNING application_id
-                `,
+                    $1, 'live_auction', $2, $3, $4, $5, $6, $7,
+                    $8, $9,
+                    $10, $11, $12,
+                    $13, $14, '{}', '{}',
+                    $15, $16, $17, $18, $19
+                ) RETURNING application_id`,
                 [
-                    user_id, submitted_at, notes || null,
-                    uploaded_document ? Buffer.from(uploaded_document, 'base64') : null,
-                    own_pos_system ?? null, uploaded_filename || null, uploaded_mimetype || null,
-                    // Use existing business user data instead of form data
-                    businessUserData.trade_name, businessUserData.cr_number, businessUserData.cr_national_number,
-                    businessUserData.legal_form, businessUserData.registration_status, businessUserData.issue_date_gregorian,
-                    businessUserData.city, businessUserData.has_ecommerce,
-                    businessUserData.store_url, businessUserData.cr_capital, businessUserData.cash_capital,
-                    businessUserData.management_structure,
-                    contact_person || businessUserData.contact_person, contact_person_number || businessUserData.contact_person_number,
-                    number_of_pos_devices || 1, city_of_operation || businessUserData.city, auction_end_time,
-                    '{}', '{}', // Initialize empty arrays for tracking
-                    // Use form data for POS-specific fields
-                    pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
-                    approximate_financing_amount, preferred_repayment_period_months
+                    user_id,                                                                    // $1
+                    submitted_at,                                                               // $2
+                    notes || null,                                                              // $3
+                    uploaded_document ? Buffer.from(uploaded_document, 'base64') : null,        // $4
+                    own_pos_system ?? null,                                                     // $5
+                    uploaded_filename || null,                                                  // $6
+                    uploaded_mimetype || null,                                                  // $7
+                    businessUserData.wathiq_data_id || null,                                   // $8
+                    businessUserData.cr_national_number,                                       // $9
+                    contact_person || businessUserData.contact_person,                         // $10
+                    contact_person_number || businessUserData.contact_person_number,           // $11
+                    number_of_pos_devices || 1,                                                // $12
+                    city_of_operation || businessUserData.city || null,                        // $13
+                    auction_end_time,                                                          // $14
+                    pos_provider_name,                                                         // $15
+                    pos_age_duration_months,                                                   // $16
+                    avg_monthly_pos_sales,                                                     // $17
+                    approximate_financing_amount,                                              // $18
+                    preferred_repayment_period_months                                          // $19
                 ]
             );
 

@@ -45,7 +45,7 @@ export async function GET(req) {
 
             if (search) {
                 paramCount++;
-                whereConditions.push(`(pa.trade_name ILIKE $${paramCount} OR u.entity_name ILIKE $${paramCount} OR ao.offer_id::text ILIKE $${paramCount})`);
+                whereConditions.push(`(wd.trade_name ILIKE $${paramCount} OR u.entity_name ILIKE $${paramCount} OR ao.offer_id::text ILIKE $${paramCount})`);
                 queryParams.push(`%${search}%`);
             }
 
@@ -63,6 +63,7 @@ export async function GET(req) {
                 SELECT COUNT(*) as total
                 FROM application_offers ao
                 JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 JOIN users u ON ao.bank_user_id = u.user_id
                 ${whereClause}
             `;
@@ -89,8 +90,8 @@ export async function GET(req) {
                     ao.admin_notes,
                     ao.is_featured,
                     ao.featured_reason,
-                    pa.trade_name as business_name,
-                    pa.city as business_city,
+                    wd.trade_name as business_name,
+                    wd.city as business_city,
                     pa.contact_person as business_contact,
                     pa.contact_person_number as business_phone,
                     pa.application_id,
@@ -102,6 +103,7 @@ export async function GET(req) {
                     pa.offers_count
                 FROM application_offers ao
                 JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 JOIN users u ON ao.bank_user_id = u.user_id
                 LEFT JOIN bank_users bu ON ao.bank_user_id = bu.user_id
                 ${whereClause}
@@ -278,7 +280,7 @@ export async function POST(req) {
             // Get the full offer details to return
             const offerId = result.rows[0].offer_id;
             const fullOfferQuery = await client.query(`
-                SELECT 
+                SELECT
                     ao.offer_id,
                     ao.submitted_application_id,
                     ao.bank_user_id,
@@ -286,11 +288,12 @@ export async function POST(req) {
                     ao.submitted_at,
                     ao.offer_comment,
                     ao.admin_notes,
-                    pa.trade_name as business_name,
+                    wd.trade_name as business_name,
                     pa.application_id,
                     u.entity_name as bank_name
                 FROM application_offers ao
                 JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 JOIN users u ON ao.bank_user_id = u.user_id
                 WHERE ao.offer_id = $1
             `, [offerId]);

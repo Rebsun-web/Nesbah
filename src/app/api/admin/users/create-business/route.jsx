@@ -233,47 +233,72 @@ export async function POST(req) {
             const user_id = userResult.rows[0].user_id;
             console.log(`✅ Created user record with ID: ${user_id}`);
 
-            // Then create business user record with comprehensive data
+            // Upsert Wathiq data into canonical wathiq_data table
+            const wathiqUpsertResult = await client.query(
+                `INSERT INTO wathiq_data (
+                    cr_national_number, cr_number, trade_name, legal_form, registration_status,
+                    issue_date_gregorian, confirmation_date_gregorian, city,
+                    has_ecommerce, store_url, cr_capital, cash_capital, in_kind_capital,
+                    avg_capital, management_structure, management_managers, activities,
+                    contact_info, sector, is_verified, updated_at
+                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,NOW())
+                ON CONFLICT (cr_national_number) DO UPDATE SET
+                    cr_number = EXCLUDED.cr_number, trade_name = EXCLUDED.trade_name,
+                    legal_form = EXCLUDED.legal_form, registration_status = EXCLUDED.registration_status,
+                    issue_date_gregorian = EXCLUDED.issue_date_gregorian,
+                    confirmation_date_gregorian = EXCLUDED.confirmation_date_gregorian,
+                    city = EXCLUDED.city, has_ecommerce = EXCLUDED.has_ecommerce,
+                    store_url = EXCLUDED.store_url, cr_capital = EXCLUDED.cr_capital,
+                    cash_capital = EXCLUDED.cash_capital, in_kind_capital = EXCLUDED.in_kind_capital,
+                    avg_capital = EXCLUDED.avg_capital, management_structure = EXCLUDED.management_structure,
+                    management_managers = EXCLUDED.management_managers, activities = EXCLUDED.activities,
+                    contact_info = EXCLUDED.contact_info, sector = EXCLUDED.sector,
+                    is_verified = EXCLUDED.is_verified, updated_at = NOW()
+                RETURNING id`,
+                [
+                    finalData.cr_national_number,
+                    finalData.cr_number || null,
+                    finalData.trade_name || null,
+                    finalData.legal_form || null,
+                    finalData.registration_status || 'active',
+                    finalData.issue_date_gregorian || null,
+                    finalData.confirmation_date_gregorian || null,
+                    finalData.city || null,
+                    finalData.has_ecommerce || false,
+                    finalData.store_url || null,
+                    finalData.cr_capital || null,
+                    finalData.cash_capital || null,
+                    finalData.in_kind_capital || null,
+                    finalData.avg_capital || null,
+                    finalData.management_structure || null,
+                    finalData.management_managers ? JSON.stringify(Array.isArray(finalData.management_managers) ? finalData.management_managers : finalData.management_managers.split(',').map(i => i.trim()).filter(Boolean)) : null,
+                    finalData.activities ? (Array.isArray(finalData.activities) ? finalData.activities : finalData.activities.split(',').map(i => i.trim()).filter(Boolean)) : null,
+                    finalData.contact_info ? (typeof finalData.contact_info === 'string' ? finalData.contact_info : JSON.stringify(finalData.contact_info)) : null,
+                    finalData.sector || null,
+                    finalData.is_verified || false,
+                ]
+            );
+            const wathiq_data_id = wathiqUpsertResult.rows[0].id;
+
+            // Create business user record — Wathiq fields live in wathiq_data (FK: wathiq_data_id)
             const businessUserResult = await client.query(
                 `INSERT INTO business_users (
-                    user_id, cr_national_number, cr_number, trade_name, address, sector, 
-                    registration_status, cash_capital, in_kind_capital, contact_info, 
-                    store_url, legal_form, issue_date_gregorian, confirmation_date_gregorian, 
-                    has_ecommerce, management_structure, management_managers, cr_capital,
-                    city, contact_person, contact_person_number, avg_capital, activities,
-                    is_verified, verification_date, admin_notes
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+                    user_id, cr_national_number, wathiq_data_id,
+                    contact_person, contact_person_number,
+                    is_verified, verification_date
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING user_id`,
                 [
                     user_id,
                     finalData.cr_national_number,
-                    finalData.cr_number,
-                    finalData.trade_name,
-                    finalData.address,
-                    finalData.sector,
-                    finalData.registration_status,
-                    finalData.cash_capital,
-                    finalData.in_kind_capital,
-                    finalData.contact_info ? JSON.stringify(finalData.contact_info) : null,
-                    finalData.store_url,
-                    finalData.legal_form,
-                    finalData.issue_date_gregorian,
-                    finalData.confirmation_date_gregorian,
-                    finalData.has_ecommerce,
-                    finalData.management_structure,
-                    finalData.management_managers ? JSON.stringify(Array.isArray(finalData.management_managers) ? finalData.management_managers : finalData.management_managers.split(',').map(item => item.trim()).filter(item => item.length > 0)) : null,
-                    finalData.cr_capital,
-                    finalData.city,
-                    finalData.contact_person,
-                    finalData.contact_person_number,
-                    finalData.avg_capital,
-                    finalData.activities ? (Array.isArray(finalData.activities) ? finalData.activities : finalData.activities.split(',').map(item => item.trim()).filter(item => item.length > 0)) : null,
-                    finalData.is_verified,
-                    finalData.verification_date,
-                    finalData.admin_notes
+                    wathiq_data_id,
+                    finalData.contact_person || null,
+                    finalData.contact_person_number || null,
+                    finalData.is_verified || false,
+                    finalData.verification_date || null,
                 ]
             );
-            
+
             console.log(`✅ Created business user record with ID: ${businessUserResult.rows[0].user_id}`);
 
             await client.query('COMMIT');

@@ -85,40 +85,58 @@ export async function POST(req) {
 
                         // Create specific user record based on type
                         if (user_type === 'business') {
-                            // For business users, create with all the fields that would come from Wathiq API
-                            const businessUserResult = await client.query(
-                                `INSERT INTO business_users (
-                                    cr_national_number, cr_number, trade_name, address, sector, 
-                                    registration_status, cash_capital, in_kind_capital, contact_info, 
-                                    store_url, legal_form, issue_date_gregorian, confirmation_date_gregorian, 
-                                    has_ecommerce, management_structure, management_managers, cr_capital,
-                                    city, contact_person, contact_person_number
-                                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
-                                RETURNING user_id`,
+                            // Upsert Wathiq data into canonical wathiq_data table
+                            const cr_national_number = userData.cr_national_number || `CR${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                            const wathiqUpsertResult = await client.query(
+                                `INSERT INTO wathiq_data (
+                                    cr_national_number, cr_number, trade_name, legal_form, registration_status,
+                                    city, has_ecommerce, store_url, cr_capital, cash_capital, in_kind_capital,
+                                    management_structure, management_managers, contact_info, sector, updated_at
+                                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW())
+                                ON CONFLICT (cr_national_number) DO UPDATE SET
+                                    cr_number = EXCLUDED.cr_number, trade_name = EXCLUDED.trade_name,
+                                    legal_form = EXCLUDED.legal_form, registration_status = EXCLUDED.registration_status,
+                                    city = EXCLUDED.city, has_ecommerce = EXCLUDED.has_ecommerce,
+                                    store_url = EXCLUDED.store_url, cr_capital = EXCLUDED.cr_capital,
+                                    cash_capital = EXCLUDED.cash_capital, in_kind_capital = EXCLUDED.in_kind_capital,
+                                    management_structure = EXCLUDED.management_structure,
+                                    management_managers = EXCLUDED.management_managers,
+                                    contact_info = EXCLUDED.contact_info, sector = EXCLUDED.sector,
+                                    updated_at = NOW()
+                                RETURNING id`,
                                 [
-                                    userData.cr_national_number || `CR${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                    cr_national_number,
                                     userData.cr_number || `CR${Date.now()}`,
-                                    userData.trade_name,
-                                    userData.address || userData.city || 'Default Address',
-                                    userData.sector || 'Technology',
+                                    userData.trade_name || null,
+                                    userData.legal_form || null,
                                     userData.registration_status || 'active',
+                                    userData.city || null,
+                                    userData.has_ecommerce || false,
+                                    userData.store_url || null,
+                                    userData.cr_capital || null,
                                     userData.cash_capital || null,
                                     userData.in_kind_capital || null,
-                                    userData.contact_info ? JSON.stringify(userData.contact_info) : null,
-                                    userData.store_url || null,
-                                    userData.legal_form || null,
-                                    userData.issue_date_gregorian || null,
-                                    userData.confirmation_date_gregorian || null,
-                                    userData.has_ecommerce || false,
                                     userData.management_structure || null,
-                                    userData.management_managers ? JSON.stringify(Array.isArray(userData.management_managers) ? userData.management_managers : userData.management_managers.split(',').map(item => item.trim()).filter(item => item.length > 0)) : null,
-                                    userData.cr_capital || null,
-                                    userData.city || null,
-                                    userData.contact_person || null,
-                                    userData.contact_person_number || null
+                                    userData.management_managers ? JSON.stringify(Array.isArray(userData.management_managers) ? userData.management_managers : userData.management_managers.split(',').map(i => i.trim()).filter(Boolean)) : null,
+                                    userData.contact_info ? JSON.stringify(userData.contact_info) : null,
+                                    userData.sector || 'Technology',
                                 ]
                             );
-                            
+                            const wathiq_data_id = wathiqUpsertResult.rows[0].id;
+
+                            const businessUserResult = await client.query(
+                                `INSERT INTO business_users (
+                                    cr_national_number, wathiq_data_id, contact_person, contact_person_number
+                                ) VALUES ($1, $2, $3, $4)
+                                RETURNING user_id`,
+                                [
+                                    cr_national_number,
+                                    wathiq_data_id,
+                                    userData.contact_person || null,
+                                    userData.contact_person_number || null,
+                                ]
+                            );
+
                             const userId = businessUserResult.rows[0].user_id;
 
                             createdUsers.push({

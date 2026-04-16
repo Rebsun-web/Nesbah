@@ -60,31 +60,31 @@ export async function GET(req) {
                 pa.contact_person_number,
                 u.email as business_contact_email,
                 
-                -- Wathiq Business Data
-                bu.trade_name,
-                bu.cr_number,
-                bu.cr_national_number,
-                bu.registration_status,
-                bu.legal_form,
-                bu.issue_date_gregorian,
-                bu.confirmation_date_gregorian,
-                bu.address,
-                bu.sector,
-                bu.city,
-                bu.has_ecommerce,
-                bu.store_url,
-                bu.cr_capital,
-                bu.cash_capital,
-                bu.in_kind_capital,
-                bu.avg_capital,
-                bu.management_structure,
-                bu.management_managers,
-                bu.activities,
-                bu.contact_info,
-                bu.admin_notes
+                -- Wathiq Business Data (canonical source)
+                wd.trade_name,
+                wd.cr_number,
+                pa.cr_national_number,
+                wd.registration_status,
+                wd.legal_form,
+                wd.issue_date_gregorian,
+                wd.confirmation_date_gregorian,
+                wd.city,
+                wd.has_ecommerce,
+                wd.store_url,
+                wd.cr_capital,
+                wd.cash_capital,
+                wd.in_kind_capital,
+                wd.avg_capital,
+                wd.management_structure,
+                wd.management_managers,
+                wd.activities,
+                wd.contact_info,
+                wd.admin_notes,
+                COALESCE(pa.sector, wd.sector) as sector
              FROM pos_application pa
              LEFT JOIN business_users bu ON pa.user_id = bu.user_id
-             LEFT JOIN users u ON bu.user_id = u.user_id
+             LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
+             LEFT JOIN users u ON pa.user_id = u.user_id
              WHERE $1 = ANY(pa.purchased_by)
                 OR EXISTS (SELECT 1 FROM application_offers WHERE submitted_application_id = pa.application_id AND submitted_by_user_id = $1)
              ORDER BY pa.submitted_at DESC`,

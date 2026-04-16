@@ -26,7 +26,6 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
     const [formData, setFormData] = useState({
         status: '',
         admin_notes: '',
-        trade_name: '',
         city_of_operation: '',
         sector: '',
         financing_type: '',
@@ -88,7 +87,6 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                     setFormData({
                         status: correctStatus || '',
                         admin_notes: fullApp.admin_notes || '',
-                        trade_name: fullApp.trade_name || '',
                         city_of_operation: fullApp.city_of_operation || '',
                         sector: fullApp.sector || '',
                         financing_type: fullApp.financing_type || '',
@@ -125,7 +123,6 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
             setFormData({
                 status: '',
                 admin_notes: '',
-                trade_name: '',
                 city_of_operation: '',
                 sector: '',
                 financing_type: '',
@@ -503,26 +500,46 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                         </div>
                     </div>
 
+                    {/* Wathiq Data — read-only */}
+                    {fullApplication && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h5 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                                <BuildingOfficeIcon className="h-5 w-5 mr-2" />
+                                Wathiq / Business Registry Data
+                                <span className="ml-2 text-xs font-normal text-gray-500">(read-only)</span>
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                <div><span className="font-medium text-gray-700">Trade Name: </span><span className="text-gray-900">{fullApplication.trade_name || 'Not specified'}</span></div>
+                                <div><span className="font-medium text-gray-700">CR Number: </span><span className="text-gray-900 font-mono">{fullApplication.cr_number || 'Not specified'}</span></div>
+                                <div><span className="font-medium text-gray-700">Legal Form: </span><span className="text-gray-900">{fullApplication.legal_form || 'Not specified'}</span></div>
+                                <div><span className="font-medium text-gray-700">Registration Status: </span><span className="text-gray-900">{fullApplication.registration_status || 'Not specified'}</span></div>
+                                <div><span className="font-medium text-gray-700">Issue Date: </span><span className="text-gray-900">{fullApplication.issue_date_gregorian || 'Not specified'}</span></div>
+                                <div><span className="font-medium text-gray-700">HQ City: </span><span className="text-gray-900">{fullApplication.city || 'Not specified'}</span></div>
+                                <div><span className="font-medium text-gray-700">CR Capital: </span><span className="text-gray-900">{fullApplication.cr_capital ? `SAR ${Number(fullApplication.cr_capital).toLocaleString()}` : 'Not specified'}</span></div>
+                                <div><span className="font-medium text-gray-700">Cash Capital: </span><span className="text-gray-900">{fullApplication.cash_capital ? `SAR ${Number(fullApplication.cash_capital).toLocaleString()}` : 'Not specified'}</span></div>
+                                <div><span className="font-medium text-gray-700">Management Structure: </span><span className="text-gray-900">{fullApplication.management_structure || 'Not specified'}</span></div>
+                                <div>
+                                    <span className="font-medium text-gray-700">Is Verified: </span>
+                                    <span className="text-gray-900">
+                                        {fullApplication.is_verified === null || fullApplication.is_verified === undefined
+                                            ? 'Not specified'
+                                            : fullApplication.is_verified ? 'Yes' : 'No'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Business Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="bg-white border border-gray-200 rounded-lg p-4">
                             <h5 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
                                 <BuildingOfficeIcon className="h-5 w-5 mr-2" />
-                                Business Information
+                                Application Details
                             </h5>
                             <div className="space-y-3">
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">Business Name</label>
-                                    <input
-                                        type="text"
-                                        name="trade_name"
-                                        value={formData.trade_name}
-                                        onChange={handleInputChange}
-                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">City</label>
+                                    <label className="text-sm font-medium text-gray-700">City of Operation</label>
                                     <input
                                         type="text"
                                         name="city_of_operation"

@@ -31,19 +31,22 @@ export async function GET(req) {
             
             // First, let's debug what applications exist for the problematic business
             const debugQuery = `
-                SELECT 
+                SELECT
                     pa.application_id,
                     pa.business_user_id,
-                    bu.trade_name,
+                    wd.trade_name,
                     bu.user_id,
                     u.email
                 FROM pos_application pa
                 LEFT JOIN business_users bu ON pa.business_user_id = bu.user_id
+                LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                 LEFT JOIN users u ON bu.user_id = u.user_id
-                WHERE bu.trade_name LIKE '%Agricultural Development%'
+                WHERE wd.trade_name LIKE '%Agricultural Development%'
                    OR u.email LIKE '%cr012@nesbah.com%'
                    OR pa.business_user_id IN (
-                       SELECT user_id FROM business_users WHERE trade_name LIKE '%Agricultural Development%'
+                       SELECT bu2.user_id FROM business_users bu2
+                       LEFT JOIN wathiq_data wd2 ON bu2.wathiq_data_id = wd2.id
+                       WHERE wd2.trade_name LIKE '%Agricultural Development%'
                    )
                 ORDER BY pa.application_id DESC
             `;
@@ -56,47 +59,48 @@ export async function GET(req) {
             // Filter out duplicates and businesses with existing applications
             // Filter out businesses if ANY business with same name/email has applications
             const query = `
-                SELECT DISTINCT ON (bu.trade_name, u.email)
+                SELECT DISTINCT ON (wd.trade_name, u.email)
                     bu.user_id,
-                    bu.trade_name as entity_name,
+                    wd.trade_name as entity_name,
                     bu.cr_national_number,
-                    bu.cr_number,
-                    bu.registration_status,
-                    bu.address,
-                    bu.sector,
-                    bu.city,
-                    bu.cr_capital,
-                    bu.cash_capital,
-                    bu.in_kind_capital,
+                    wd.cr_number,
+                    wd.registration_status,
+                    wd.sector,
+                    wd.city,
+                    wd.cr_capital,
+                    wd.cash_capital,
+                    wd.in_kind_capital,
                     bu.contact_person,
                     bu.contact_person_number,
-                    bu.contact_info,
-                    bu.store_url,
-                    bu.legal_form,
-                    bu.issue_date_gregorian,
-                    bu.confirmation_date_gregorian,
-                    bu.has_ecommerce,
-                    bu.management_structure,
-                    bu.management_managers,
+                    wd.contact_info,
+                    wd.store_url,
+                    wd.legal_form,
+                    wd.issue_date_gregorian,
+                    wd.confirmation_date_gregorian,
+                    wd.has_ecommerce,
+                    wd.management_structure,
+                    wd.management_managers,
                     u.created_at,
                     u.updated_at,
                     u.email
                 FROM business_users bu
                 JOIN users u ON bu.user_id = u.user_id
+                LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                 WHERE NOT EXISTS (
-                    SELECT 1 FROM pos_application pa 
+                    SELECT 1 FROM pos_application pa
                     WHERE pa.business_user_id = bu.user_id
                 )
                 AND NOT EXISTS (
                     SELECT 1 FROM pos_application pa2
                     JOIN business_users bu2 ON pa2.business_user_id = bu2.user_id
+                    LEFT JOIN wathiq_data wd2 ON bu2.wathiq_data_id = wd2.id
                     JOIN users u2 ON bu2.user_id = u2.user_id
-                    WHERE (bu2.trade_name = bu.trade_name OR u2.email = u.email)
+                    WHERE (wd2.trade_name = wd.trade_name OR u2.email = u.email)
                       AND pa2.business_user_id IS NOT NULL
                 )
-                AND bu.registration_status = 'active'
+                AND wd.registration_status = 'active'
                 AND u.user_type = 'business_user'
-                ORDER BY bu.trade_name, u.email, bu.user_id ASC
+                ORDER BY wd.trade_name, u.email, bu.user_id ASC
             `;
             
             console.log('🔍 Executing main query...');
@@ -114,26 +118,28 @@ export async function GET(req) {
                 
                 // Let's check why it wasn't filtered out
                 const whyNotFilteredQuery = `
-                    SELECT 
+                    SELECT
                         bu.user_id,
-                        bu.trade_name,
+                        wd.trade_name,
                         u.email,
                         u.user_type,
-                        bu.registration_status,
+                        wd.registration_status,
                         EXISTS (
-                            SELECT 1 FROM pos_application pa 
+                            SELECT 1 FROM pos_application pa
                             WHERE pa.business_user_id = bu.user_id
                         ) as has_business_apps,
                         EXISTS (
                             SELECT 1 FROM pos_application pa2
                             JOIN business_users bu2 ON pa2.business_user_id = bu2.user_id
+                            LEFT JOIN wathiq_data wd2 ON bu2.wathiq_data_id = wd2.id
                             JOIN users u2 ON bu2.user_id = u2.user_id
-                            WHERE (bu2.trade_name = bu.trade_name OR u2.email = u.email)
+                            WHERE (wd2.trade_name = wd.trade_name OR u2.email = u.email)
                               AND pa2.business_user_id IS NOT NULL
                         ) as has_related_apps
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
-                    WHERE bu.trade_name LIKE '%Agricultural Development%'
+                    LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
+                    WHERE wd.trade_name LIKE '%Agricultural Development%'
                        OR u.email = 'cr012@nesbah.com'
                 `;
                 

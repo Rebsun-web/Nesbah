@@ -9,6 +9,8 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
 
     if (!businessData) return null
 
+    const ns = (val) => (val === null || val === undefined || val === '') ? 'Not specified' : val
+
     const handleSubmitOffer = async () => {
         if (onSubmitOffer) {
             setIsSubmitting(true)
@@ -23,9 +25,9 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
     }
 
     const formatMoney = (amount) => {
-        if (!amount) return 'N/A'
+        if (!amount) return 'Not specified'
         const num = typeof amount === 'string' ? parseFloat(amount.replace(/[^\d.]/g, '')) : amount
-        if (isNaN(num)) return 'N/A'
+        if (isNaN(num)) return 'Not specified'
         return `SAR ${num.toLocaleString('en-US', { 
             minimumFractionDigits: 0, 
             maximumFractionDigits: 2 
@@ -33,7 +35,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
     }
 
     const formatDate = (dateString) => {
-        if (!dateString) return 'N/A'
+        if (!dateString) return 'Not specified'
         try {
             return new Date(dateString).toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -41,12 +43,12 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                 day: 'numeric'
             })
         } catch {
-            return 'N/A'
+            return 'Not specified'
         }
     }
 
     const maskContactInfo = (type, value) => {
-        if (!value) return 'N/A'
+        if (!value) return 'Not specified'
         
         switch (type) {
             case 'email':
@@ -117,7 +119,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                     {(businessData.city || businessData.city_of_operation) && (
                                                         <div className="flex justify-between">
                                                             <span className="text-sm font-medium text-gray-700">City:</span>
-                                                            <span className="text-sm text-gray-900">{businessData.city || businessData.city_of_operation}</span>
+                                                            <span className="text-sm text-gray-900">{businessData.city_of_operation || businessData.city}</span>
                                                         </div>
                                                     )}
                                                     {businessData.sector && (
@@ -182,6 +184,123 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                             </div>
                                         </div>
 
+                                        {/* Wathiq / Business Registry Data */}
+                                        <div className="mt-6 space-y-4">
+                                            <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                                <DocumentTextIcon className="h-5 w-5 text-indigo-600 mr-2" />
+                                                Business Registry (Wathiq)
+                                            </h4>
+                                            <div className="bg-blue-50 rounded-lg p-4 space-y-3">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">CR Number:</span>
+                                                        <span className="text-sm text-gray-900">{ns(businessData.cr_number)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Legal Form:</span>
+                                                        <span className="text-sm text-gray-900">{ns(businessData.legal_form)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Registration Status:</span>
+                                                        <span className="text-sm text-gray-900">{ns(businessData.registration_status)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Issue Date:</span>
+                                                        <span className="text-sm text-gray-900">{ns(businessData.issue_date_gregorian)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Confirmation Date:</span>
+                                                        <span className="text-sm text-gray-900">{ns(businessData.confirmation_date_gregorian)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">City (HQ):</span>
+                                                        <span className="text-sm text-gray-900">{ns(businessData.hq_city)}</span>
+                                                    </div>
+                                                    {businessData.headquarter_district_name && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-gray-700">District:</span>
+                                                            <span className="text-sm text-gray-900">{businessData.headquarter_district_name}</span>
+                                                        </div>
+                                                    )}
+                                                    {businessData.headquarter_street_name && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-gray-700">Street:</span>
+                                                            <span className="text-sm text-gray-900">{businessData.headquarter_street_name}</span>
+                                                        </div>
+                                                    )}
+                                                    {businessData.headquarter_building_number && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-gray-700">Building No.:</span>
+                                                            <span className="text-sm text-gray-900">{businessData.headquarter_building_number}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">CR Capital:</span>
+                                                        <span className="text-sm text-gray-900">{businessData.cr_capital ? formatMoney(businessData.cr_capital) : 'Not specified'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Cash Capital:</span>
+                                                        <span className="text-sm text-gray-900">{businessData.cash_capital ? formatMoney(businessData.cash_capital) : 'Not specified'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Management Structure:</span>
+                                                        <span className="text-sm text-gray-900">{ns(businessData.management_structure)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Has E-Commerce:</span>
+                                                        <span className="text-sm text-gray-900">
+                                                            {businessData.has_ecommerce === null || businessData.has_ecommerce === undefined
+                                                                ? 'Not specified'
+                                                                : businessData.has_ecommerce ? 'Yes' : 'No'}
+                                                        </span>
+                                                    </div>
+                                                    {businessData.has_ecommerce && businessData.store_url && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-gray-700">Store URL:</span>
+                                                            <span className="text-sm text-gray-900 break-all">{businessData.store_url}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Verified:</span>
+                                                        <span className="text-sm text-gray-900">
+                                                            {businessData.is_verified === null || businessData.is_verified === undefined
+                                                                ? 'Not specified'
+                                                                : businessData.is_verified ? 'Yes' : 'No'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Activities — only shown for purchased leads */}
+                                                {Array.isArray(businessData.activities) && businessData.activities.length > 0 && (
+                                                    <div className="pt-3 border-t border-blue-200">
+                                                        <span className="text-sm font-medium text-gray-700 block mb-1">Activities:</span>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {businessData.activities.map((a, i) => (
+                                                                <span key={i} className="inline-block px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">{a}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Management Managers — only shown for purchased leads */}
+                                                {Array.isArray(businessData.management_managers) && businessData.management_managers.length > 0 && (
+                                                    <div className="pt-3 border-t border-blue-200">
+                                                        <span className="text-sm font-medium text-gray-700 block mb-2">Management:</span>
+                                                        <div className="space-y-1">
+                                                            {businessData.management_managers.map((m, i) => {
+                                                                const manager = typeof m === 'string' ? { name: m } : m
+                                                                return (
+                                                                    <div key={i} className="text-sm text-gray-900">
+                                                                        {manager.name}{manager.role ? ` — ${manager.role}` : ''}
+                                                                    </div>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
                                         {/* Purpose of Financing */}
                                         {businessData.notes && (
                                             <div className="mt-6 space-y-2">
@@ -204,17 +323,17 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                                                 <div className="flex justify-between">
                                                     <span className="text-sm font-medium text-gray-700">Application ID:</span>
-                                                    <span className="text-sm text-gray-900">{businessData.application_id || 'N/A'}</span>
+                                                    <span className="text-sm text-gray-900">{businessData.application_id || 'Not specified'}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-sm font-medium text-gray-700">Submitted At:</span>
                                                     <span className="text-sm text-gray-900">
-                                                        {businessData.submitted_at ? new Date(businessData.submitted_at).toLocaleString() : 'N/A'}
+                                                        {businessData.submitted_at ? new Date(businessData.submitted_at).toLocaleString() : 'Not specified'}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-sm font-medium text-gray-700">Status:</span>
-                                                    <span className="text-sm text-gray-900">{businessData.status || 'N/A'}</span>
+                                                    <span className="text-sm text-gray-900">{businessData.status || 'Not specified'}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -276,26 +395,26 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                                 <div key={offer.offer_id || index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                                                                     <div className="flex items-center justify-between mb-2">
                                                                         <h5 className="text-sm font-semibold text-gray-900">
-                                                                            Offer #{offer.offer_id || 'N/A'} by {offer.bank_name || 'Unknown Bank'}
+                                                                            Offer #{offer.offer_id || 'Not specified'} by {offer.bank_name || 'Unknown Bank'}
                                                                         </h5>
                                                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                                                                             offer.status === 'live_auction' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                                                                         }`}>
-                                                                            {offer.status || 'N/A'}
+                                                                            {offer.status || 'Not specified'}
                                                                         </span>
                                                                     </div>
                                                                     {offer.offer_comment && (
                                                                         <p className="text-sm text-gray-700 mb-2">
-                                                                            <strong>Comment:</strong> {offer.offer_comment || 'N/A'}
+                                                                            <strong>Comment:</strong> {offer.offer_comment || 'Not specified'}
                                                                         </p>
                                                                     )}
                                                                     {offer.offer_terms && (
                                                                         <p className="text-sm text-gray-700 mb-2">
-                                                                            <strong>Terms:</strong> {offer.offer_terms || 'N/A'}
+                                                                            <strong>Terms:</strong> {offer.offer_terms || 'Not specified'}
                                                                         </p>
                                                                     )}
                                                                     <p className="text-xs text-gray-500">
-                                                                        Submitted: {offer.submitted_at ? new Date(offer.submitted_at).toLocaleString() : 'N/A'}
+                                                                        Submitted: {offer.submitted_at ? new Date(offer.submitted_at).toLocaleString() : 'Not specified'}
                                                                     </p>
                                                                 </div>
                                                             );

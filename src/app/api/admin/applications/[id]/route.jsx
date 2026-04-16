@@ -49,21 +49,22 @@ export async function GET(req, { params }) {
                     pa.revenue_collected,
                     pa.business_user_id,
                     pa.admin_notes,
-                    pa.trade_name,
-                    pa.cr_number,
                     pa.cr_national_number,
-                    pa.legal_form,
-                    pa.registration_status,
-                    pa.issue_date_gregorian as issue_date,
-                    pa.city,
-                    pa.activities,
-                    pa.contact_info,
-                    pa.has_ecommerce,
-                    pa.store_url,
-                    pa.cr_capital,
-                    pa.cash_capital,
-                    pa.management_structure,
-                    pa.management_managers as management_names,
+                    -- Wathiq data (canonical source)
+                    wd.trade_name,
+                    wd.cr_number,
+                    wd.legal_form,
+                    wd.registration_status,
+                    wd.issue_date_gregorian as issue_date,
+                    wd.city,
+                    wd.activities,
+                    wd.contact_info,
+                    wd.has_ecommerce,
+                    wd.store_url,
+                    wd.cr_capital,
+                    wd.cash_capital,
+                    wd.management_structure,
+                    wd.management_managers as management_names,
                     pa.contact_person,
                     pa.contact_person_number,
                     pa.business_contact_email,
@@ -97,7 +98,8 @@ export async function GET(req, { params }) {
                     END as urgency_level
                 FROM pos_application pa
                 LEFT JOIN business_users bu ON pa.business_user_id = bu.user_id
-                LEFT JOIN users u ON bu.user_id = u.user_id
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
+                LEFT JOIN users u ON pa.user_id = u.user_id
                 LEFT JOIN bank_users assigned_bu ON pa.assigned_user_id = assigned_bu.user_id
                 LEFT JOIN users assigned_u ON assigned_bu.user_id = assigned_u.user_id
                 WHERE pa.application_id = $1

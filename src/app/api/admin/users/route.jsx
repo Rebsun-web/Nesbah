@@ -58,13 +58,13 @@ export async function GET(req) {
             // Build query based on user type
             if (user_type === 'business') {
                 query = `
-                    SELECT 
+                    SELECT
                         bu.user_id,
                         u.email,
-                        bu.trade_name as entity_name,
-                        bu.cr_number,
-                        bu.city,
-                        bu.registration_status,
+                        wd.trade_name as entity_name,
+                        wd.cr_number,
+                        wd.city,
+                        wd.registration_status,
                         u.created_at,
                         u.updated_at,
                         'business' as user_type,
@@ -76,9 +76,10 @@ export async function GET(req) {
                         NULL as logo_url
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
+                    LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                     LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
                     WHERE 1=1
-                    GROUP BY bu.user_id, u.email, bu.trade_name, bu.cr_number, bu.city, bu.registration_status, u.created_at, u.updated_at
+                    GROUP BY bu.user_id, u.email, wd.trade_name, wd.cr_number, wd.city, wd.registration_status, u.created_at, u.updated_at
                 `;
             } else if (user_type === 'individual') {
                 query = `
@@ -133,13 +134,13 @@ export async function GET(req) {
             } else {
                 // Get all users
                 query = `
-                    SELECT 
+                    SELECT
                         bu.user_id,
                         u.email,
-                        bu.trade_name as entity_name,
-                        bu.cr_number,
-                        bu.city,
-                        bu.registration_status,
+                        wd.trade_name as entity_name,
+                        wd.cr_number,
+                        wd.city,
+                        wd.registration_status,
                         u.created_at,
                         u.updated_at,
                         'business' as user_type,
@@ -151,9 +152,10 @@ export async function GET(req) {
                         NULL as logo_url
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
+                    LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                     LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
-                    GROUP BY bu.user_id, u.email, bu.trade_name, bu.cr_number, bu.city, bu.registration_status, u.created_at, u.updated_at
-                    
+                    GROUP BY bu.user_id, u.email, wd.trade_name, wd.cr_number, wd.city, wd.registration_status, u.created_at, u.updated_at
+
                     UNION ALL
                     
                     SELECT 
@@ -201,7 +203,7 @@ export async function GET(req) {
             if (registration_status) {
                 paramCount++;
                 if (user_type === 'business') {
-                    query += ` AND bu.registration_status = $${paramCount}`;
+                    query += ` AND wd.registration_status = $${paramCount}`;
                 } else if (user_type === 'individual') {
                     query += ` AND u.account_status = $${paramCount}`;
                 } else if (user_type === 'bank') {
@@ -217,7 +219,7 @@ export async function GET(req) {
             if (search) {
                 paramCount++;
                 if (user_type === 'business') {
-                    query += ` AND (bu.trade_name ILIKE $${paramCount} OR u.email ILIKE $${paramCount} OR bu.cr_number ILIKE $${paramCount})`;
+                    query += ` AND (wd.trade_name ILIKE $${paramCount} OR u.email ILIKE $${paramCount} OR wd.cr_number ILIKE $${paramCount})`;
                 } else if (user_type === 'individual') {
                     query += ` AND (u.entity_name ILIKE $${paramCount} OR u.email ILIKE $${paramCount})`;
                 } else if (user_type === 'bank') {
@@ -245,7 +247,7 @@ export async function GET(req) {
             // Get total count for pagination
             let countQuery = '';
             if (user_type === 'business') {
-                countQuery = 'SELECT COUNT(*) as total FROM business_users bu JOIN users u ON bu.user_id = u.user_id WHERE 1=1';
+                countQuery = 'SELECT COUNT(*) as total FROM business_users bu JOIN users u ON bu.user_id = u.user_id LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id WHERE 1=1';
             } else if (user_type === 'individual') {
                 countQuery = 'SELECT COUNT(*) as total FROM users u WHERE u.user_type = \'individual_user\'';
             } else if (user_type === 'bank') {
@@ -262,7 +264,7 @@ export async function GET(req) {
 
             if (registration_status && user_type) {
                 if (user_type === 'business') {
-                    countQuery += ` AND bu.registration_status = $1`;
+                    countQuery += ` AND wd.registration_status = $1`;
                 } else if (user_type === 'individual' || user_type === 'bank') {
                     countQuery += ` AND u.account_status = $1`;
                 }
@@ -271,7 +273,7 @@ export async function GET(req) {
             if (search && user_type) {
                 const searchParam = user_type === 'business' ? 2 : 2;
                 if (user_type === 'business') {
-                    countQuery += ` AND (bu.trade_name ILIKE $${searchParam} OR u.email ILIKE $${searchParam} OR bu.cr_number ILIKE $${searchParam})`;
+                    countQuery += ` AND (wd.trade_name ILIKE $${searchParam} OR u.email ILIKE $${searchParam} OR wd.cr_number ILIKE $${searchParam})`;
                 } else if (user_type === 'individual') {
                     countQuery += ` AND (u.entity_name ILIKE $${searchParam} OR u.email ILIKE $${searchParam})`;
                 } else if (user_type === 'bank') {
@@ -404,10 +406,8 @@ export async function POST(req) {
                 }
 
                 await client.query(
-                    `INSERT INTO business_users
-                        (user_id, cr_national_number, trade_name, address, sector, registration_status)
-                    VALUES ($1, $2, $3, $4, $5, $6)`,
-                    [userId, cr_national_number, entity_name, 'Default Address', 'Technology', registration_status]
+                    `INSERT INTO business_users (user_id, cr_national_number) VALUES ($1, $2)`,
+                    [userId, cr_national_number]
                 );
             } else if (user_type === 'individual') {
                 if (!first_name || !last_name) {

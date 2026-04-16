@@ -37,29 +37,28 @@ export async function GET(req, { params }) {
 
             if (user_type === 'business') {
                 query = `
-                    SELECT 
+                    SELECT
                         bu.user_id,
                         u.email,
-                        bu.trade_name as entity_name,
+                        wd.trade_name as entity_name,
                         bu.cr_national_number,
-                        bu.cr_number,
-                        bu.registration_status,
-                        bu.address,
-                        bu.sector,
-                        bu.city,
-                        bu.cr_capital,
-                        bu.cash_capital,
-                        bu.in_kind_capital,
+                        wd.cr_number,
+                        wd.registration_status,
+                        wd.sector,
+                        wd.city,
+                        wd.cr_capital,
+                        wd.cash_capital,
+                        wd.in_kind_capital,
                         bu.contact_person,
                         bu.contact_person_number,
-                        bu.contact_info,
-                        bu.store_url,
-                        bu.legal_form,
-                        bu.issue_date_gregorian,
-                        bu.confirmation_date_gregorian,
-                        bu.has_ecommerce,
-                        bu.management_structure,
-                        bu.management_managers,
+                        wd.contact_info,
+                        wd.store_url,
+                        wd.legal_form,
+                        wd.issue_date_gregorian,
+                        wd.confirmation_date_gregorian,
+                        wd.has_ecommerce,
+                        wd.management_structure,
+                        wd.management_managers,
                         bu.created_at,
                         bu.updated_at,
                         'business' as user_type,
@@ -67,14 +66,15 @@ export async function GET(req, { params }) {
                         MAX(pa.submitted_at) as last_application_date
                     FROM business_users bu
                     JOIN users u ON bu.user_id = u.user_id
+                    LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                     LEFT JOIN pos_application pa ON bu.user_id = pa.user_id
                     WHERE bu.user_id = $1
-                    GROUP BY bu.user_id, u.email, bu.trade_name, bu.cr_national_number, bu.cr_number, 
-                             bu.registration_status, bu.address, bu.sector, bu.city, bu.cr_capital, 
-                             bu.cash_capital, bu.in_kind_capital, bu.contact_person, bu.contact_person_number,
-                             bu.contact_info, bu.store_url, bu.legal_form, bu.issue_date_gregorian, 
-                             bu.confirmation_date_gregorian, bu.has_ecommerce, bu.management_structure, 
-                             bu.management_managers, bu.created_at, bu.updated_at
+                    GROUP BY bu.user_id, u.email, wd.trade_name, bu.cr_national_number, wd.cr_number,
+                             wd.registration_status, wd.sector, wd.city, wd.cr_capital,
+                             wd.cash_capital, wd.in_kind_capital, bu.contact_person, bu.contact_person_number,
+                             wd.contact_info, wd.store_url, wd.legal_form, wd.issue_date_gregorian,
+                             wd.confirmation_date_gregorian, wd.has_ecommerce, wd.management_structure,
+                             wd.management_managers, bu.created_at, bu.updated_at
                 `;
             } else if (user_type === 'individual') {
                 query = `

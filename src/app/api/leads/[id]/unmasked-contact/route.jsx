@@ -65,7 +65,7 @@ export async function GET(req, { params }) {
 
         // Fetch the unmasked contact information
         const result = await pool.query(
-            `SELECT 
+            `SELECT
                 pa.contact_person,
                 pa.contact_person_number,
                 pa.pos_provider_name,
@@ -73,13 +73,12 @@ export async function GET(req, { params }) {
                 pa.avg_monthly_pos_sales,
                 pa.approximate_financing_amount,
                 pa.preferred_repayment_period_months,
-                bu.contact_info,
-                bu.address,
-                bu.city,
-                bu.sector,
-                bu.activities
+                COALESCE(pa.sector, wd.sector) as sector,
+                wd.contact_info,
+                wd.city,
+                wd.activities
              FROM pos_application pa
-             LEFT JOIN business_users bu ON pa.user_id = bu.user_id
+             LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
              WHERE pa.application_id = $1`,
             [applicationId]
         );

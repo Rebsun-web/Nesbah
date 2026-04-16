@@ -40,15 +40,17 @@ export async function POST(req) {
         try {
             await client.query('BEGIN');
 
-            // OPTIMIZED: Single query to get business info and validate user exists
+            // Single query to get business info + wathiq_data_id (added in migration 005)
             const businessResult = await client.query(
-                `SELECT 
-                    bu.trade_name, bu.cr_number, bu.cr_national_number, bu.legal_form, 
-                    bu.registration_status, bu.issue_date_gregorian, bu.city, 
-                    bu.has_ecommerce, bu.store_url, bu.cr_capital, 
-                    bu.cash_capital, bu.management_structure, u.email
+                `SELECT
+                    wd.trade_name, wd.cr_number, bu.cr_national_number, wd.legal_form,
+                    wd.registration_status, wd.issue_date_gregorian, wd.city,
+                    wd.has_ecommerce, wd.store_url, wd.cr_capital,
+                    wd.cash_capital, wd.management_structure, bu.wathiq_data_id,
+                    u.email
                  FROM business_users bu
                  JOIN users u ON bu.user_id = u.user_id
+                 LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                  WHERE bu.user_id = $1`,
                 [user_id]
             );
@@ -90,47 +92,43 @@ export async function POST(req) {
             // Note: Removed problematic JSON fields (activities, contact_info, management_managers) 
             // to avoid JSON parsing errors. These fields are not essential for POS application submission.
 
-            const queryParams = [
-                user_id, submitted_at, notes || null,
-                uploaded_document ? Buffer.from(uploaded_document, 'base64') : null,
-                own_pos_system ?? null, uploaded_filename || null, uploaded_mimetype || null,
-                business.trade_name, business.cr_number, business.cr_national_number,
-                business.legal_form, business.registration_status, business.issue_date_gregorian,
-                business.city, business.has_ecommerce,
-                business.store_url, business.cr_capital, business.cash_capital,
-                business.management_structure,
-                contact_person || null, contact_person_number || null,
-                number_of_pos_devices || null, city_of_operation || null, auction_end_time,
-                [], [], // Initialize empty arrays for tracking (no ignored_by needed)
-                pos_provider_name || null, pos_age_duration_months || null, avg_monthly_pos_sales || null,
-                approximate_financing_amount || null, preferred_repayment_period_months || null
-            ];
-
-            console.log('🔍 POS Application API: Inserting with params:', queryParams.map((p, i) => {
-                if (p instanceof Buffer) return `$${i+1}: [Buffer]`;
-                if (p instanceof Date) return `$${i+1}: ${p.toISOString()}`;
-                if (Array.isArray(p)) return `$${i+1}: ${JSON.stringify(p)}`;
-                return `$${i+1}: ${p}`;
-            }));
-
-            // UPDATED: Insert into pos_application with all data in one query (no ignored_by needed)
             const posAppResult = await client.query(
-                `
-                INSERT INTO pos_application 
-                    (user_id, status, submitted_at, notes, uploaded_document, own_pos_system, 
-                     uploaded_filename, uploaded_mimetype, trade_name, cr_number, cr_national_number, 
-                     legal_form, registration_status, issue_date_gregorian, city, 
-                     has_ecommerce, store_url, cr_capital, cash_capital, management_structure, 
-                     contact_person, contact_person_number, number_of_pos_devices, 
+                `INSERT INTO pos_application
+                    (user_id, status, submitted_at, notes, uploaded_document, own_pos_system,
+                     uploaded_filename, uploaded_mimetype,
+                     wathiq_data_id, cr_national_number,
+                     contact_person, contact_person_number, number_of_pos_devices,
                      city_of_operation, auction_end_time, opened_by, purchased_by,
                      pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
                      approximate_financing_amount, preferred_repayment_period_months)
-                VALUES 
-                    ($1, 'live_auction', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
-                     $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
-                RETURNING application_id
-                `,
-                queryParams
+                VALUES
+                    ($1, 'live_auction', $2, $3, $4, $5, $6, $7,
+                     $8, $9,
+                     $10, $11, $12,
+                     $13, $14, '{}', '{}',
+                     $15, $16, $17, $18, $19)
+                RETURNING application_id`,
+                [
+                    user_id,                                          // $1
+                    submitted_at,                                     // $2
+                    notes || null,                                    // $3
+                    uploaded_document ? Buffer.from(uploaded_document, 'base64') : null, // $4
+                    own_pos_system ?? null,                           // $5
+                    uploaded_filename || null,                        // $6
+                    uploaded_mimetype || null,                        // $7
+                    business.wathiq_data_id || null,                  // $8  ← FK to wathiq_data
+                    business.cr_national_number,                      // $9  ← natural JOIN key
+                    contact_person || null,                           // $10
+                    contact_person_number || null,                    // $11
+                    number_of_pos_devices || null,                    // $12
+                    city_of_operation || null,                        // $13
+                    auction_end_time,                                 // $14
+                    pos_provider_name || null,                        // $15
+                    pos_age_duration_months || null,                  // $16
+                    avg_monthly_pos_sales || null,                    // $17
+                    approximate_financing_amount || null,             // $18
+                    preferred_repayment_period_months || null,        // $19
+                ]
             );
 
             const application_id = posAppResult.rows[0].application_id;

@@ -16,18 +16,19 @@ class AuctionExpiryHandler {
             // Find applications that have expired and need status transition
             // Use standardized logic to identify expired live_auction applications
             const expiredApplications = await client.query(`
-                SELECT 
+                SELECT
                     pa.application_id,
                     pa.offers_count,
                     pa.submitted_at,
                     pa.auction_end_time,
-                    pa.trade_name,
                     pa.status,
+                    wd.trade_name,
                     ${STATUS_CALCULATION_SQL},
                     EXTRACT(EPOCH FROM (
                         COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${auctionConfig.sqlInterval}') - NOW()
                     ))/3600 as hours_expired
                 FROM pos_application pa
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 WHERE pa.status = 'live_auction'
                 AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${auctionConfig.sqlInterval}') <= NOW()
                 ORDER BY COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${auctionConfig.sqlInterval}') ASC
@@ -151,17 +152,18 @@ class AuctionExpiryHandler {
         
         try {
             const urgentResult = await client.query(`
-                SELECT 
+                SELECT
                     pa.application_id,
                     pa.submitted_at,
                     pa.auction_end_time,
                     pa.offers_count,
-                    pa.trade_name,
                     pa.status,
+                    wd.trade_name,
                     EXTRACT(EPOCH FROM (
                         COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${auctionConfig.sqlInterval}') - NOW()
                     ))/3600 as hours_until_expiry
                 FROM pos_application pa
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 WHERE pa.status = 'live_auction'
                 AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${auctionConfig.sqlInterval}') > NOW()
                 AND COALESCE(pa.auction_end_time, pa.submitted_at + INTERVAL '${auctionConfig.sqlInterval}') <= NOW() + INTERVAL '2 hours'

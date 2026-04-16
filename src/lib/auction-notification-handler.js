@@ -66,18 +66,19 @@ class AuctionNotificationHandler {
             try {
                 // Find applications that have ended but haven't sent completion notifications
                 const pendingNotifications = await client.query(
-                    `SELECT 
+                    `SELECT
                         pa.application_id,
                         pa.status,
-                        pa.trade_name,
                         pa.submitted_at,
                         pa.auction_end_time,
                         pa.city_of_operation,
                         pa.approximate_financing_amount,
                         pa.offers_count,
+                        wd.trade_name,
                         u.email as business_email
                      FROM pos_application pa
                      JOIN users u ON pa.user_id = u.user_id
+                     LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                      WHERE (pa.status = 'completed' OR pa.status = 'ignored')
                      AND (pa.auction_completion_notification_sent IS NULL OR pa.auction_completion_notification_sent = false)
                      AND pa.auction_end_time <= NOW()
@@ -187,18 +188,19 @@ class AuctionNotificationHandler {
             try {
                 // Get application details
                 const applicationResult = await client.query(
-                    `SELECT 
+                    `SELECT
                         pa.application_id,
                         pa.status,
-                        pa.trade_name,
                         pa.submitted_at,
                         pa.auction_end_time,
                         pa.city_of_operation,
                         pa.approximate_financing_amount,
                         pa.offers_count,
+                        wd.trade_name,
                         u.email as business_email
                      FROM pos_application pa
                      JOIN users u ON pa.user_id = u.user_id
+                     LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                      WHERE pa.application_id = $1`,
                     [applicationId]
                 );

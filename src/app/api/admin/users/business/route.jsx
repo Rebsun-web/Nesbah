@@ -32,32 +32,32 @@ export async function GET(req) {
                 SELECT
                     bu.user_id,
                     bu.cr_national_number,
-                    bu.cr_number,
-                    bu.trade_name,
-                    bu.legal_form,
-                    bu.registration_status,
-                    bu.headquarter_city_name,
-                    bu.issue_date_gregorian,
-                    bu.confirmation_date_gregorian,
-                    bu.contact_info,
-                    bu.activities,
-                    bu.has_ecommerce,
-                    bu.store_url,
-                    bu.cr_capital,
-                    bu.cash_capital,
-                    bu.management_structure,
-                    bu.management_managers,
-                    bu.address,
-                    bu.sector,
-                    bu.in_kind_capital,
-                    bu.avg_capital,
-                    bu.city,
                     bu.contact_person,
                     bu.contact_person_number,
-                    bu.is_verified,
-                    bu.verification_date,
                     bu.created_at,
                     bu.updated_at,
+                    -- Wathiq data (canonical source)
+                    wd.cr_number,
+                    wd.trade_name,
+                    wd.legal_form,
+                    wd.registration_status,
+                    wd.city AS headquarter_city_name,
+                    wd.city,
+                    wd.issue_date_gregorian,
+                    wd.confirmation_date_gregorian,
+                    wd.contact_info,
+                    wd.activities,
+                    wd.has_ecommerce,
+                    wd.store_url,
+                    wd.cr_capital,
+                    wd.cash_capital,
+                    wd.management_structure,
+                    wd.management_managers,
+                    wd.sector,
+                    wd.in_kind_capital,
+                    wd.avg_capital,
+                    wd.is_verified,
+                    wd.verification_date,
                     u.email,
                     u.user_type,
                     u.account_status,
@@ -67,6 +67,7 @@ export async function GET(req) {
                     pa.approximate_financing_amount
                 FROM business_users bu
                 JOIN users u ON bu.user_id = u.user_id
+                LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                 LEFT JOIN LATERAL (
                     SELECT financing_type, approximate_financing_amount
                     FROM pos_application
@@ -233,75 +234,79 @@ export async function POST(req) {
             );
             const user_id = userRes.rows[0].user_id;
 
-            // Insert business user data
+            // Upsert Wathiq data into canonical wathiq_data table
+            const wathiqUpsertResult = await client.query(
+                `INSERT INTO wathiq_data (
+                    cr_national_number, cr_number, trade_name, legal_form, registration_status,
+                    issue_date_gregorian, confirmation_date_gregorian, city,
+                    has_ecommerce, store_url, cr_capital, cash_capital, in_kind_capital,
+                    avg_capital, management_structure, management_managers, activities,
+                    contact_info, sector, headquarter_city_name,
+                    headquarter_district_name, headquarter_street_name, headquarter_building_number,
+                    is_verified, updated_at
+                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,NOW())
+                ON CONFLICT (cr_national_number) DO UPDATE SET
+                    cr_number = EXCLUDED.cr_number, trade_name = EXCLUDED.trade_name,
+                    legal_form = EXCLUDED.legal_form, registration_status = EXCLUDED.registration_status,
+                    issue_date_gregorian = EXCLUDED.issue_date_gregorian,
+                    confirmation_date_gregorian = EXCLUDED.confirmation_date_gregorian,
+                    city = EXCLUDED.city, has_ecommerce = EXCLUDED.has_ecommerce,
+                    store_url = EXCLUDED.store_url, cr_capital = EXCLUDED.cr_capital,
+                    cash_capital = EXCLUDED.cash_capital, in_kind_capital = EXCLUDED.in_kind_capital,
+                    avg_capital = EXCLUDED.avg_capital, management_structure = EXCLUDED.management_structure,
+                    management_managers = EXCLUDED.management_managers, activities = EXCLUDED.activities,
+                    contact_info = EXCLUDED.contact_info, sector = EXCLUDED.sector,
+                    headquarter_city_name = EXCLUDED.headquarter_city_name,
+                    headquarter_district_name = EXCLUDED.headquarter_district_name,
+                    headquarter_street_name = EXCLUDED.headquarter_street_name,
+                    headquarter_building_number = EXCLUDED.headquarter_building_number,
+                    is_verified = EXCLUDED.is_verified, updated_at = NOW()
+                RETURNING id`,
+                [
+                    businessData.cr_national_number,
+                    businessData.cr_number || null,
+                    businessData.trade_name || null,
+                    businessData.legal_form || null,
+                    businessData.registration_status || 'active',
+                    businessData.issue_date_gregorian || null,
+                    businessData.confirmation_date_gregorian || null,
+                    businessData.city || null,
+                    businessData.has_ecommerce || false,
+                    businessData.store_url || null,
+                    businessData.cr_capital || null,
+                    businessData.cash_capital || null,
+                    businessData.in_kind_capital || null,
+                    businessData.avg_capital || null,
+                    businessData.management_structure || null,
+                    businessData.management_managers ? (Array.isArray(businessData.management_managers) ? JSON.stringify(businessData.management_managers) : JSON.stringify([businessData.management_managers])) : null,
+                    businessData.activities ? (Array.isArray(businessData.activities) ? businessData.activities : [businessData.activities]) : null,
+                    businessData.contact_info ? (typeof businessData.contact_info === 'string' ? businessData.contact_info : JSON.stringify(businessData.contact_info)) : null,
+                    businessData.sector || null,
+                    businessData.headquarter_city_name || null,
+                    businessData.headquarter_district_name || null,
+                    businessData.headquarter_street_name || null,
+                    businessData.headquarter_building_number || null,
+                    fetch_from_wathiq || false,
+                ]
+            );
+            const wathiq_data_id = wathiqUpsertResult.rows[0].id;
+
+            // Insert business user record — Wathiq fields live in wathiq_data (FK: wathiq_data_id)
             await client.query(
                 `INSERT INTO business_users (
-                    user_id, 
-                    cr_national_number, 
-                    cr_number, 
-                    trade_name, 
-                    legal_form,
-                    registration_status,
-                    headquarter_city_name,
-                    issue_date_gregorian,
-                    confirmation_date_gregorian,
-                    contact_info,
-                    activities,
-                    has_ecommerce,
-                    store_url,
-                    cr_capital,
-                    cash_capital,
-                    management_structure,
-                    management_managers,
-                    address,
-                    sector,
-                    in_kind_capital,
-                    avg_capital,
-                    headquarter_district_name,
-                    headquarter_street_name,
-                    headquarter_building_number,
-                    city,
-                    contact_person,
-                    contact_person_number,
-                    is_verified,
-                    verification_date,
-                    created_at,
-                    updated_at
-                ) VALUES (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
-                )`,
+                    user_id, cr_national_number, wathiq_data_id,
+                    contact_person, contact_person_number,
+                    is_verified, verification_date,
+                    created_at, updated_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
                 [
-                    user_id, 
-                    businessData.cr_national_number, 
-                    businessData.cr_number, 
-                    businessData.trade_name, 
-                    businessData.legal_form,
-                    businessData.registration_status || 'active',
-                    businessData.headquarter_city_name,
-                    businessData.issue_date_gregorian,
-                    businessData.confirmation_date_gregorian,
-                    businessData.contact_info ? (typeof businessData.contact_info === 'string' ? businessData.contact_info : JSON.stringify(businessData.contact_info)) : null,
-                    businessData.activities ? (Array.isArray(businessData.activities) ? businessData.activities : [businessData.activities]) : null,
-                    businessData.has_ecommerce || false,
-                    businessData.store_url, 
-                    businessData.cr_capital,
-                    businessData.cash_capital,
-                    businessData.management_structure,
-                    businessData.management_managers ? (Array.isArray(businessData.management_managers) ? businessData.management_managers : [businessData.management_managers]) : null,
-                    businessData.address, 
-                    businessData.sector, 
-                    businessData.in_kind_capital, 
-                    businessData.avg_capital,
-                    businessData.headquarter_district_name,
-                    businessData.headquarter_street_name,
-                    businessData.headquarter_building_number,
-                    businessData.city,
-                    businessData.contact_person,
-                    businessData.contact_person_number,
-                    fetch_from_wathiq, // is_verified based on data source
-                    fetch_from_wathiq ? new Date().toISOString() : null, // verification_date
-                    new Date().toISOString(), // created_at
-                    new Date().toISOString()  // updated_at
+                    user_id,
+                    businessData.cr_national_number,
+                    wathiq_data_id,
+                    businessData.contact_person || null,
+                    businessData.contact_person_number || null,
+                    fetch_from_wathiq || false,
+                    fetch_from_wathiq ? new Date().toISOString() : null,
                 ]
             );
 

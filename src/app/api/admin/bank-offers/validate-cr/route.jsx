@@ -34,31 +34,31 @@ export async function GET(req) {
         try {
             // Check if business user exists with this CR number
             const businessUserQuery = `
-                SELECT 
+                SELECT
                     bu.user_id,
-                    bu.cr_number,
+                    wd.cr_number,
                     bu.cr_national_number,
-                    bu.trade_name,
-                    bu.legal_form,
-                    bu.registration_status,
-                    bu.issue_date_gregorian,
-                    bu.city,
-                    bu.address,
-                    bu.sector as activities,
-                    bu.has_ecommerce,
-                    bu.store_url,
-                    bu.cr_capital,
-                    bu.cash_capital,
-                    bu.management_structure,
-                    bu.management_managers,
+                    wd.trade_name,
+                    wd.legal_form,
+                    wd.registration_status,
+                    wd.issue_date_gregorian,
+                    wd.city,
+                    wd.sector as activities,
+                    wd.has_ecommerce,
+                    wd.store_url,
+                    wd.cr_capital,
+                    wd.cash_capital,
+                    wd.management_structure,
+                    wd.management_managers,
                     bu.contact_person,
                     bu.contact_person_number,
                     u.email,
                     u.created_at
                 FROM business_users bu
                 JOIN users u ON bu.user_id = u.user_id
-                WHERE bu.cr_number = $1
-                AND bu.registration_status = 'active'
+                LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
+                WHERE wd.cr_number = $1
+                AND wd.registration_status = 'active'
             `;
             
             const businessUserResult = await client.query(businessUserQuery, [crNumber]);
@@ -79,24 +79,25 @@ export async function GET(req) {
 
             // Check if this business user has any application (for bank offers, we allow offers for existing applications)
             const existingApplicationQuery = `
-                SELECT 
-                    application_id,
-                    status,
-                    current_application_status,
-                    auction_end_time,
-                    submitted_at,
-                    trade_name,
-                    city,
-                    cr_capital,
-                    preferred_repayment_period_months,
-                    legal_form,
-                    registration_status,
-                    contact_person,
-                    contact_person_number
-                FROM pos_application 
-                WHERE user_id = $1 
-                AND status IN ('live_auction', 'completed', 'ignored')
-                ORDER BY submitted_at DESC
+                SELECT
+                    pa.application_id,
+                    pa.status,
+                    pa.current_application_status,
+                    pa.auction_end_time,
+                    pa.submitted_at,
+                    wd2.trade_name,
+                    wd2.city,
+                    wd2.cr_capital,
+                    pa.preferred_repayment_period_months,
+                    wd2.legal_form,
+                    wd2.registration_status,
+                    pa.contact_person,
+                    pa.contact_person_number
+                FROM pos_application pa
+                LEFT JOIN wathiq_data wd2 ON wd2.cr_national_number = pa.cr_national_number
+                WHERE pa.user_id = $1
+                AND pa.status IN ('live_auction', 'completed', 'ignored')
+                ORDER BY pa.submitted_at DESC
                 LIMIT 1
             `;
             

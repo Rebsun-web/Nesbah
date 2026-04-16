@@ -33,9 +33,10 @@ export async function POST(req) {
         try {
             // Verify the business user exists
             const userCheck = await client.query(
-                `SELECT u.user_id, u.email, u.user_type, u.entity_name, bu.trade_name, bu.cr_national_number 
-                 FROM users u 
-                 JOIN business_users bu ON u.user_id = bu.user_id 
+                `SELECT u.user_id, u.email, u.user_type, u.entity_name, wd.trade_name, bu.cr_national_number
+                 FROM users u
+                 JOIN business_users bu ON u.user_id = bu.user_id
+                 LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                  WHERE u.user_id = $1 AND u.user_type = 'business_user'`,
                 [user_id]
             );
