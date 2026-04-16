@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import wathiqAPIService from '@/lib/wathiq-api-service';
 import { sendSubmissionConfirmationEmail, sendBankNewLeadNotifications } from '@/lib/email/serverEmailNotifications';
-import { sendAdminWhatsAppAlert } from '@/lib/whatsapp-notifications';
 import { auctionConfig } from '@/lib/config/auction-config';
 
 const VALID_FINANCING_TYPES = [
@@ -256,18 +255,8 @@ export async function POST(req) {
             // Send same template to admin — fire and forget
             const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
             if (adminEmail) {
-                sendSubmissionConfirmationEmail(adminEmail, emailPayload).catch(() => {});
+                sendSubmissionConfirmationEmail(adminEmail, emailPayload, 'admins').catch(() => {});
             }
-
-            // Notify admin via WhatsApp — fire and forget
-            sendAdminWhatsAppAlert({
-                reference_number,
-                financing_type,
-                contact_person,
-                contact_person_number,
-                city_of_operation: city_of_operation || null,
-                business_name: wathiqData?.trade_name || business_name || null,
-            }).catch(() => {});
 
             // Notify all active bank users — fire and forget
             pool.query(

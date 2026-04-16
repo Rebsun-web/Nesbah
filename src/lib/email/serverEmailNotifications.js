@@ -91,7 +91,7 @@ export async function sendApplicationSubmissionEmail(businessEmail, applicationD
 /**
  * Send onboarding submission confirmation to business
  */
-export async function sendSubmissionConfirmationEmail(toEmail, { reference_number, business_name }) {
+export async function sendSubmissionConfirmationEmail(toEmail, { reference_number, business_name }, label = 'business') {
     if (isEmailDisabled) return { success: true, disabled: true };
     if (!toEmail) return { success: false, error: 'No email provided' };
 
@@ -109,10 +109,10 @@ export async function sendSubmissionConfirmationEmail(toEmail, { reference_numbe
                 privateKey: process.env.EMAILJS_PRIVATE_KEY,
             }
         );
-        console.log(`✅ Submission confirmation sent to business: ${toEmail}`);
+        console.log(`✅ Submission confirmation sent to ${label}: ${toEmail}`);
         return { success: true, response };
     } catch (error) {
-        console.error(`❌ Failed to send submission confirmation to ${toEmail}:`, error.message);
+        console.error(`❌ Failed to send submission confirmation to ${label} (${toEmail}):`, error.message);
         return { success: false, error: error.message };
     }
 }
@@ -143,7 +143,7 @@ export async function sendBankNewLeadNotifications(bankEmails) {
                     privateKey: process.env.EMAILJS_PRIVATE_KEY,
                 }
             );
-            console.log(`✅ New-lead notification sent to bank: ${email}`);
+            console.log(`✅ Submission confirmation sent to banks: ${email}`);
         } catch (error) {
             console.error(`❌ Failed to notify bank ${email}:`, error.message);
         }
