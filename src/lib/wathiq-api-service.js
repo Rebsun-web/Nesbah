@@ -16,45 +16,55 @@ class WathiqAPIService {
      * @returns {Promise<Object>} - Processed business data
      */
     async fetchBusinessData(crNationalNumber, language = 'en') {
+        const cleanCRNumber = crNationalNumber.toString().replace(/\D/g, '');
+        const startTime = Date.now();
+        const elapsed = () => `${Date.now() - startTime}ms`;
+
+        console.log(`🔍 [Wathiq] START cr=${cleanCRNumber}`);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.warn(`⏱️ [Wathiq] ABORT triggered at ${elapsed()} — cr=${cleanCRNumber}`);
+            controller.abort();
+        }, 7000);
+
         try {
-            // Clean the CR number - remove any non-digit characters
-            let cleanCRNumber = crNationalNumber.toString().replace(/\D/g, '');
+            console.log(`🌐 [Wathiq] Sending request cr=${cleanCRNumber}`);
 
-            console.log(`🔍 Fetching Wathiq data for CR: ${crNationalNumber} (cleaned: ${cleanCRNumber})`);
+            const response = await fetch(
+                `${this.baseUrl}/fullinfo/${cleanCRNumber}?language=${language}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apiKey': this.apiKey,
+                        'Connection': 'close',
+                    },
+                    signal: controller.signal,
+                }
+            );
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 7000);
-
-            let response;
-            try {
-                response = await fetch(
-                    `${this.baseUrl}/fullinfo/${cleanCRNumber}?language=${language}`,
-                    {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'apiKey': this.apiKey,
-                        },
-                        signal: controller.signal,
-                    }
-                );
-            } finally {
-                clearTimeout(timeoutId);
-            }
+            console.log(`📥 [Wathiq] Headers received at ${elapsed()} — status=${response.status} cr=${cleanCRNumber}`);
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Wathiq API error:', errorText);
+                console.warn(`❌ [Wathiq] HTTP error at ${elapsed()} — status=${response.status} body="${errorText}" cr=${cleanCRNumber}`);
                 throw new Error(`Wathiq API error: ${response.status} - ${errorText}`);
             }
 
             const rawData = await response.json();
-            console.log('📊 Raw Wathiq data received:', JSON.stringify(rawData, null, 2));
-            
+            console.log(`✅ [Wathiq] Body received at ${elapsed()} — cr=${cleanCRNumber} tradeName="${rawData?.tradeName || rawData?.trade_name || '?'}"`);
+
             return this.processWathiqData(rawData);
         } catch (error) {
-            console.error('❌ Wathiq API request failed:', error);
+            if (error.name === 'AbortError') {
+                console.warn(`⏱️ [Wathiq] Request ABORTED at ${elapsed()} — cr=${cleanCRNumber} (server hung, proceeding with pending)`);
+            } else {
+                console.error(`❌ [Wathiq] FAILED at ${elapsed()} — cr=${cleanCRNumber} error="${error.message}"`);
+            }
             throw error;
+        } finally {
+            clearTimeout(timeoutId);
         }
     }
 
