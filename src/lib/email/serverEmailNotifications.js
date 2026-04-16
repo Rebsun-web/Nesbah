@@ -1,126 +1,69 @@
-// Server-side EmailJS for API routes
-import emailjs from '@emailjs/nodejs';
+// Server-side email via EmailJS REST API (no SDK — avoids @emailjs/nodejs v5 auth bugs)
 
-// Check if email notifications are disabled
 const isEmailDisabled = process.env.DISABLE_EMAIL_NOTIFICATIONS === 'true';
 
 /**
- * Send newsletter subscription confirmation email (server-side)
+ * Raw call to the EmailJS REST API.
+ * Returns the response text on success, throws on HTTP error.
+ */
+async function emailjsSend(templateId, templateParams) {
+    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            service_id:      process.env.EMAILJS_SERVICE_ID,
+            template_id:     templateId,
+            user_id:         process.env.EMAILJS_PUBLIC_KEY,
+            accessToken:     process.env.EMAILJS_PRIVATE_KEY,
+            template_params: templateParams,
+        }),
+    });
+
+    const text = await res.text();
+    if (!res.ok) throw { status: res.status, text };
+    return text;
+}
+
+/**
+ * Send newsletter subscription confirmation email
  */
 export async function sendNewsletterSubscriptionEmail(userEmail) {
-    if (isEmailDisabled) {
-        console.log(`📧 Email notifications disabled - skipping newsletter subscription email to ${userEmail}`);
-        return { success: true, disabled: true, message: 'Email notifications are currently disabled' };
-    }
-
+    if (isEmailDisabled) return { success: true, disabled: true };
     try {
-        console.log(`📤 Sending newsletter subscription confirmation to ${userEmail}`);
-        
-        const response = await emailjs.send(
-            process.env.EMAILJS_SERVICE_ID,
-            process.env.EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID,
-            {
-                email: userEmail
-            },
-            {
-                publicKey: process.env.EMAILJS_PUBLIC_KEY,
-                privateKey: process.env.EMAILJS_PRIVATE_KEY
-            }
-        );
-        
-        console.log(`✅ Newsletter subscription email sent to ${userEmail}. Response:`, response);
-        return { success: true, response };
+        console.log(`📤 Sending newsletter confirmation to ${userEmail}`);
+        await emailjsSend(process.env.EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID, { email: userEmail });
+        console.log(`✅ Newsletter confirmation sent to ${userEmail}`);
+        return { success: true };
     } catch (error) {
-        console.error(`❌ Failed to send newsletter subscription email to ${userEmail}. Error:`, error);
-        return { success: false, error: error.message };
+        console.error(`❌ Failed newsletter confirmation to ${userEmail}:`, JSON.stringify(error));
+        return { success: false, error: JSON.stringify(error) };
     }
 }
 
 /**
- * Send application submission confirmation email (server-side)
- */
-export async function sendApplicationSubmissionEmail(businessEmail, applicationData) {
-    if (isEmailDisabled) {
-        console.log(`📧 Email notifications disabled - skipping application submission email to ${businessEmail}`);
-        return { success: true, disabled: true, message: 'Email notifications are currently disabled' };
-    }
-
-    try {
-        console.log(`📤 Sending application submission confirmation to ${businessEmail}`);
-        
-        const response = await emailjs.send(
-            process.env.EMAILJS_SERVICE_ID,
-            process.env.EMAILJS_APPLICATION_SUBMITTED_TEMPLATE_ID,
-            {
-                to_email: businessEmail,
-                business_name: applicationData.trade_name,
-                application_id: applicationData.application_id,
-                submitted_date: new Date(applicationData.submitted_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                }),
-                auction_end_date: new Date(applicationData.auction_end_time).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                }),
-                city_of_operation: applicationData.city_of_operation,
-                number_of_pos_devices: applicationData.number_of_pos_devices,
-                requested_amount: applicationData.approximate_financing_amount,
-                repayment_period: applicationData.preferred_repayment_period_months
-            },
-            {
-                publicKey: process.env.EMAILJS_PUBLIC_KEY,
-                privateKey: process.env.EMAILJS_PRIVATE_KEY
-            }
-        );
-        
-        console.log(`✅ Application submission email sent to ${businessEmail}. Response:`, response);
-        return { success: true, response };
-    } catch (error) {
-        console.error(`❌ Failed to send application submission email to ${businessEmail}. Error:`, error);
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * Send onboarding submission confirmation to business
+ * Send submission confirmation to business or admin (same template)
+ * label: 'business' | 'admins'
  */
 export async function sendSubmissionConfirmationEmail(toEmail, { reference_number, business_name }, label = 'business') {
     if (isEmailDisabled) return { success: true, disabled: true };
     if (!toEmail) return { success: false, error: 'No email provided' };
 
     try {
-        const response = await emailjs.send(
-            process.env.EMAILJS_SERVICE_ID,
-            process.env.EMAILJS_SUBMISSION_TEMPLATE_ID,
-            {
-                email: toEmail,
-                reference_number,
-                business_name: business_name || '',
-            },
-            {
-                publicKey: process.env.EMAILJS_PUBLIC_KEY,
-                privateKey: process.env.EMAILJS_PRIVATE_KEY,
-            }
-        );
+        await emailjsSend(process.env.EMAILJS_SUBMISSION_TEMPLATE_ID, {
+            email:            toEmail,
+            reference_number,
+            business_name:    business_name || '',
+        });
         console.log(`✅ Submission confirmation sent to ${label}: ${toEmail}`);
-        return { success: true, response };
+        return { success: true };
     } catch (error) {
-        console.error(`❌ Failed to send submission confirmation to ${label} (${toEmail}):`, error.message);
-        return { success: false, error: error.message };
+        console.error(`❌ Failed to send submission confirmation to ${label} (${toEmail}):`, JSON.stringify(error));
+        return { success: false, error: JSON.stringify(error) };
     }
 }
 
 /**
  * Send new-lead notification to all active bank users
- * Requires: EMAILJS_BANK_NEW_LEAD_TEMPLATE_ID env var
- * Template variables: {{to_email}}
  */
 export async function sendBankNewLeadNotifications(bankEmails) {
     if (isEmailDisabled) return;
@@ -134,70 +77,40 @@ export async function sendBankNewLeadNotifications(bankEmails) {
 
     for (const email of bankEmails) {
         try {
-            await emailjs.send(
-                process.env.EMAILJS_SERVICE_ID,
-                templateId,
-                { to_email: email },
-                {
-                    publicKey: process.env.EMAILJS_PUBLIC_KEY,
-                    privateKey: process.env.EMAILJS_PRIVATE_KEY,
-                }
-            );
+            await emailjsSend(templateId, { to_email: email });
             console.log(`✅ Submission confirmation sent to banks: ${email}`);
         } catch (error) {
-            console.error(`❌ Failed to notify bank ${email}:`, error.message);
+            console.error(`❌ Failed to notify bank ${email}:`, JSON.stringify(error));
         }
     }
 }
 
 /**
- * Send admin alert when a new public lead is submitted
- * Requires: ADMIN_NOTIFICATION_EMAIL env var
- * Requires: EMAILJS_ADMIN_NEW_LEAD_TEMPLATE_ID env var (template vars: reference_number, financing_type, contact_person, contact_person_number, city_of_operation, business_name, submitted_at)
+ * Send application submission confirmation email (legacy — kept for existing callers)
  */
-export async function sendAdminNewLeadAlert(applicationData) {
+export async function sendApplicationSubmissionEmail(businessEmail, applicationData) {
     if (isEmailDisabled) return { success: true, disabled: true };
-
-    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
-    if (!adminEmail) return { success: false, error: 'ADMIN_NOTIFICATION_EMAIL not set' };
-
-    const templateId = process.env.EMAILJS_ADMIN_NEW_LEAD_TEMPLATE_ID;
-    if (!templateId) return { success: false, error: 'EMAILJS_ADMIN_NEW_LEAD_TEMPLATE_ID not set' };
-
     try {
-        const response = await emailjs.send(
-            process.env.EMAILJS_SERVICE_ID,
-            templateId,
-            {
-                to_email: adminEmail,
-                reference_number: applicationData.reference_number,
-                financing_type: applicationData.financing_type,
-                contact_person: applicationData.contact_person,
-                contact_person_number: applicationData.contact_person_number,
-                city_of_operation: applicationData.city_of_operation || 'Not specified',
-                business_name: applicationData.business_name || 'Unknown',
-                submitted_at: new Date().toLocaleString('en-US', { timeZone: 'Asia/Riyadh' }),
-            },
-            {
-                publicKey: process.env.EMAILJS_PUBLIC_KEY,
-                privateKey: process.env.EMAILJS_PRIVATE_KEY,
-            }
-        );
-        console.log(`✅ Admin new-lead alert sent to ${adminEmail}`);
-        return { success: true, response };
+        await emailjsSend(process.env.EMAILJS_APPLICATION_SUBMITTED_TEMPLATE_ID, {
+            to_email:          businessEmail,
+            business_name:     applicationData.trade_name,
+            application_id:    applicationData.application_id,
+            city_of_operation: applicationData.city_of_operation,
+            requested_amount:  applicationData.approximate_financing_amount,
+            repayment_period:  applicationData.preferred_repayment_period_months,
+        });
+        console.log(`✅ Application submission email sent to ${businessEmail}`);
+        return { success: true };
     } catch (error) {
-        console.error(`❌ Failed to send admin new-lead alert:`, error.message);
-        return { success: false, error: error.message };
+        console.error(`❌ Failed application submission email to ${businessEmail}:`, JSON.stringify(error));
+        return { success: false, error: JSON.stringify(error) };
     }
 }
 
-/**
- * Get email notification status
- */
 export function getEmailNotificationStatus() {
     return {
         disabled: isEmailDisabled,
-        message: isEmailDisabled ? 'Email notifications are currently disabled' : 'Email notifications are enabled',
-        timestamp: new Date().toISOString()
+        message:  isEmailDisabled ? 'Email notifications are currently disabled' : 'Email notifications are enabled',
+        timestamp: new Date().toISOString(),
     };
 }
