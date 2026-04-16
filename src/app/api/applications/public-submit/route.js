@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import wathiqAPIService from '@/lib/wathiq-api-service';
-import { sendSubmissionConfirmationEmail, sendAdminNewLeadAlert, sendBankNewLeadNotifications } from '@/lib/email/serverEmailNotifications';
+import { sendSubmissionConfirmationEmail, sendBankNewLeadNotifications } from '@/lib/email/serverEmailNotifications';
 import { sendAdminWhatsAppAlert } from '@/lib/whatsapp-notifications';
 import { auctionConfig } from '@/lib/config/auction-config';
 
@@ -245,24 +245,29 @@ export async function POST(req) {
             await client.query('COMMIT');
 
             // Send confirmation email to business — fire and forget, never block submission
+            const emailPayload = {
+                reference_number,
+                business_name: wathiqData?.trade_name || business_name || null,
+            };
             if (email) {
-                sendSubmissionConfirmationEmail(email, {
-                    reference_number,
-                    business_name: wathiqData?.trade_name || business_name || null,
-                }).catch(() => {});
+                sendSubmissionConfirmationEmail(email, emailPayload).catch(() => {});
             }
 
-            // Notify admin via email + WhatsApp — fire and forget
-            const alertData = {
+            // Send same template to admin — fire and forget
+            const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+            if (adminEmail) {
+                sendSubmissionConfirmationEmail(adminEmail, emailPayload).catch(() => {});
+            }
+
+            // Notify admin via WhatsApp — fire and forget
+            sendAdminWhatsAppAlert({
                 reference_number,
                 financing_type,
                 contact_person,
                 contact_person_number,
                 city_of_operation: city_of_operation || null,
                 business_name: wathiqData?.trade_name || business_name || null,
-            };
-            sendAdminNewLeadAlert(alertData).catch(() => {});
-            sendAdminWhatsAppAlert(alertData).catch(() => {});
+            }).catch(() => {});
 
             // Notify all active bank users — fire and forget
             pool.query(

@@ -277,18 +277,7 @@ export async function PUT(req, { params }) {
                 updateFields.push(`assigned_user_id = $${paramCount++}`);
                 updateValues.push(validatedAssignedUserId);
             }
-            if (trade_name !== undefined) {
-                updateFields.push(`trade_name = $${paramCount++}`);
-                updateValues.push(trade_name);
-            }
-            if (cr_number !== undefined) {
-                updateFields.push(`cr_number = $${paramCount++}`);
-                updateValues.push(cr_number);
-            }
-            if (city !== undefined) {
-                updateFields.push(`city = $${paramCount++}`);
-                updateValues.push(city);
-            }
+            // trade_name, cr_number, city are wathiq_data columns — not on pos_application
             if (city_of_operation !== undefined) {
                 updateFields.push(`city_of_operation = $${paramCount++}`);
                 updateValues.push(city_of_operation);
@@ -416,35 +405,6 @@ export async function PUT(req, { params }) {
                     'UPDATE pos_application SET business_contact_email = $1 WHERE application_id = $2',
                     [business_contact_email || null, applicationId]
                 );
-            }
-
-            // Update POS application details if fields provided
-            if (trade_name || cr_number || city || contact_person || contact_person_number || notes || 
-                pos_provider_name || pos_age_duration_months || avg_monthly_pos_sales ||
-                preferred_repayment_period_months || uploaded_filename) {
-                const posDetailsUpdateQuery = `
-                    UPDATE pos_application 
-                    SET 
-                        trade_name = COALESCE($1, trade_name),
-                        cr_number = COALESCE($2, cr_number),
-                        city = COALESCE($3, city),
-                        contact_person = COALESCE($4, contact_person),
-                        contact_person_number = COALESCE($5, contact_person_number),
-                        notes = COALESCE($6, notes),
-                        pos_provider_name = COALESCE($7, pos_provider_name),
-                        pos_age_duration_months = COALESCE($8, pos_age_duration_months),
-                        avg_monthly_pos_sales = COALESCE($9, avg_monthly_pos_sales),
-                        approximate_financing_amount = COALESCE($10, approximate_financing_amount),
-                        preferred_repayment_period_months = COALESCE($11, preferred_repayment_period_months),
-                        uploaded_filename = COALESCE($12, uploaded_filename)
-                    WHERE application_id = $13
-                `;
-                
-                await client.query(posDetailsUpdateQuery, [
-                    trade_name, cr_number, city, contact_person, contact_person_number, notes,
-                    pos_provider_name, validatedPosAgeDurationMonths, validatedAvgMonthlyPosSales, approximate_financing_amount,
-                    validatedPreferredRepaymentPeriodMonths, uploaded_filename, applicationId
-                ]);
             }
 
             // Clean up live auction application data if it's being edited

@@ -109,8 +109,10 @@ export async function sendSubmissionConfirmationEmail(toEmail, { reference_numbe
                 privateKey: process.env.EMAILJS_PRIVATE_KEY,
             }
         );
+        console.log(`✅ Submission confirmation sent to business: ${toEmail}`);
         return { success: true, response };
     } catch (error) {
+        console.error(`❌ Failed to send submission confirmation to ${toEmail}:`, error.message);
         return { success: false, error: error.message };
     }
 }
