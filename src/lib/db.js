@@ -576,21 +576,46 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const client = await pool.connect();
-      
+
+      // Validate the connection is alive before handing it to the caller.
+      // A stale socket (Cloud SQL proxy reconnect, idle TCP timeout) will hang
+      // indefinitely on the first real query — this ping catches it within 5s
+      // and forces a retry with a fresh connection instead.
+      try {
+        await Promise.race([
+          client.query('SELECT 1'),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Connection validation timeout')), 5000)
+          ),
+        ]);
+      } catch (pingError) {
+        console.warn(`⚠️ Stale connection detected for ${taskName}, discarding and retrying (${pingError.message})`);
+        try { client.release(pingError); } catch {}
+        lastError = pingError;
+        exhaustionPrevention.consecutiveFailures++;
+        exhaustionPrevention.lastFailureTime = Date.now();
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2;
+          continue;
+        }
+        break;
+      }
+
       // Reset circuit breaker on successful connection
       if (exhaustionPrevention.circuitBreakerState === 'HALF_OPEN') {
         exhaustionPrevention.circuitBreakerState = 'CLOSED';
         exhaustionPrevention.consecutiveFailures = 0;
         console.log('✅ Circuit breaker moved to CLOSED state');
       }
-      
+
       // Track the connection
       const connectionId = trackConnection(client, taskName);
-      
+
       // Add a custom release method that also untracks
       const originalRelease = client.release;
       let isReleased = false;
-      
+
       client.release = () => {
         if (!isReleased) {
           isReleased = true;
@@ -598,7 +623,7 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
           originalRelease.call(client);
         }
       };
-      
+
       return client;
     } catch (error) {
       lastError = error;

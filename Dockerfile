@@ -4,6 +4,9 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
+# Build tools required by bcrypt (native C++ addon)
+RUN apk add --no-cache python3 make g++
+
 # Copy package files first for better caching
 COPY package*.json ./
 
