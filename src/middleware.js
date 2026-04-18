@@ -56,12 +56,16 @@ export function middleware(request) {
     return NextResponse.next()
   }
 
-  // ── Admin-only pages ─────────────────────────────────────────────────────────
-  // /portal/*, /register, /forgotPassword, /setNewPassword/* are locked to
-  // admin_user only. Everyone else (including authenticated bank/business users)
-  // gets sent to /login.
+  // ── Business portal ─────────────────────────────────────────────────────────
+  if (pathname.startsWith('/portal')) {
+    if (!isValidUser || userType !== 'business_user') {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    return NextResponse.next()
+  }
+
+  // ── Admin-only public-facing pages ───────────────────────────────────────────
   const isAdminOnlyPage =
-    pathname.startsWith('/portal') ||
     pathname === '/register' ||
     pathname === '/forgotPassword' ||
     pathname.startsWith('/setNewPassword/')

@@ -4,13 +4,43 @@ import bcrypt from 'bcrypt';
 import JWTUtils from '@/lib/auth/jwt-utils';
 import AdminAuth from '@/lib/auth/admin-auth';
 
+const LOGIN_TIMEOUT_MS = 30000;
+
 export async function POST(req) {
     try {
         const { email, password, mfaToken } = await req.json();
 
-        const client = await pool.connectWithRetry(2, 1000, 'app_api_auth_unified-login_route.jsx_route');
-        
-        try {
+        const loginPromise = performLogin(email, password, mfaToken);
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Login timeout')), LOGIN_TIMEOUT_MS)
+        );
+
+        return await Promise.race([loginPromise, timeoutPromise]);
+    } catch (error) {
+        if (error.message === 'Login timeout') {
+            console.error('Unified login timed out after 30s');
+            return NextResponse.json(
+                { success: false, error: 'Service temporarily unavailable, please try again' },
+                { status: 503 }
+            );
+        }
+        console.error('Unified login error:', {
+            message: error.message,
+            code: error.code,
+            address: error.address,
+            port: error.port,
+        });
+        return NextResponse.json(
+            { success: false, error: 'Internal server error' },
+            { status: 500 }
+        );
+    }
+}
+
+async function performLogin(email, password, mfaToken) {
+    const client = await pool.connectWithRetry(2, 1000, 'app_api_auth_unified-login_route.jsx_route');
+
+    try {
             // Step 1: Determine user type with a single query
             const userTypeQuery = await client.query(
                 `SELECT 
@@ -65,19 +95,6 @@ export async function POST(req) {
         } finally {
             client.release();
         }
-
-    } catch (error) {
-        console.error('Unified login error:', {
-            message: error.message,
-            code: error.code,
-            address: error.address,
-            port: error.port,
-        });
-        return NextResponse.json(
-            { success: false, error: 'Internal server error' },
-            { status: 500 }
-        );
-    }
 }
 
 // Admin authentication handler
