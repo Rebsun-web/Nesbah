@@ -575,7 +575,12 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const client = await pool.connect();
+      const client = await Promise.race([
+        pool.connect(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Pool connect timeout')), 10000)
+        ),
+      ]);
 
       // Validate the connection is alive before handing it to the caller.
       // A stale socket (Cloud SQL proxy reconnect, idle TCP timeout) will hang
