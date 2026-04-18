@@ -6,29 +6,50 @@ import AdminAuth from '@/lib/auth/admin-auth';
 
 const LOGIN_TIMEOUT_MS = 30000;
 
-export async function POST(req) {
-    try {
-        const { email, password, mfaToken } = await req.json();
+function maskEmail(email) {
+    if (!email || !email.includes('@')) return '(invalid)';
+    return `***@${email.split('@')[1]}`;
+}
 
-        const loginPromise = performLogin(email, password, mfaToken);
+function poolSnap() {
+    return { total: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount };
+}
+
+export async function POST(req) {
+    const reqId = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const start = Date.now();
+    const elapsed = () => `+${Date.now() - start}ms`;
+
+    let email;
+    try {
+        const body = await req.json();
+        email = body.email;
+        const { password, mfaToken } = body;
+
+        console.log(`[LOGIN:${reqId}] START email=${maskEmail(email)} mfa=${!!mfaToken} pool=${JSON.stringify(poolSnap())}`);
+
+        const loginPromise = performLogin(reqId, elapsed, email, password, mfaToken);
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Login timeout')), LOGIN_TIMEOUT_MS)
         );
 
-        return await Promise.race([loginPromise, timeoutPromise]);
+        const result = await Promise.race([loginPromise, timeoutPromise]);
+        console.log(`[LOGIN:${reqId}] DONE ${elapsed()} status=${result.status}`);
+        return result;
     } catch (error) {
         if (error.message === 'Login timeout') {
-            console.error('Unified login timed out after 30s');
+            console.error(`[LOGIN:${reqId}] TIMEOUT after ${elapsed()} pool=${JSON.stringify(poolSnap())}`);
             return NextResponse.json(
                 { success: false, error: 'Service temporarily unavailable, please try again' },
                 { status: 503 }
             );
         }
-        console.error('Unified login error:', {
+        console.error(`[LOGIN:${reqId}] OUTER ERROR ${elapsed()}`, {
             message: error.message,
             code: error.code,
             address: error.address,
             port: error.port,
+            pool: poolSnap(),
         });
         return NextResponse.json(
             { success: false, error: 'Internal server error' },
@@ -37,80 +58,85 @@ export async function POST(req) {
     }
 }
 
-async function performLogin(email, password, mfaToken) {
-    const client = await pool.connectWithRetry(2, 1000, 'app_api_auth_unified-login_route.jsx_route');
+async function performLogin(reqId, elapsed, email, password, mfaToken) {
+    const log = (msg, extra) => console.log(`[LOGIN:${reqId}] ${elapsed()} ${msg}`, extra || '');
+
+    log(`POOL_CONNECT pool=${JSON.stringify(poolSnap())}`);
+    const client = await pool.connectWithRetry(2, 1000, 'unified-login');
+    log(`POOL_CONNECT_OK pool=${JSON.stringify(poolSnap())}`);
 
     try {
-            // Step 1: Determine user type with a single query
-            const userTypeQuery = await client.query(
-                `SELECT 
-                    u.user_id,
-                    u.email,
-                    u.password,
-                    u.user_type,
-                    u.entity_name,
-                    u.account_status,
-                    CASE 
-                        WHEN u.user_type = 'admin_user' THEN 'admin'
-                        WHEN u.user_type = 'bank_employee' THEN 'bank_employee'
-                        WHEN u.user_type IN ('business_user', 'bank_user') THEN 'regular_user'
-                        ELSE 'unknown'
-                    END as auth_category
-                 FROM users u
-                 WHERE u.email = $1`,
-                [email]
+        log('USER_LOOKUP');
+        const userTypeQuery = await client.query(
+            `SELECT
+                u.user_id,
+                u.email,
+                u.password,
+                u.user_type,
+                u.entity_name,
+                u.account_status,
+                CASE
+                    WHEN u.user_type = 'admin_user' THEN 'admin'
+                    WHEN u.user_type = 'bank_employee' THEN 'bank_employee'
+                    WHEN u.user_type IN ('business_user', 'bank_user') THEN 'regular_user'
+                    ELSE 'unknown'
+                END as auth_category
+             FROM users u
+             WHERE u.email = $1`,
+            [email]
+        );
+
+        if (userTypeQuery.rowCount === 0) {
+            log(`USER_NOT_FOUND email=${maskEmail(email)}`);
+            return NextResponse.json(
+                { success: false, error: 'Invalid credentials' },
+                { status: 401 }
             );
-
-            if (userTypeQuery.rowCount === 0) {
-                console.log('❌ User not found:', email);
-                return NextResponse.json(
-                    { success: false, error: 'Invalid credentials' },
-                    { status: 401 }
-                );
-            }
-
-            const userData = userTypeQuery.rows[0];
-            const { auth_category, user_type, account_status } = userData;
-
-            console.log('🔍 User type determined:', user_type, 'Auth category:', auth_category);
-
-            // Step 2: Route to appropriate authentication method
-            switch (auth_category) {
-                case 'admin':
-                    return await handleAdminLogin(userData, password, mfaToken);
-                
-                case 'bank_employee':
-                    return await handleBankEmployeeLogin(client, userData, password);
-                
-                case 'regular_user':
-                    return await handleRegularUserLogin(client, userData, password, account_status);
-                
-                default:
-                    return NextResponse.json(
-                        { success: false, error: 'Invalid user type' },
-                        { status: 400 }
-                    );
-            }
-
-        } finally {
-            client.release();
         }
+
+        const userData = userTypeQuery.rows[0];
+        const { auth_category, user_type, account_status } = userData;
+        log(`USER_FOUND type=${user_type} category=${auth_category} status=${account_status}`);
+
+        switch (auth_category) {
+            case 'admin':
+                log('ROUTE->admin');
+                return await handleAdminLogin(reqId, elapsed, userData, password, mfaToken);
+
+            case 'bank_employee':
+                log('ROUTE->bank_employee');
+                return await handleBankEmployeeLogin(reqId, elapsed, client, userData, password);
+
+            case 'regular_user':
+                log('ROUTE->regular_user');
+                return await handleRegularUserLogin(reqId, elapsed, client, userData, password, account_status);
+
+            default:
+                log(`ROUTE->unknown category=${auth_category}`);
+                return NextResponse.json(
+                    { success: false, error: 'Invalid user type' },
+                    { status: 400 }
+                );
+        }
+
+    } finally {
+        client.release();
+        log(`CLIENT_RELEASED pool=${JSON.stringify(poolSnap())}`);
+    }
 }
 
-// Admin authentication handler
-async function handleAdminLogin(userData, password, mfaToken) {
+async function handleAdminLogin(reqId, elapsed, userData, password, mfaToken) {
+    const log = (msg) => console.log(`[LOGIN:${reqId}] ${elapsed()} ADMIN ${msg}`);
+    log(`START email=${maskEmail(userData.email)}`);
     try {
-        console.log('🔐 Processing admin login for:', userData.email);
-        
-        // Validate admin credentials with MFA support
         const authResult = await AdminAuth.validateCredentialsWithMFA(userData.email, password, mfaToken);
-        
+
         if (!authResult.valid) {
-            // Check if MFA is required
             if (authResult.requiresMFA) {
+                log('MFA_REQUIRED');
                 return NextResponse.json(
-                    { 
-                        success: false, 
+                    {
+                        success: false,
                         error: authResult.error,
                         requiresMFA: true,
                         user: authResult.adminUser
@@ -118,7 +144,7 @@ async function handleAdminLogin(userData, password, mfaToken) {
                     { status: 401 }
                 );
             }
-            
+            log(`INVALID reason=${authResult.error}`);
             return NextResponse.json(
                 { success: false, error: authResult.error },
                 { status: 401 }
@@ -126,21 +152,15 @@ async function handleAdminLogin(userData, password, mfaToken) {
         }
 
         const adminUser = authResult.adminUser;
-
-        // Update last login timestamp
         await AdminAuth.updateLastLogin(adminUser.user_id);
-
-        // Generate JWT token
         const token = JWTUtils.generateAdminToken(adminUser);
+        log('SUCCESS');
 
-        console.log('✅ Admin login successful for:', userData.email);
-
-        // Set HTTP-only cookie with JWT token
         const response = NextResponse.json({
             success: true,
             user: {
                 user_id: adminUser.user_id,
-                admin_id: adminUser.user_id, // For backward compatibility
+                admin_id: adminUser.user_id,
                 email: adminUser.email,
                 full_name: adminUser.entity_name,
                 entity_name: adminUser.entity_name,
@@ -149,24 +169,23 @@ async function handleAdminLogin(userData, password, mfaToken) {
                 is_active: adminUser.account_status === 'active',
                 user_type: 'admin_user'
             },
-            token: token, // Include JWT token in response body for frontend storage
+            token: token,
             redirect: '/admin',
             message: 'Admin login successful'
         });
 
-        // Set JWT token as HTTP-only cookie
         response.cookies.set('admin_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 24 * 60 * 60, // 24 hours
+            maxAge: 24 * 60 * 60,
             path: '/'
         });
 
         return response;
 
     } catch (error) {
-        console.error('Admin login error:', error);
+        log(`ERROR ${error.message}`);
         return NextResponse.json(
             { success: false, error: 'Admin authentication failed' },
             { status: 500 }
@@ -174,14 +193,12 @@ async function handleAdminLogin(userData, password, mfaToken) {
     }
 }
 
-// Bank employee authentication handler
-async function handleBankEmployeeLogin(client, userData, password) {
+async function handleBankEmployeeLogin(reqId, elapsed, client, userData, password) {
+    const log = (msg) => console.log(`[LOGIN:${reqId}] ${elapsed()} BANK_EMP ${msg}`);
+    log(`START email=${maskEmail(userData.email)}`);
     try {
-        console.log('🏦 Processing bank employee login for:', userData.email);
-        
-        // Get additional bank employee information
         const employeeQuery = await client.query(
-            `SELECT 
+            `SELECT
                 be.employee_id,
                 be.first_name,
                 be.last_name,
@@ -195,6 +212,7 @@ async function handleBankEmployeeLogin(client, userData, password) {
         );
 
         if (employeeQuery.rowCount === 0) {
+            log('EMPLOYEE_PROFILE_NOT_FOUND');
             return NextResponse.json(
                 { success: false, error: 'Employee profile not found' },
                 { status: 401 }
@@ -203,8 +221,10 @@ async function handleBankEmployeeLogin(client, userData, password) {
 
         const employeeData = employeeQuery.rows[0];
 
-        // Verify password
+        log('BCRYPT_START');
         const passwordMatch = await bcrypt.compare(password, userData.password);
+        log(`BCRYPT_DONE match=${passwordMatch}`);
+
         if (!passwordMatch) {
             return NextResponse.json(
                 { success: false, error: 'Invalid credentials' },
@@ -212,13 +232,11 @@ async function handleBankEmployeeLogin(client, userData, password) {
             );
         }
 
-        // Update last login timestamp
         await client.query(
             `UPDATE bank_employees SET last_login_at = NOW() WHERE employee_id = $1`,
             [employeeData.employee_id]
         );
 
-        // Generate JWT token
         const token = JWTUtils.generateUserToken({
             ...userData,
             user_type: 'bank_employee',
@@ -226,7 +244,7 @@ async function handleBankEmployeeLogin(client, userData, password) {
             bank_user_id: employeeData.bank_user_id
         });
 
-        console.log('✅ Bank employee login successful for:', userData.email);
+        log('SUCCESS');
 
         const response = NextResponse.json({
             success: true,
@@ -245,18 +263,17 @@ async function handleBankEmployeeLogin(client, userData, password) {
             redirect: '/bankPortal'
         });
 
-        // Set user token cookie
         response.cookies.set('user_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+            maxAge: 24 * 60 * 60 * 1000
         });
 
         return response;
 
     } catch (error) {
-        console.error('Bank employee login error:', error);
+        log(`ERROR ${error.message} code=${error.code}`);
         return NextResponse.json(
             { success: false, error: 'Bank employee authentication failed' },
             { status: 500 }
@@ -264,32 +281,28 @@ async function handleBankEmployeeLogin(client, userData, password) {
     }
 }
 
-// Regular user authentication handler
-async function handleRegularUserLogin(client, userData, password, account_status) {
+async function handleRegularUserLogin(reqId, elapsed, client, userData, password, account_status) {
+    const log = (msg) => console.log(`[LOGIN:${reqId}] ${elapsed()} REGULAR ${msg}`);
+    log(`START type=${userData.user_type} status=${account_status} email=${maskEmail(userData.email)}`);
     try {
-        console.log('🔐 Processing regular user login for:', userData.email);
-        
-        // Check if account is active
         if (account_status !== 'active') {
+            log(`INACTIVE status=${account_status}`);
             return NextResponse.json(
                 { success: false, error: 'Account is inactive' },
                 { status: 401 }
             );
         }
 
-        // Get additional user information
         const userInfoQuery = await client.query(
-            `SELECT 
-                bu.logo_url
-             FROM bank_users bu
-             WHERE bu.user_id = $1`,
+            `SELECT bu.logo_url FROM bank_users bu WHERE bu.user_id = $1`,
             [userData.user_id]
         );
-
         const logoUrl = userInfoQuery.rowCount > 0 ? userInfoQuery.rows[0].logo_url : null;
 
-        // Verify password
+        log('BCRYPT_START');
         const passwordMatch = await bcrypt.compare(password, userData.password);
+        log(`BCRYPT_DONE match=${passwordMatch}`);
+
         if (!passwordMatch) {
             return NextResponse.json(
                 { success: false, error: 'Invalid credentials' },
@@ -297,15 +310,9 @@ async function handleRegularUserLogin(client, userData, password, account_status
             );
         }
 
-        // Generate JWT token
         const token = JWTUtils.generateUserToken(userData);
-
-        let redirect = '/portal';
-        if (userData.user_type === 'bank_user') {
-            redirect = '/bankPortal';
-        }
-
-        console.log('✅ Regular user login successful for:', userData.email, 'Redirecting to:', redirect);
+        const redirect = userData.user_type === 'bank_user' ? '/bankPortal' : '/portal';
+        log(`SUCCESS redirect=${redirect}`);
 
         const response = NextResponse.json({
             success: true,
@@ -319,18 +326,17 @@ async function handleRegularUserLogin(client, userData, password, account_status
             redirect: redirect
         });
 
-        // Set user token cookie
         response.cookies.set('user_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+            maxAge: 24 * 60 * 60 * 1000
         });
 
         return response;
 
     } catch (error) {
-        console.error('Regular user login error:', error);
+        log(`ERROR ${error.message} code=${error.code}`);
         return NextResponse.json(
             { success: false, error: 'User authentication failed' },
             { status: 500 }

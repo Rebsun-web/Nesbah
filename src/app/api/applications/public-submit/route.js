@@ -20,7 +20,16 @@ function generateReferenceNumber() {
     return `NSB-${Date.now()}-${rand}`;
 }
 
+function poolSnap() {
+    return { total: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount };
+}
+
 export async function POST(req) {
+    const reqId = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const start = Date.now();
+    const elapsed = () => `+${Date.now() - start}ms`;
+    const log = (msg, extra) => console.log(`[SUBMIT:${reqId}] ${elapsed()} ${msg}`, extra || '');
+
     try {
         const body = await req.json();
 
@@ -32,15 +41,17 @@ export async function POST(req) {
             financing_type,
             notes,
             preferred_repayment_period_months,
-            // Additional fields from Lovable form
             business_name,
             email,
             sector,
             approximate_financing_amount,
         } = body;
 
+        log(`START cr=****${String(cr_national_number || '').slice(-4)} type=${financing_type} pool=${JSON.stringify(poolSnap())}`);
+
         // Input validation
         if (!cr_national_number || !contact_person || !contact_person_number || !financing_type) {
+            log('VALIDATION_FAIL missing_required_fields');
             return NextResponse.json(
                 { success: false, error: 'Missing required fields: cr_national_number, contact_person, contact_person_number, financing_type' },
                 { status: 400 }
@@ -48,6 +59,7 @@ export async function POST(req) {
         }
 
         if (!/^7\d{9}$/.test(cr_national_number.toString())) {
+            log(`VALIDATION_FAIL cr_format cr=${cr_national_number}`);
             return NextResponse.json(
                 { success: false, error: 'الرقم الوطني يجب أن يتكون من 10 أرقام ويبدأ بالرقم 7 / National number must be exactly 10 digits and start with 7' },
                 { status: 400 }
@@ -55,19 +67,22 @@ export async function POST(req) {
         }
 
         if (!VALID_FINANCING_TYPES.includes(financing_type)) {
+            log(`VALIDATION_FAIL financing_type=${financing_type}`);
             return NextResponse.json(
                 { success: false, error: `Invalid financing_type. Must be one of: ${VALID_FINANCING_TYPES.join(', ')}` },
                 { status: 400 }
             );
         }
 
-        // Attempt Wathiq verification (AbortController timeout is inside the service — 7s)
+        // Wathiq verification
         let wathiqData = null;
         let verification_status = 'pending';
+        log('WATHIQ_START');
         try {
             wathiqData = await wathiqAPIService.fetchBusinessData(cr_national_number);
             if (wathiqData) {
                 verification_status = 'verified';
+                log(`WATHIQ_OK trade_name=${wathiqData.trade_name || '(none)'}`);
             }
         } catch (wathiqError) {
             const isUnreachable =
@@ -75,12 +90,10 @@ export async function POST(req) {
                 !wathiqError.message?.includes('Wathiq API error:');
 
             if (isUnreachable) {
-                // Wathiq timed out or network error — not the user's fault, proceed
-                console.warn('⚠️ Wathiq unreachable, proceeding with pending status:', wathiqError.message);
+                log(`WATHIQ_UNREACHABLE reason=${wathiqError.message} — proceeding with pending`);
                 verification_status = 'pending';
             } else {
-                // Wathiq responded but rejected the CR — number doesn't exist or is invalid
-                console.warn('⚠️ Wathiq rejected CR number:', wathiqError.message);
+                log(`WATHIQ_REJECTED reason=${wathiqError.message}`);
                 return NextResponse.json(
                     { success: false, errorCode: 'CR_NOT_FOUND' },
                     { status: 422 }
@@ -92,27 +105,31 @@ export async function POST(req) {
         const submitted_at = new Date();
         const auction_end_time = new Date(submitted_at.getTime() + auctionConfig.durationMilliseconds);
 
-        const client = await pool.connectWithRetry(2, 1000, 'api_applications_public-submit_route.js');
+        log(`POOL_CONNECT pool=${JSON.stringify(poolSnap())}`);
+        const client = await pool.connectWithRetry(2, 1000, 'public-submit');
+        log(`POOL_CONNECT_OK pool=${JSON.stringify(poolSnap())}`);
 
         try {
-            // Check uniqueness — one submission per national number
+            log('DUPLICATE_CHECK');
             const existing = await client.query(
                 'SELECT application_id FROM pos_application WHERE cr_national_number = $1 LIMIT 1',
                 [cr_national_number]
             );
             if (existing.rows.length > 0) {
+                log(`DUPLICATE_CR application_id=${existing.rows[0].application_id}`);
                 return NextResponse.json(
                     { success: false, errorCode: 'DUPLICATE_CR' },
                     { status: 409 }
                 );
             }
+            log('DUPLICATE_CHECK_CLEAR');
 
             await client.query('BEGIN');
+            log('TX_BEGIN');
 
-            // Upsert wathiq_data — single canonical store for all Wathiq fields.
-            // ON CONFLICT: update all fields so re-submissions get fresh data.
             let wathiq_data_id = null;
             if (wathiqData) {
+                log('WATHIQ_UPSERT');
                 const wathiqResult = await client.query(
                     `INSERT INTO wathiq_data (
                         cr_national_number,
@@ -167,30 +184,32 @@ export async function POST(req) {
                         updated_at                  = NOW()
                     RETURNING id`,
                     [
-                        cr_national_number,                                        // $1
-                        wathiqData.cr_number || null,                              // $2
-                        wathiqData.trade_name || business_name || null,            // $3
-                        wathiqData.legal_form || null,                             // $4
-                        wathiqData.registration_status || null,                    // $5
-                        wathiqData.issue_date_gregorian || null,                   // $6
-                        wathiqData.confirmation_date_gregorian || null,            // $7
-                        wathiqData.city || city_of_operation || null,              // $8
-                        wathiqData.has_ecommerce || false,                         // $9
-                        wathiqData.store_url || null,                              // $10
-                        wathiqData.cr_capital || null,                             // $11
-                        wathiqData.cash_capital || null,                           // $12
-                        wathiqData.in_kind_capital || null,                        // $13
-                        wathiqData.avg_capital || null,                            // $14
-                        wathiqData.management_structure || null,                   // $15
-                        wathiqData.management_managers ? JSON.stringify(wathiqData.management_managers) : null, // $16
-                        wathiqData.activities || null,                             // $17
-                        wathiqData.contact_info ? JSON.stringify(wathiqData.contact_info) : null, // $18
-                        wathiqData.sector || sector || null,                       // $19
+                        cr_national_number,
+                        wathiqData.cr_number || null,
+                        wathiqData.trade_name || business_name || null,
+                        wathiqData.legal_form || null,
+                        wathiqData.registration_status || null,
+                        wathiqData.issue_date_gregorian || null,
+                        wathiqData.confirmation_date_gregorian || null,
+                        wathiqData.city || city_of_operation || null,
+                        wathiqData.has_ecommerce || false,
+                        wathiqData.store_url || null,
+                        wathiqData.cr_capital || null,
+                        wathiqData.cash_capital || null,
+                        wathiqData.in_kind_capital || null,
+                        wathiqData.avg_capital || null,
+                        wathiqData.management_structure || null,
+                        wathiqData.management_managers ? JSON.stringify(wathiqData.management_managers) : null,
+                        wathiqData.activities || null,
+                        wathiqData.contact_info ? JSON.stringify(wathiqData.contact_info) : null,
+                        wathiqData.sector || sector || null,
                     ]
                 );
                 wathiq_data_id = wathiqResult.rows[0].id;
+                log(`WATHIQ_UPSERT_OK wathiq_data_id=${wathiq_data_id}`);
             }
 
+            log('APPLICATION_INSERT');
             const result = await client.query(
                 `INSERT INTO pos_application (
                     user_id,
@@ -221,51 +240,57 @@ export async function POST(req) {
                 )
                 RETURNING application_id`,
                 [
-                    reference_number,                                    // $1
-                    financing_type,                                      // $2
-                    submitted_at,                                        // $3
-                    notes || null,                                       // $4
-                    verification_status,                                 // $5
-                    wathiq_data_id,                                      // $6
-                    cr_national_number,                                  // $7
-                    contact_person,                                      // $8
-                    contact_person_number,                               // $9
-                    city_of_operation,                                   // $10
-                    preferred_repayment_period_months || null,           // $11
-                    auction_end_time,                                    // $12
-                    sector || wathiqData?.sector || null,                // $13
-                    email || null,                                       // $14
-                    approximate_financing_amount || null,                // $15
+                    reference_number,
+                    financing_type,
+                    submitted_at,
+                    notes || null,
+                    verification_status,
+                    wathiq_data_id,
+                    cr_national_number,
+                    contact_person,
+                    contact_person_number,
+                    city_of_operation,
+                    preferred_repayment_period_months || null,
+                    auction_end_time,
+                    sector || wathiqData?.sector || null,
+                    email || null,
+                    approximate_financing_amount || null,
                 ]
             );
 
             const application_id = result.rows[0].application_id;
+            log(`APPLICATION_INSERT_OK application_id=${application_id} ref=${reference_number}`);
 
             await client.query('COMMIT');
+            log('TX_COMMIT');
 
-            // Send confirmation email to business — fire and forget, never block submission
+            // Fire-and-forget emails
             const emailPayload = {
                 reference_number,
                 business_name: wathiqData?.trade_name || business_name || null,
             };
             if (email) {
-                sendSubmissionConfirmationEmail(email, emailPayload).catch(() => {});
+                sendSubmissionConfirmationEmail(email, emailPayload).catch((e) =>
+                    log(`EMAIL_BUSINESS_FAIL ${e.message}`)
+                );
             }
 
-            // Send same template to admin — fire and forget
             const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
             if (adminEmail) {
-                sendSubmissionConfirmationEmail(adminEmail, emailPayload, 'admins').catch(() => {});
+                sendSubmissionConfirmationEmail(adminEmail, emailPayload, 'admins').catch((e) =>
+                    log(`EMAIL_ADMIN_FAIL ${e.message}`)
+                );
             }
 
-            // Notify all active bank users — fire and forget
             pool.query(
                 `SELECT u.email FROM users u WHERE u.user_type = 'bank_user' AND u.account_status = 'active'`
-            ).then(result => {
-                const emails = result.rows.map(r => r.email);
+            ).then(r => {
+                const emails = r.rows.map(row => row.email);
+                log(`EMAIL_BANKS_SENDING count=${emails.length}`);
                 return sendBankNewLeadNotifications(emails);
-            }).catch(() => {});
+            }).catch((e) => log(`EMAIL_BANKS_FAIL ${e.message}`));
 
+            log(`SUCCESS total=${elapsed()}`);
             return NextResponse.json({
                 success: true,
                 reference_number,
@@ -273,27 +298,23 @@ export async function POST(req) {
             });
 
         } catch (err) {
-            console.error('❌ public-submit DB error:', {
-                message: err.message,
-                code: err.code,
-                detail: err.detail,
-                cr_national_number,
-                financing_type,
-            });
-            try { await client.query('ROLLBACK'); } catch {}
+            log(`DB_ERROR ${err.message} code=${err.code}`, { detail: err.detail, pool: poolSnap() });
+            try { await client.query('ROLLBACK'); log('TX_ROLLBACK'); } catch {}
             return NextResponse.json(
                 { success: false, error: 'Internal server error' },
                 { status: 500 }
             );
         } finally {
             client.release();
+            log(`CLIENT_RELEASED pool=${JSON.stringify(poolSnap())}`);
         }
 
     } catch (err) {
-        console.error('❌ public-submit outer error:', {
+        console.error(`[SUBMIT:${reqId}] ${elapsed()} OUTER_ERROR`, {
             message: err.message,
             code: err.code,
             stack: err.stack?.split('\n').slice(0, 4).join('\n'),
+            pool: poolSnap(),
         });
         return NextResponse.json(
             { success: false, error: 'Internal server error' },
