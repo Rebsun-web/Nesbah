@@ -61,8 +61,8 @@ if (!globalForPool._pgPool) {
     ...poolConfig,
     max: process.env.NODE_ENV === 'production' ? 20 : 5,
     min: 0,  // never hold idle connections — they go stale on Cloud SQL proxy reconnect
-    idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 60000 : 10000,
-    connectionTimeoutMillis: 30000,
+    idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 30000 : 10000,
+    connectionTimeoutMillis: 11000,
     acquireTimeoutMillis: 45000,
     reapIntervalMillis: 1000,
     maxUses: process.env.NODE_ENV === 'production' ? 100 : 50,
@@ -575,12 +575,36 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const client = await Promise.race([
-        pool.connect(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Pool connect timeout')), 10000)
-        ),
-      ]);
+      // Capture the promise before the race. If our timeout fires first,
+      // pool.connect() is still pending in pg-pool holding a slot. The .then()
+      // below releases that slot when the proxy eventually reconnects, preventing
+      // permanent pool exhaustion after idle periods.
+      const connectPromise = pool.connect();
+      let connectTimeoutId;
+      const connectTimeoutPromise = new Promise((_, reject) => {
+        connectTimeoutId = setTimeout(
+          () => reject(new Error('Pool connect timeout')),
+          10000
+        );
+      });
+
+      let client;
+      try {
+        client = await Promise.race([connectPromise, connectTimeoutPromise]);
+        clearTimeout(connectTimeoutId);
+      } catch (connectError) {
+        clearTimeout(connectTimeoutId);
+        if (connectError.message === 'Pool connect timeout') {
+          connectPromise.then(
+            (lateClient) => {
+              console.warn(`⚠️ Late pool.connect() resolved after timeout — releasing orphaned slot (task: ${taskName})`);
+              try { lateClient.release(); } catch (_) {}
+            },
+            () => {}
+          );
+        }
+        throw connectError;
+      }
 
       // Validate the connection is alive before handing it to the caller.
       // A stale socket (Cloud SQL proxy reconnect, idle TCP timeout) will hang

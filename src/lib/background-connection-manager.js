@@ -20,13 +20,32 @@ class BackgroundConnectionManager {
         const connectionId = `${taskName}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         
         try {
-            // Get connection with timeout
-            const client = await Promise.race([
-                pool.connectWithRetry(1, 1000, 'background-connection-manager'), // Reduced retries
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Connection timeout')), this.connectionTimeout)
-                )
-            ])
+            // Same orphan-cleanup pattern as db.js connectWithRetry:
+            // if the outer timeout fires first, attach a .then() to release
+            // any slot that eventually resolves instead of leaking it.
+            const connectWithRetryPromise = pool.connectWithRetry(1, 1000, 'background-connection-manager');
+            let bgTimeoutId;
+            const bgTimeoutPromise = new Promise((_, reject) => {
+                bgTimeoutId = setTimeout(
+                    () => reject(new Error('Connection timeout')),
+                    this.connectionTimeout
+                );
+            });
+
+            let client;
+            try {
+                client = await Promise.race([connectWithRetryPromise, bgTimeoutPromise]);
+                clearTimeout(bgTimeoutId);
+            } catch (bgError) {
+                clearTimeout(bgTimeoutId);
+                if (bgError.message === 'Connection timeout') {
+                    connectWithRetryPromise.then(
+                        (lateClient) => { try { lateClient.release(); } catch (_) {} },
+                        () => {}
+                    );
+                }
+                throw bgError;
+            }
 
             // Track the connection
             this.activeConnections.set(connectionId, {
