@@ -279,7 +279,7 @@ class BackgroundTaskManager {
             if (urgentApplications.length > 0) {
                 console.log(`⚠️ Found ${urgentApplications.length} applications approaching auction expiry`)
                 urgentApplications.forEach(app => {
-                    console.log(`   - App #${app.application_id} (${app.trade_name}): ${app.hours_until_expiry.toFixed(1)} hours until expiry`)
+                    console.log(`   - App #${app.application_id} (${app.trade_name}): ${parseFloat(app.hours_until_expiry).toFixed(1)} hours until expiry`)
                 })
             }
             
