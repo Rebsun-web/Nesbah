@@ -80,9 +80,6 @@ spec:
         - "--health-check"
         - "--http-port=9090"
         - "nesbahdev:me-central2:production"
-        securityContext:
-          runAsNonRoot: true
-          allowPrivilegeEscalation: false
         volumeMounts:
         - name: cloudsql-socket
           mountPath: /cloudsql
