@@ -59,7 +59,7 @@ const globalForPool = /** @type {any} */ (global);
 if (!globalForPool._pgPool) {
   globalForPool._pgPool = new Pool({
     ...poolConfig,
-    max: process.env.NODE_ENV === 'production' ? 20 : 5,
+    max: process.env.NODE_ENV === 'production' ? 8 : 5,
     min: 0,  // never hold idle connections — they go stale on Cloud SQL proxy reconnect
     idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 30000 : 10000,
     connectionTimeoutMillis: 11000,

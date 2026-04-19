@@ -22,6 +22,14 @@ class BackgroundTaskManager {
             statusConsistency: 0,
             healthCheck: 0
         }
+
+        // Per-task mutex: prevents a new run starting before the previous one finishes
+        this.taskRunning = {
+            statusTransitions: false,
+            auctionMonitor: false,
+            statusConsistency: false,
+            healthCheck: false
+        }
         
         // Use global timers to persist across reinitializations
         this.globalTimers = global.backgroundTaskTimers || {}
@@ -113,11 +121,19 @@ class BackgroundTaskManager {
         
         console.log(`⏰ ${taskName}: Next run in ${Math.round(timeUntilNextRun / 1000)}s (interval: ${interval / 1000}s)`)
 
-        // Set up the timer
+        // Set up the timer — guard prevents concurrent runs of the same task
         const timer = setInterval(async () => {
-            if (this.isRunning) {
-                this.lastRunTimes[taskName] = Date.now()
+            if (!this.isRunning) return
+            if (this.taskRunning[taskName]) {
+                console.warn(`⚠️ ${taskName}: previous run still in progress, skipping this interval`)
+                return
+            }
+            this.taskRunning[taskName] = true
+            this.lastRunTimes[taskName] = Date.now()
+            try {
                 await taskFunction()
+            } finally {
+                this.taskRunning[taskName] = false
             }
         }, interval)
 
@@ -129,11 +145,15 @@ class BackgroundTaskManager {
         if (timeSinceLastRun >= interval) {
             console.log(`🚀 ${taskName}: Running immediately (overdue by ${Math.round(timeSinceLastRun / 1000)}s)`)
             setTimeout(async () => {
-                if (this.isRunning) {
-                    this.lastRunTimes[taskName] = Date.now()
+                if (!this.isRunning || this.taskRunning[taskName]) return
+                this.taskRunning[taskName] = true
+                this.lastRunTimes[taskName] = Date.now()
+                try {
                     await taskFunction()
+                } finally {
+                    this.taskRunning[taskName] = false
                 }
-            }, 1000) // Small delay to ensure everything is ready
+            }, 1000)
         }
     }
 
@@ -243,14 +263,14 @@ class BackgroundTaskManager {
             
             // Then handle any expired auctions that need processing
             const { AuctionExpiryHandler } = await import('./auction-expiry-handler.js')
-            const result = await AuctionExpiryHandler.handleExpiredAuctions()
-            
+            const result = await AuctionExpiryHandler.handleExpiredAuctions(client)
+
             if (result.processed > 0) {
                 console.log(`✅ Status transitions completed: ${result.processed} applications processed (${result.completed} completed, ${result.ignored} ignored)`)
             } else {
                 console.log('ℹ️ No status transitions needed')
             }
-            
+
         } catch (error) {
             console.error('❌ Status transitions error:', error)
             throw error // Re-throw to trigger retry logic
@@ -261,21 +281,21 @@ class BackgroundTaskManager {
     async checkAuctionStatus(client) {
         try {
             console.log('⏰ Checking auction status...')
-            
+
             // Import and use the AuctionExpiryHandler for proper 48-hour auction handling
             const { AuctionExpiryHandler } = await import('./auction-expiry-handler.js')
-            
+
             // Handle expired auctions using the dedicated handler
-            const result = await AuctionExpiryHandler.handleExpiredAuctions()
-            
+            const result = await AuctionExpiryHandler.handleExpiredAuctions(client)
+
             if (result.processed > 0) {
                 console.log(`✅ Processed ${result.processed} expired auctions (${result.completed} completed, ${result.ignored} ignored)`)
             } else {
                 console.log('ℹ️ No expired auctions found')
             }
-            
+
             // Also check for urgent applications (within 2 hours of expiry)
-            const urgentApplications = await AuctionExpiryHandler.getUrgentApplications()
+            const urgentApplications = await AuctionExpiryHandler.getUrgentApplications(client)
             if (urgentApplications.length > 0) {
                 console.log(`⚠️ Found ${urgentApplications.length} applications approaching auction expiry`)
                 urgentApplications.forEach(app => {

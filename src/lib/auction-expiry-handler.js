@@ -7,9 +7,10 @@ class AuctionExpiryHandler {
      * Check and handle expired auctions
      * This function should be called periodically or when needed
      */
-    static async handleExpiredAuctions() {
-        const client = await pool.connectWithRetry(2, 1000, 'auction-expiry-handler');
-        
+    static async handleExpiredAuctions(existingClient = null) {
+        const client = existingClient || await pool.connectWithRetry(2, 1000, 'auction-expiry-handler');
+        const ownsClient = !existingClient;
+
         try {
             console.log('⏰ Checking for expired auctions...');
 
@@ -86,7 +87,7 @@ class AuctionExpiryHandler {
             console.error('❌ Error checking expired auctions:', error);
             throw error;
         } finally {
-            client.release();
+            if (ownsClient) client.release();
         }
     }
 
@@ -147,9 +148,10 @@ class AuctionExpiryHandler {
     /**
      * Get applications that are approaching auction end (within 2 hours)
      */
-    static async getUrgentApplications() {
-        const client = await pool.connectWithRetry(2, 1000, 'auction-expiry-handler');
-        
+    static async getUrgentApplications(existingClient = null) {
+        const client = existingClient || await pool.connectWithRetry(2, 1000, 'auction-expiry-handler');
+        const ownsClient = !existingClient;
+
         try {
             const urgentResult = await client.query(`
                 SELECT
@@ -172,7 +174,7 @@ class AuctionExpiryHandler {
 
             return urgentResult.rows;
         } finally {
-            client.release();
+            if (ownsClient) client.release();
         }
     }
 }
