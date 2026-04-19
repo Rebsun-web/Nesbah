@@ -8,7 +8,7 @@ on:
 env:
   PROJECT_ID: nesbahdev
   SERVICE: nesbah-portal
-  REGION: me-central2
+  REGION: europe-west1
   IMAGE: gcr.io/nesbahdev/nesbah-portal
 
 jobs:

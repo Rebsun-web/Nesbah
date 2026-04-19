@@ -52,7 +52,7 @@ kind: Service
 metadata:
   name: nesbah-portal
   labels:
-    cloud.googleapis.com/location: me-central2
+    cloud.googleapis.com/location: europe-west1
 spec:
   template:
     metadata:
