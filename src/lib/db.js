@@ -139,13 +139,15 @@ pool.on('error', (err, client) => {
 pool.on('connect', (client) => {
   console.log(`🔗 New database connection established. Pool status: ${pool.totalCount}/${pool.idleCount}/${pool.waitingCount}`);
   
-  // Set timezone to Riyadh for all new connections
-  client.query("SET timezone = 'Asia/Riyadh'")
+  // Set session parameters: timezone + statement_timeout as server-enforced safety net.
+  // statement_timeout causes Cloud SQL to abort any query that runs > 9s, independent
+  // of JavaScript timers. This catches query-level hangs that bypass our race timeouts.
+  client.query("SET timezone = 'Asia/Riyadh'; SET statement_timeout = '9000'")
     .then(() => {
-      console.log('🕐 Database timezone set to Asia/Riyadh');
+      console.log('🕐 DB session: timezone=Asia/Riyadh, statement_timeout=9s');
     })
     .catch((err) => {
-      console.warn('⚠️ Failed to set database timezone:', err.message);
+      console.warn('⚠️ Failed to set session parameters:', err.message);
     });
   
   // Set up client error handling
@@ -304,13 +306,24 @@ setInterval(() => {
 // Enhanced connection health check method
 pool.healthCheck = async () => {
   const startTime = Date.now();
-  
-  console.log('🔍 DEBUG: pool.healthCheck() called', {
-    isPoolEnding,
-    nodeEnv: process.env.NODE_ENV,
-    timestamp: new Date().toISOString()
-  });
-  
+
+  // Don't attempt a connection when the circuit is OPEN — just report the state.
+  // Hammering connectWithRetry while OPEN cycles through HALF_OPEN every 30s,
+  // incrementing consecutiveFailures indefinitely and spamming logs.
+  if (exhaustionPrevention.circuitBreakerState === 'OPEN') {
+    const timeSinceLastFailure = Date.now() - exhaustionPrevention.lastFailureTime;
+    if (timeSinceLastFailure < exhaustionPrevention.circuitBreakerTimeout) {
+      return {
+        healthy: false,
+        circuitBreaker: 'OPEN',
+        consecutiveFailures: exhaustionPrevention.consecutiveFailures,
+        retryInMs: exhaustionPrevention.circuitBreakerTimeout - timeSinceLastFailure,
+        timestamp: new Date().toISOString(),
+        poolStatus: pool.getStatus(),
+      };
+    }
+  }
+
   try {
     const client = await pool.connectWithRetry();
     const result = await client.query('SELECT 1 as health_check');
@@ -526,8 +539,8 @@ let queueMetrics = {
 const exhaustionPrevention = {
   maxQueueSize: process.env.NODE_ENV === 'production' ? 50 : 20,
   maxWaitTime: process.env.NODE_ENV === 'production' ? 30000 : 15000,
-  circuitBreakerThreshold: 5, // Number of consecutive failures before circuit opens
-  circuitBreakerTimeout: 60000, // 1 minute before trying again
+  circuitBreakerThreshold: 10, // Number of consecutive failures before circuit opens (raised from 5 — 2 retries per request means 5 failing requests needed)
+  circuitBreakerTimeout: 30000, // 30s before trying again (reduced from 60s for faster recovery)
   circuitBreakerState: 'CLOSED', // CLOSED, OPEN, HALF_OPEN
   consecutiveFailures: 0,
   lastFailureTime: 0
@@ -631,11 +644,16 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
         break;
       }
 
-      // Reset circuit breaker on successful connection
+      // Reset circuit breaker on successful connection.
+      // Also decay failure count if last failure was >30s ago — transient startup
+      // failures shouldn't leave the circuit hair-triggered for the next burst.
+      const timeSinceLastFailure = Date.now() - exhaustionPrevention.lastFailureTime;
       if (exhaustionPrevention.circuitBreakerState === 'HALF_OPEN') {
         exhaustionPrevention.circuitBreakerState = 'CLOSED';
         exhaustionPrevention.consecutiveFailures = 0;
         console.log('✅ Circuit breaker moved to CLOSED state');
+      } else if (timeSinceLastFailure > 30000 && exhaustionPrevention.consecutiveFailures > 0) {
+        exhaustionPrevention.consecutiveFailures = 0;
       }
 
       // Track the connection
@@ -657,13 +675,19 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
     } catch (error) {
       lastError = error;
       
-      // Update circuit breaker state
-      exhaustionPrevention.consecutiveFailures++;
+      // Update circuit breaker state. Cap at threshold+1 to prevent unbounded growth
+      // from health checks cycling through HALF_OPEN repeatedly.
+      exhaustionPrevention.consecutiveFailures = Math.min(
+        exhaustionPrevention.consecutiveFailures + 1,
+        exhaustionPrevention.circuitBreakerThreshold + 1
+      );
       exhaustionPrevention.lastFailureTime = Date.now();
-      
+
       if (exhaustionPrevention.consecutiveFailures >= exhaustionPrevention.circuitBreakerThreshold) {
         exhaustionPrevention.circuitBreakerState = 'OPEN';
-        console.warn(`🚨 Circuit breaker OPENED after ${exhaustionPrevention.consecutiveFailures} consecutive failures`);
+        if (exhaustionPrevention.consecutiveFailures === exhaustionPrevention.circuitBreakerThreshold) {
+          console.warn(`🚨 Circuit breaker OPENED after ${exhaustionPrevention.consecutiveFailures} consecutive failures`);
+        }
       }
       
       if (attempt < maxRetries && pool.isRetryableError(error)) {
