@@ -23,7 +23,9 @@ RUN npm run build
 RUN npm prune --production
 
 # Run as non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    mkdir -p /app/.next/cache/images && \
+    chown -R appuser:appgroup /app
 USER appuser
 
 # Expose port 8080 (Google Cloud Run default)
