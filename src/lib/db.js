@@ -845,10 +845,26 @@ pool.stopProductionHealthMonitoring = () => {
 
 // Auto-start production health monitoring
 if (process.env.NODE_ENV === 'production') {
-  // Start production health monitoring after a short delay
   setTimeout(() => {
     pool.startProductionHealthMonitoring();
   }, 5000);
+
+  // Pre-warm the pool to min connections so the first user request is never cold.
+  // pg-pool creates min connections lazily (on first use), not at Pool() construction.
+  setTimeout(async () => {
+    const minConns = 3;
+    const clients = [];
+    try {
+      for (let i = 0; i < minConns; i++) {
+        clients.push(await pool.connect());
+      }
+      console.log(`🔥 Pool pre-warmed: ${minConns} connections ready`);
+    } catch (err) {
+      console.warn('⚠️ Pool pre-warm failed:', err.message);
+    } finally {
+      clients.forEach(c => { try { c.release(); } catch (_) {} });
+    }
+  }, 2000);
 }
 
 // Export tracking functions for external use
