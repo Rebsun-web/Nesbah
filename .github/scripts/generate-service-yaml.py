@@ -53,6 +53,8 @@ metadata:
   name: nesbah-portal
   labels:
     cloud.googleapis.com/location: europe-west1
+  annotations:
+    run.googleapis.com/launch-stage: BETA
 spec:
   template:
     metadata:
