@@ -10,6 +10,7 @@ env:
   SERVICE: nesbah-portal
   REGION: europe-west1
   IMAGE: gcr.io/nesbahdev/nesbah-portal
+  CLOUDSQL_INSTANCE: nesbahdev:me-central2:production
 
 jobs:
   deploy:
@@ -43,9 +44,8 @@ jobs:
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
 
-      - name: Generate Cloud Run service YAML
+      - name: Generate env-vars file
         env:
-          IMAGE_SHA: ${{ env.IMAGE }}:${{ github.sha }}
           S_PGHOST: ${{ secrets.PGHOST }}
           S_PGPORT: ${{ secrets.PGPORT }}
           S_PGDATABASE: ${{ secrets.PGDATABASE }}
@@ -70,7 +70,14 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run services replace /tmp/cloudrun-service.yaml \
+          gcloud run deploy $SERVICE \
+            --image $IMAGE:${{ github.sha }} \
             --region $REGION \
             --project $PROJECT_ID \
+            --platform managed \
+            --add-cloudsql-instances $CLOUDSQL_INSTANCE \
+            --env-vars-file /tmp/env-vars.yaml \
+            --min-instances 1 \
+            --max-instances 10 \
+            --execution-environment gen2 \
             --quiet

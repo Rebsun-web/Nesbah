@@ -1,18 +1,12 @@
 """
-Generates /tmp/cloudrun-service.yaml for `gcloud run services replace`.
+Generates /tmp/env-vars.yaml for `gcloud run deploy --env-vars-file`.
 
-Reads env vars injected by GitHub Actions and produces a Cloud Run service spec with:
-  - Custom Cloud SQL Auth Proxy sidecar (--dialer-keep-alive=5s)
-  - Shared Unix socket volume between app and proxy
-  - minScale=1 so the instance never freezes and the proxy tunnel stays alive
+Reads env vars injected by GitHub Actions and writes a YAML file that
+gcloud can consume directly. Using a script (rather than inline shell)
+keeps escaping correct for values that contain quotes, backslashes, etc.
 """
 import os
 import sys
-
-image = os.environ.get("IMAGE_SHA", "").strip()
-if not image:
-    print("ERROR: IMAGE_SHA env var is required", file=sys.stderr)
-    sys.exit(1)
 
 env_vars = {
     "NODE_ENV": "production",
@@ -38,61 +32,18 @@ env_vars = {
     "DISABLE_EMAIL_NOTIFICATIONS": os.environ.get("S_DISABLE_EMAIL_NOTIFICATIONS", ""),
 }
 
-# Build the env block (8-space indent matches containers[0].env items in Cloud Run YAML)
-env_lines = []
-for key, value in env_vars.items():
-    value = value.strip()
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-    env_lines.append(f'        - name: {key}')
-    env_lines.append(f'          value: "{escaped}"')
-env_block = "\n".join(env_lines)
-
-service_yaml = f"""apiVersion: serving.knative.dev/v1
-kind: Service
-metadata:
-  name: nesbah-portal
-  labels:
-    cloud.googleapis.com/location: europe-west1
-spec:
-  template:
-    metadata:
-      annotations:
-        autoscaling.knative.dev/minScale: "1"
-        autoscaling.knative.dev/maxScale: "10"
-        run.googleapis.com/execution-environment: gen2
-    spec:
-      containers:
-      - name: nesbah-portal
-        image: {image}
-        ports:
-        - name: http1
-          containerPort: 8080
-        env:
-{env_block}
-        volumeMounts:
-        - name: cloudsql-socket
-          mountPath: /cloudsql
-      - name: cloud-sql-proxy
-        image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2
-        args:
-        - "--unix-socket=/cloudsql"
-        - "--dialer-keep-alive=5s"
-        - "nesbahdev:me-central2:production"
-        volumeMounts:
-        - name: cloudsql-socket
-          mountPath: /cloudsql
-      volumes:
-      - name: cloudsql-socket
-        emptyDir: {{}}
-"""
-
-out = "/tmp/cloudrun-service.yaml"
+# Write YAML using single-quoted strings — safe for backslashes, double quotes,
+# colons, and everything else. The only escape needed in single-quoted YAML is
+# '' to represent a literal single quote.
+out = "/tmp/env-vars.yaml"
 with open(out, "w") as f:
-    f.write(service_yaml)
+    for key, value in env_vars.items():
+        value = str(value).strip() if value else ""
+        escaped = value.replace("'", "''")
+        f.write(f"{key}: '{escaped}'\n")
 
-print(f"=== Service YAML written to {out} ===")
-print(f"  image: {image}")
+print(f"=== Env vars written to {out} ===")
 for key, value in env_vars.items():
-    value = value.strip()
+    value = str(value).strip() if value else ""
     status = f"len={len(value)}" if value else "*** EMPTY ***"
     print(f"  {key}: {status}")
