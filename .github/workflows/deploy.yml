@@ -44,8 +44,10 @@ jobs:
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
 
-      - name: Generate env-vars file
+      - name: Generate Cloud Run service YAML
         env:
+          IMAGE_SHA: ${{ env.IMAGE }}:${{ github.sha }}
+          CLOUDSQL_INSTANCE: ${{ env.CLOUDSQL_INSTANCE }}
           S_PGHOST: ${{ secrets.PGHOST }}
           S_PGPORT: ${{ secrets.PGPORT }}
           S_PGDATABASE: ${{ secrets.PGDATABASE }}
@@ -70,14 +72,7 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy $SERVICE \
-            --image $IMAGE:${{ github.sha }} \
+          gcloud run services replace /tmp/cloudrun-service.yaml \
             --region $REGION \
             --project $PROJECT_ID \
-            --platform managed \
-            --add-cloudsql-instances $CLOUDSQL_INSTANCE \
-            --env-vars-file /tmp/env-vars.yaml \
-            --min-instances 1 \
-            --max-instances 10 \
-            --execution-environment gen2 \
             --quiet

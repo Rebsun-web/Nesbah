@@ -1,12 +1,22 @@
 """
-Generates /tmp/env-vars.yaml for `gcloud run deploy --env-vars-file`.
+Generates /tmp/cloudrun-service.yaml for `gcloud run services replace`.
 
-Reads env vars injected by GitHub Actions and writes a YAML file that
-gcloud can consume directly. Using a script (rather than inline shell)
-keeps escaping correct for values that contain quotes, backslashes, etc.
+Uses a single-container spec with the built-in Cloud SQL Auth Proxy
+(run.googleapis.com/cloudsql-instances annotation) rather than a custom
+sidecar. This completely replaces the service spec on every deploy, so
+no stale volume mounts or container definitions carry over from previous
+deploys. minScale=1 keeps the instance warm so the proxy tunnel never
+goes stale after idle periods.
 """
 import os
 import sys
+
+image = os.environ.get("IMAGE_SHA", "").strip()
+if not image:
+    print("ERROR: IMAGE_SHA env var is required", file=sys.stderr)
+    sys.exit(1)
+
+cloudsql_instance = os.environ.get("CLOUDSQL_INSTANCE", "nesbahdev:me-central2:production").strip()
 
 env_vars = {
     "NODE_ENV": "production",
@@ -32,17 +42,47 @@ env_vars = {
     "DISABLE_EMAIL_NOTIFICATIONS": os.environ.get("S_DISABLE_EMAIL_NOTIFICATIONS", ""),
 }
 
-# Write YAML using single-quoted strings — safe for backslashes, double quotes,
-# colons, and everything else. The only escape needed in single-quoted YAML is
-# '' to represent a literal single quote.
-out = "/tmp/env-vars.yaml"
-with open(out, "w") as f:
-    for key, value in env_vars.items():
-        value = str(value).strip() if value else ""
-        escaped = value.replace("'", "''")
-        f.write(f"{key}: '{escaped}'\n")
+# Build the env block — 8-space indent matches containers[0].env in Cloud Run YAML
+env_lines = []
+for key, value in env_vars.items():
+    value = str(value).strip() if value else ""
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    env_lines.append(f'        - name: {key}')
+    env_lines.append(f'          value: "{escaped}"')
+env_block = "\n".join(env_lines)
 
-print(f"=== Env vars written to {out} ===")
+service_yaml = f"""apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: nesbah-portal
+  labels:
+    cloud.googleapis.com/location: europe-west1
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "10"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/cloudsql-instances: "{cloudsql_instance}"
+    spec:
+      containers:
+      - name: nesbah-portal
+        image: {image}
+        ports:
+        - name: http1
+          containerPort: 8080
+        env:
+{env_block}
+"""
+
+out = "/tmp/cloudrun-service.yaml"
+with open(out, "w") as f:
+    f.write(service_yaml)
+
+print(f"=== Service YAML written to {out} ===")
+print(f"  image: {image}")
+print(f"  cloudsql-instances: {cloudsql_instance}")
 for key, value in env_vars.items():
     value = str(value).strip() if value else ""
     status = f"len={len(value)}" if value else "*** EMPTY ***"
