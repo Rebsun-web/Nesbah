@@ -87,7 +87,6 @@ spec:
           httpGet:
             path: /readiness
             port: 9090
-          initialDelaySeconds: 2
           periodSeconds: 5
           failureThreshold: 3
       volumes:
