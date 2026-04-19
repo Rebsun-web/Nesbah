@@ -8,7 +8,7 @@ const isBuildEnvironment = process.env.NODE_ENV === 'production' && process.env.
 // In production, prioritize individual env vars to avoid URL encoding issues
 // In development, use DATABASE_URL if available
 const useIndividualVars = process.env.NODE_ENV === 'production' &&
-  (process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD);
+  !!(process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD);
 
 // Cloud SQL Auth Proxy connects via Unix socket — SSL is handled by the proxy itself
 // and must NOT be enabled on the pg client side when using a socket path
@@ -865,6 +865,23 @@ if (process.env.NODE_ENV === 'production') {
       clients.forEach(c => { try { c.release(); } catch (_) {} });
     }
   }, 2000);
+
+  // Ping ALL idle connections every 9 minutes to prevent stale sockets.
+  // pg-pool uses LIFO — health checks only touch the most-recently-used connection,
+  // leaving the others idle and potentially stale after hours of low traffic.
+  setInterval(async () => {
+    const count = pool.idleCount;
+    if (count === 0) return;
+    const clients = [];
+    try {
+      for (let i = 0; i < count; i++) clients.push(await pool.connect());
+      await Promise.all(clients.map(c => c.query('SELECT 1')));
+    } catch (err) {
+      console.warn('⚠️ Keepalive ping failed:', err.message);
+    } finally {
+      clients.forEach(c => { try { c.release(); } catch (_) {} });
+    }
+  }, 9 * 60 * 1000);
 }
 
 // Export tracking functions for external use
