@@ -41,17 +41,24 @@ export default function Login() {
     setIsModalOpen(false);
 
     try {
-      // Use unified login endpoint for all user types
-      console.log('🔐 Attempting unified login...');
-      const response = await fetch('/api/auth/unified-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email, 
-          password,
-          mfaToken: requiresMFA ? mfaToken : undefined
-        }),
-      });
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 25000);
+
+      let response;
+      try {
+        response = await fetch('/api/auth/unified-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            password,
+            mfaToken: requiresMFA ? mfaToken : undefined
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(fetchTimeout);
+      }
 
       const data = await response.json();
       console.log('Unified login response:', response.status, data);

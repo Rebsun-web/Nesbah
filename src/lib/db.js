@@ -166,14 +166,6 @@ pool.on('connect', (client) => {
   });
 });
 
-// Enhanced pool event logging
-pool.on('acquire', (client) => {
-  console.log(`🔗 Database connection acquired. Pool status: ${pool.totalCount}/${pool.idleCount}/${pool.waitingCount}`);
-});
-
-pool.on('release', (client) => {
-  console.log(`🔓 Database connection released. Pool status: ${pool.totalCount}/${pool.idleCount}/${pool.waitingCount}`);
-});
 
 // Enhanced monitoring with detailed metrics
 const poolMetrics = {
@@ -768,15 +760,6 @@ pool.isHealthy = () => {
          pool.idleCount !== undefined && 
          !isPoolEnding && 
          !isBuildEnvironment;
-  
-  console.log('🔍 DEBUG: isHealthy check', {
-    totalCount: pool.totalCount,
-    idleCount: pool.idleCount,
-    isPoolEnding,
-    isBuildEnvironment,
-    healthy,
-    timestamp: new Date().toISOString()
-  });
   
   return healthy;
 };

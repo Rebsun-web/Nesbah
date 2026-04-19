@@ -20,7 +20,10 @@ cloudsql_instance = os.environ.get("CLOUDSQL_INSTANCE", "nesbahdev:me-central2:p
 
 env_vars = {
     "NODE_ENV": "production",
-    "PGHOST": os.environ.get("S_PGHOST", ""),
+    # Always use the Unix socket path — direct TCP to Cloud SQL IP doesn't work
+    # from Cloud Run because Cloud Run IPs are dynamic and can't be added to
+    # Cloud SQL authorized networks. The built-in proxy creates this socket.
+    "PGHOST": f"/cloudsql/{cloudsql_instance}",
     "PGPORT": os.environ.get("S_PGPORT", ""),
     "PGDATABASE": os.environ.get("S_PGDATABASE", ""),
     "PGUSER": os.environ.get("S_PGUSER", ""),
