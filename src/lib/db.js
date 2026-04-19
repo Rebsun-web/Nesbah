@@ -59,10 +59,10 @@ const globalForPool = /** @type {any} */ (global);
 if (!globalForPool._pgPool) {
   globalForPool._pgPool = new Pool({
     ...poolConfig,
-    max: process.env.NODE_ENV === 'production' ? 8 : 5,
-    min: process.env.NODE_ENV === 'production' ? 1 : 0,  // keep 1 warm connection in prod so first login isn't cold
-    idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 30000 : 10000,
-    connectionTimeoutMillis: 11000,
+    max: process.env.NODE_ENV === 'production' ? 20 : 10,
+    min: process.env.NODE_ENV === 'production' ? 3 : 2,
+    idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 60000 : 30000,
+    connectionTimeoutMillis: 30000,
     acquireTimeoutMillis: 45000,
     reapIntervalMillis: 1000,
     maxUses: process.env.NODE_ENV === 'production' ? 100 : 50,
@@ -523,8 +523,8 @@ let queueMetrics = {
 const exhaustionPrevention = {
   maxQueueSize: process.env.NODE_ENV === 'production' ? 50 : 20,
   maxWaitTime: process.env.NODE_ENV === 'production' ? 30000 : 15000,
-  circuitBreakerThreshold: 10, // Number of consecutive failures before circuit opens (raised from 5 — 2 retries per request means 5 failing requests needed)
-  circuitBreakerTimeout: 30000, // 30s before trying again (reduced from 60s for faster recovery)
+  circuitBreakerThreshold: 5,
+  circuitBreakerTimeout: 60000,
   circuitBreakerState: 'CLOSED', // CLOSED, OPEN, HALF_OPEN
   consecutiveFailures: 0,
   lastFailureTime: 0
@@ -564,78 +564,18 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Capture the promise before the race. If our timeout fires first,
-      // pool.connect() is still pending in pg-pool holding a slot. The .then()
-      // below releases that slot when the proxy eventually reconnects, preventing
-      // permanent pool exhaustion after idle periods.
-      const connectPromise = pool.connect();
-      let connectTimeoutId;
-      const connectTimeoutPromise = new Promise((_, reject) => {
-        connectTimeoutId = setTimeout(
-          () => reject(new Error('Pool connect timeout')),
-          10000
-        );
-      });
+      const client = await pool.connect();
 
-      let client;
-      try {
-        client = await Promise.race([connectPromise, connectTimeoutPromise]);
-        clearTimeout(connectTimeoutId);
-      } catch (connectError) {
-        clearTimeout(connectTimeoutId);
-        if (connectError.message === 'Pool connect timeout') {
-          connectPromise.then(
-            (lateClient) => {
-              console.warn(`⚠️ Late pool.connect() resolved after timeout — releasing orphaned slot (task: ${taskName})`);
-              try { lateClient.release(); } catch (_) {}
-            },
-            () => {}
-          );
-        }
-        throw connectError;
-      }
-
-      // Validate the connection is alive before handing it to the caller.
-      // A stale socket (Cloud SQL proxy reconnect, idle TCP timeout) will hang
-      // indefinitely on the first real query — this ping catches it within 5s
-      // and forces a retry with a fresh connection instead.
-      try {
-        await Promise.race([
-          client.query('SELECT 1'),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Connection validation timeout')), 1500)
-          ),
-        ]);
-      } catch (pingError) {
-        console.warn(`⚠️ Stale connection detected for ${taskName}, discarding and retrying (${pingError.message})`);
-        try { client.release(pingError); } catch {}
-        lastError = pingError;
-        exhaustionPrevention.consecutiveFailures++;
-        exhaustionPrevention.lastFailureTime = Date.now();
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 2;
-          continue;
-        }
-        break;
-      }
-
-      // Reset circuit breaker on successful connection.
-      // Also decay failure count if last failure was >30s ago — transient startup
-      // failures shouldn't leave the circuit hair-triggered for the next burst.
-      const timeSinceLastFailure = Date.now() - exhaustionPrevention.lastFailureTime;
+      // Reset circuit breaker on successful connection
       if (exhaustionPrevention.circuitBreakerState === 'HALF_OPEN') {
         exhaustionPrevention.circuitBreakerState = 'CLOSED';
         exhaustionPrevention.consecutiveFailures = 0;
         console.log('✅ Circuit breaker moved to CLOSED state');
-      } else if (timeSinceLastFailure > 30000 && exhaustionPrevention.consecutiveFailures > 0) {
+      } else if (Date.now() - exhaustionPrevention.lastFailureTime > 30000) {
         exhaustionPrevention.consecutiveFailures = 0;
       }
 
-      // Track the connection
       const connectionId = trackConnection(client, taskName);
-
-      // Add a custom release method that also untracks
       const originalRelease = client.release;
       let isReleased = false;
 
@@ -650,29 +590,22 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
       return client;
     } catch (error) {
       lastError = error;
-      
-      // Update circuit breaker state. Cap at threshold+1 to prevent unbounded growth
-      // from health checks cycling through HALF_OPEN repeatedly.
-      exhaustionPrevention.consecutiveFailures = Math.min(
-        exhaustionPrevention.consecutiveFailures + 1,
-        exhaustionPrevention.circuitBreakerThreshold + 1
-      );
+
+      exhaustionPrevention.consecutiveFailures++;
       exhaustionPrevention.lastFailureTime = Date.now();
 
       if (exhaustionPrevention.consecutiveFailures >= exhaustionPrevention.circuitBreakerThreshold) {
         exhaustionPrevention.circuitBreakerState = 'OPEN';
-        if (exhaustionPrevention.consecutiveFailures === exhaustionPrevention.circuitBreakerThreshold) {
-          console.warn(`🚨 Circuit breaker OPENED after ${exhaustionPrevention.consecutiveFailures} consecutive failures`);
-        }
+        console.warn(`🚨 Circuit breaker OPENED after ${exhaustionPrevention.consecutiveFailures} consecutive failures`);
       }
-      
+
       if (attempt < maxRetries && pool.isRetryableError(error)) {
         console.warn(`⚠️ Connection attempt ${attempt} failed, retrying in ${delay}ms... (${error.message})`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2; // Exponential backoff
+        delay *= 2;
         continue;
       }
-      
+
       break;
     }
   }
