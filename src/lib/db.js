@@ -60,7 +60,7 @@ if (!globalForPool._pgPool) {
   globalForPool._pgPool = new Pool({
     ...poolConfig,
     max: process.env.NODE_ENV === 'production' ? 8 : 5,
-    min: 0,  // never hold idle connections — they go stale on Cloud SQL proxy reconnect
+    min: process.env.NODE_ENV === 'production' ? 1 : 0,  // keep 1 warm connection in prod so first login isn't cold
     idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 30000 : 10000,
     connectionTimeoutMillis: 11000,
     acquireTimeoutMillis: 45000,
@@ -603,7 +603,7 @@ pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown
         await Promise.race([
           client.query('SELECT 1'),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Connection validation timeout')), 5000)
+            setTimeout(() => reject(new Error('Connection validation timeout')), 1500)
           ),
         ]);
       } catch (pingError) {

@@ -42,7 +42,7 @@ export default function Login() {
 
     try {
       const controller = new AbortController();
-      const fetchTimeout = setTimeout(() => controller.abort(), 25000);
+      const fetchTimeout = setTimeout(() => controller.abort(), 35000);
 
       let response;
       try {
