@@ -331,10 +331,6 @@ pool.healthCheck = async () => {
     
     const responseTime = Date.now() - startTime;
     
-    console.log('🔍 DEBUG: health check successful', {
-      responseTime,
-      result: result.rows[0]
-    });
     
     // Track slow queries
     if (responseTime > 1000) { // More than 1 second
@@ -351,11 +347,6 @@ pool.healthCheck = async () => {
   } catch (error) {
     poolMetrics.failedConnections++;
     
-    console.log('🔍 DEBUG: health check failed', {
-      error: error.message,
-      responseTime: Date.now() - startTime,
-      isPoolEnding
-    });
     
     return { 
       healthy: false, 
@@ -425,6 +416,7 @@ pool.isRetryableError = (error) => {
     'ECONNREFUSED',
     'ETIMEDOUT',
     'ENOTFOUND',
+    'ENOENT',  // Unix socket file not yet created (proxy still starting up)
     '57P01', // terminating connection due to administrator command
     '57P02'  // terminating connection due to crash
   ];
@@ -548,14 +540,6 @@ const exhaustionPrevention = {
 
 // Enhanced connection retry wrapper with exhaustion prevention
 pool.connectWithRetry = async (maxRetries = 2, delay = 1000, taskName = 'unknown') => {
-  console.log('🔍 DEBUG: connectWithRetry called', {
-    taskName,
-    maxRetries,
-    isPoolEnding,
-    poolTotalCount: pool.totalCount,
-    poolIdleCount: pool.idleCount,
-    timestamp: new Date().toISOString()
-  });
   
   // Check if pool is still valid first
   if (pool.totalCount === undefined || pool.idleCount === undefined || isPoolEnding) {

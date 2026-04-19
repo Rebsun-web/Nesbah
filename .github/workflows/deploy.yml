@@ -8,7 +8,7 @@ on:
 env:
   PROJECT_ID: nesbahdev
   SERVICE: nesbah-portal
-  REGION: europe-west1
+  REGION: me-central2
   IMAGE: gcr.io/nesbahdev/nesbah-portal
 
 jobs:
@@ -43,8 +43,9 @@ jobs:
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
 
-      - name: Write env vars file
+      - name: Generate Cloud Run service YAML
         env:
+          IMAGE_SHA: ${{ env.IMAGE }}:${{ github.sha }}
           S_PGHOST: ${{ secrets.PGHOST }}
           S_PGPORT: ${{ secrets.PGPORT }}
           S_PGDATABASE: ${{ secrets.PGDATABASE }}
@@ -65,54 +66,11 @@ jobs:
           S_EMAILJS_BANK_NEW_LEAD_TEMPLATE_ID: ${{ secrets.EMAILJS_BANK_NEW_LEAD_TEMPLATE_ID }}
           S_ADMIN_NOTIFICATION_EMAIL: ${{ secrets.ADMIN_NOTIFICATION_EMAIL }}
           S_DISABLE_EMAIL_NOTIFICATIONS: ${{ secrets.DISABLE_EMAIL_NOTIFICATIONS }}
-        run: |
-          python3 - <<'PYEOF'
-          import os
-
-          mapping = {
-              "NODE_ENV": "production",
-              "PGHOST": os.environ.get("S_PGHOST", ""),
-              "PGPORT": os.environ.get("S_PGPORT", ""),
-              "PGDATABASE": os.environ.get("S_PGDATABASE", ""),
-              "PGUSER": os.environ.get("S_PGUSER", ""),
-              "PGPASSWORD": os.environ.get("S_PGPASSWORD", ""),
-              "JWT_SECRET": os.environ.get("S_JWT_SECRET", ""),
-              "JWT_EXPIRES_IN": os.environ.get("S_JWT_EXPIRES_IN", ""),
-              "JWT_REFRESH_EXPIRES_IN": os.environ.get("S_JWT_REFRESH_EXPIRES_IN", ""),
-              "WATHIQ_API_KEY": os.environ.get("S_WATHIQ_API_KEY", ""),
-              "WATHIQ_API_SECRET": os.environ.get("S_WATHIQ_API_SECRET", ""),
-              "GCS_BUCKET_NAME": os.environ.get("S_GCS_BUCKET_NAME", ""),
-              "GCLOUD_PROJECT_ID": os.environ.get("S_GCLOUD_PROJECT_ID", ""),
-              "EMAILJS_SERVICE_ID": os.environ.get("S_EMAILJS_SERVICE_ID", ""),
-              "EMAILJS_PUBLIC_KEY": os.environ.get("S_EMAILJS_PUBLIC_KEY", ""),
-              "EMAILJS_PRIVATE_KEY": os.environ.get("S_EMAILJS_PRIVATE_KEY", ""),
-              "EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID": os.environ.get("S_EMAILJS_NEWSLETTER_TEMPLATE_ID", ""),
-              "EMAILJS_SUBMISSION_TEMPLATE_ID": os.environ.get("S_EMAILJS_SUBMISSION_TEMPLATE_ID", ""),
-              "EMAILJS_BANK_NEW_LEAD_TEMPLATE_ID": os.environ.get("S_EMAILJS_BANK_NEW_LEAD_TEMPLATE_ID", ""),
-              "EMAILJS_ADMIN_NEW_LEAD_TEMPLATE_ID": os.environ.get("S_EMAILJS_ADMIN_NEW_LEAD_TEMPLATE_ID", ""),
-              "ADMIN_NOTIFICATION_EMAIL": os.environ.get("S_ADMIN_NOTIFICATION_EMAIL", ""),
-              "DISABLE_EMAIL_NOTIFICATIONS": os.environ.get("S_DISABLE_EMAIL_NOTIFICATIONS", ""),
-          }
-
-          with open("/tmp/env-vars.yaml", "w") as f:
-              for key, value in mapping.items():
-                  value = value.strip()
-                  escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-                  f.write(f'{key}: "{escaped}"\n')
-
-          print("=== env-vars.yaml contents (keys + lengths, not values) ===")
-          for key, value in mapping.items():
-              value = value.strip()
-              status = f"len={len(value)}" if value else "*** EMPTY ***"
-              print(f"  {key}: {status}")
-          PYEOF
+        run: python3 .github/scripts/generate-service-yaml.py
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy $SERVICE \
-            --image $IMAGE:${{ github.sha }} \
-            --platform managed \
+          gcloud run services replace /tmp/cloudrun-service.yaml \
             --region $REGION \
-            --add-cloudsql-instances=nesbahdev:me-central2:production \
-            --env-vars-file=/tmp/env-vars.yaml \
+            --project $PROJECT_ID \
             --quiet

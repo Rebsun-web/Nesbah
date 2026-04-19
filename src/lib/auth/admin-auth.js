@@ -264,17 +264,13 @@ export class AdminAuth {
     static async verifyAdmin(req) {
         try {
             let token = null;
-            
-            // Debug: Log all request headers
-            console.log('🔧 AdminAuth: All request headers:', Object.fromEntries(req.headers.entries()));
-            
+
             // First try to get token from Authorization header
             const authHeader = req.headers.get('authorization');
             if (authHeader && authHeader.startsWith('Bearer ')) {
                 token = authHeader.substring(7);
-                console.log('🔧 AdminAuth: Token found in Authorization header');
             }
-            
+
             // If no Authorization header, try to get token from cookies
             if (!token) {
                 const cookieHeader = req.headers.get('cookie');
@@ -286,42 +282,16 @@ export class AdminAuth {
                         }
                         return acc;
                     }, {});
-                    
                     token = cookies['admin_token'];
-                    if (token) {
-                        console.log('🔧 AdminAuth: Token found in cookies');
-                    } else {
-                        console.log('🔧 AdminAuth: No admin_token found in cookies. Available cookies:', Object.keys(cookies));
-                        // Also check for any cookie that might contain 'admin' or 'token'
-                        const adminCookies = Object.keys(cookies).filter(key => 
-                            key.toLowerCase().includes('admin') || key.toLowerCase().includes('token')
-                        );
-                        if (adminCookies.length > 0) {
-                            console.log('🔧 AdminAuth: Potential admin-related cookies found:', adminCookies);
-                        }
-                    }
-                } else {
-                    console.log('🔧 AdminAuth: No cookie header found');
                 }
             }
-            
-            // If no token found, return null
-            if (!token) {
-                console.log('🔧 AdminAuth: No token found in request');
-                return null;
-            }
-            
-            console.log('🔧 AdminAuth: Token found, validating...');
-            
+
+            if (!token) return null;
+
             // Validate admin session
             const validationResult = await this.validateAdminSession(token);
-            
-            if (!validationResult.valid) {
-                console.log('🔧 AdminAuth: Token validation failed:', validationResult.error);
-                return null;
-            }
-            
-            console.log('🔧 AdminAuth: Token validation successful');
+            if (!validationResult.valid) return null;
+
             return validationResult.adminUser;
         } catch (error) {
             console.error('Admin verification error:', error);

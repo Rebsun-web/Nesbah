@@ -8,7 +8,6 @@ export default class JWTUtils {
             if (!secret) {
                 throw new Error('JWT_SECRET environment variable is required');
             }
-            console.log('🔧 JWTUtils: Using secret:', 'secret-set');
             const decoded = jwt.verify(token, secret);
             return { valid: true, payload: decoded };
         } catch (error) {
