@@ -53,8 +53,6 @@ metadata:
   name: nesbah-portal
   labels:
     cloud.googleapis.com/location: europe-west1
-  annotations:
-    run.googleapis.com/launch-stage: BETA
 spec:
   template:
     metadata:
@@ -79,18 +77,10 @@ spec:
         args:
         - "--unix-socket=/cloudsql"
         - "--dialer-keep-alive=5s"
-        - "--health-check"
-        - "--http-port=9090"
         - "nesbahdev:me-central2:production"
         volumeMounts:
         - name: cloudsql-socket
           mountPath: /cloudsql
-        readinessProbe:
-          httpGet:
-            path: /readiness
-            port: 9090
-          periodSeconds: 5
-          failureThreshold: 3
       volumes:
       - name: cloudsql-socket
         emptyDir: {{}}
