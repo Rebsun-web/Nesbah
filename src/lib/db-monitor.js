@@ -220,7 +220,7 @@ class DatabaseMonitor {
             queue: {
                 current: queueMetrics.currentQueueLength,
                 totalProcessed: queueMetrics.totalProcessed,
-                averageWaitTime: `${queueMetrics.averageWaitTime.toFixed(0)}ms`
+                averageWaitTime: `${(queueMetrics.averageWaitTime ?? 0).toFixed(0)}ms`
             },
             metrics: {
                 totalQueries: this.metrics.totalQueries,

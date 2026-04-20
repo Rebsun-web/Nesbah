@@ -4,6 +4,10 @@ import bcrypt from 'bcrypt';
 import JWTUtils from '@/lib/auth/jwt-utils';
 import AdminAuth from '@/lib/auth/admin-auth';
 
+// Tell Next.js to abort this route after 30s and return a proper error
+// instead of letting the request hang until Cloud Run's 300s hard limit.
+export const maxDuration = 30;
+
 const LOGIN_TIMEOUT_MS = 30000;
 
 function maskEmail(email) {

@@ -69,6 +69,8 @@ spec:
         run.googleapis.com/execution-environment: gen2
         run.googleapis.com/cloudsql-instances: "{cloudsql_instance}"
     spec:
+      containerConcurrency: 80
+      timeoutSeconds: 60
       containers:
       - name: nesbah-portal
         image: {image}

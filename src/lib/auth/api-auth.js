@@ -241,25 +241,23 @@ export async function authenticateAPIRequest(req, requiredUserType = null) {
                     'SELECT user_id, email, user_type FROM users WHERE user_id = $1',
                     [userId]
                 )
-                
                 if (result.rows.length > 0) {
                     const user = result.rows[0]
                     if (requiredUserType && user.user_type !== requiredUserType) {
-                        return { 
-                            success: false, 
+                        return {
+                            success: false,
                             error: `Access denied. Required user type: ${requiredUserType}`,
-                            status: 403 
+                            status: 403
                         }
                     }
                     return { success: true, user }
                 }
-                
-                return { 
-                    success: false, 
+                return {
+                    success: false,
                     error: 'Authentication required',
-                    status: 401 
+                    status: 401
                 }
-            })
+            }, 'api-auth-header')
         }
         
         return { 

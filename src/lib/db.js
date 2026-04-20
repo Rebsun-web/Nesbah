@@ -32,8 +32,12 @@ if (!global._pgPool) {
     ...poolConfig,
     max: 20,
     min: 3,
-    idleTimeoutMillis: 60000,
+    idleTimeoutMillis: 600000,  // 10 min — keeps pre-warmed connections alive between requests
     connectionTimeoutMillis: 30000,
+    // Client-side query timeout — kills any hung query after 10s regardless of socket state.
+    // statement_timeout is server-side and never fires if the socket is stale/dead.
+    // query_timeout is client-side: works even when bytes never reach Cloud SQL.
+    query_timeout: 10000,
   });
   console.log('[DB] pool created (max:20 min:3 connTimeout:30s idleTimeout:60s)');
 }
@@ -142,7 +146,7 @@ pool.getStatus = () => ({
 
 pool.getMetrics = pool.getStatus;
 
-pool.getQueueMetrics = () => ({ currentQueueLength: 0, totalQueued: 0, totalProcessed: 0 });
+pool.getQueueMetrics = () => ({ currentQueueLength: 0, totalQueued: 0, totalProcessed: 0, averageWaitTime: 0, maxWaitTime: 0 });
 
 pool.healthCheck = async () => {
   const t0 = Date.now();
@@ -161,7 +165,13 @@ pool.healthCheck = async () => {
 
 // ── Production-only: pre-warm + keepalive ─────────────────────────────────────
 
-if (process.env.NODE_ENV === 'production') {
+// db.js is imported by both instrumentation.js (at startup) and layout.jsx (on first request).
+// The pool singleton prevents duplicate Pool objects, but without this flag the pre-warm
+// and keepalive setInterval would register twice — creating 6 connections instead of 3
+// and running two keepalive loops.
+if (process.env.NODE_ENV === 'production' && !global._pgPoolScheduled) {
+  global._pgPoolScheduled = true;
+
   // pg-pool creates min connections lazily on first use, not at Pool() construction.
   // Pre-warm so the first request is never cold.
   setTimeout(async () => {
@@ -201,40 +211,70 @@ if (process.env.NODE_ENV === 'production') {
   }, 2000);
 
   // pg-pool uses LIFO — only the most-recently-used connection gets touched by
-  // normal traffic, leaving the others stale. Ping all idle connections every
-  // 9 minutes so Cloud SQL doesn't drop them.
+  // normal traffic, leaving the others stale. The proxy may drop idle sockets
+  // in under 9 minutes, so ping every 4 minutes to stay ahead of that.
+  // Critical: release stale connections WITH an error so pg-pool destroys them
+  // rather than returning them to the idle pool for the next request to hang on.
+  let keepaliveRunning = false;
   setInterval(async () => {
+    // Guard: if the previous run is still in progress, skip and warn.
+    // setInterval fires every 4 min regardless of whether the last run finished.
+    // Without this, a slow run and a new run would overlap and double-acquire connections.
+    if (keepaliveRunning) {
+      console.warn('[DB] keepalive: previous run still in progress — skipping this cycle (event loop may be slow)');
+      return;
+    }
+    keepaliveRunning = true;
+    const t0 = Date.now();
+
     const count = pool.idleCount;
-    if (count === 0) return;
+    if (count === 0) {
+      console.log('[DB] keepalive: no idle connections to ping');
+      keepaliveRunning = false;
+      return;
+    }
 
     console.log(`[DB] keepalive: pinging ${count} idle connection(s)`);
     const clients = [];
-    const t0 = Date.now();
+
     try {
       for (let i = 0; i < count; i++) clients.push(await pool.connect());
-
-      const results = await Promise.allSettled(clients.map((c, i) =>
-        Promise.race([
-          c.query('SELECT 1').then(() => ({ i, ok: true })),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('keepalive timeout')), 3000)),
-        ])
-      ));
-
-      const failed = results.filter(r => r.status === 'rejected');
-      if (failed.length > 0) {
-        // A rejected ping usually means the proxy dropped a stale socket.
-        // The pool will create a fresh connection on the next acquire.
-        console.warn(`[DB] keepalive: ${failed.length}/${count} ping(s) failed (${Date.now() - t0}ms):`,
-          failed.map(r => r.reason?.message));
-      } else {
-        console.log(`[DB] keepalive: all ${count} ping(s) OK in ${Date.now() - t0}ms`);
-      }
     } catch (err) {
-      console.error('[DB] keepalive error:', { message: err.message, code: err.code });
-    } finally {
+      console.error('[DB] keepalive: failed to acquire connections:', err.message);
       clients.forEach(c => { try { c.release(); } catch (_) {} });
+      keepaliveRunning = false;
+      return;
     }
-  }, 9 * 60 * 1000);
+
+    let ok = 0;
+    let destroyed = 0;
+    await Promise.all(clients.map(async (c) => {
+      try {
+        await Promise.race([
+          c.query('SELECT 1'),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('keepalive timeout')), 3000)),
+        ]);
+        c.release();
+        ok++;
+      } catch (err) {
+        // release(err) tells pg-pool to destroy this connection instead of
+        // returning it to the idle pool — prevents the next request getting a dead socket
+        console.warn(`[DB] keepalive: stale connection destroyed (${err.message})`);
+        c.release(err);
+        destroyed++;
+      }
+    }));
+
+    const elapsed = Date.now() - t0;
+    if (elapsed > 5000) {
+      console.warn(`[DB] keepalive: took ${elapsed}ms — connections or event loop are slow`);
+    } else {
+      console.log(`[DB] keepalive done in ${elapsed}ms — ok:${ok} destroyed:${destroyed} pool:`, {
+        total: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount,
+      });
+    }
+    keepaliveRunning = false;
+  }, 4 * 60 * 1000);
 }
 
 export default pool;
