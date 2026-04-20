@@ -24,6 +24,8 @@ export async function POST(req) {
     const start = Date.now();
     const elapsed = () => `+${Date.now() - start}ms`;
 
+    console.log(`[LOGIN:${reqId}] ENTRY pool=${JSON.stringify(poolSnap())}`);
+
     let email;
     try {
         const body = await req.json();
@@ -69,6 +71,10 @@ async function performLogin(reqId, elapsed, email, password, mfaToken) {
     const client = await pool.connectWithRetry(2, 1000, 'unified-login');
     log(`POOL_CONNECT_OK pool=${JSON.stringify(poolSnap())}`);
 
+    // Tracks whether a retryable DB error occurred so we can destroy the
+    // connection instead of returning it to the idle pool as "healthy".
+    const connState = { releaseErr: null };
+
     try {
         log('USER_LOOKUP');
         const userTypeQuery = await client.query(
@@ -109,11 +115,11 @@ async function performLogin(reqId, elapsed, email, password, mfaToken) {
 
             case 'bank_employee':
                 log('ROUTE->bank_employee');
-                return await handleBankEmployeeLogin(reqId, elapsed, client, userData, password);
+                return await handleBankEmployeeLogin(reqId, elapsed, client, userData, password, connState);
 
             case 'regular_user':
                 log('ROUTE->regular_user');
-                return await handleRegularUserLogin(reqId, elapsed, client, userData, password, account_status);
+                return await handleRegularUserLogin(reqId, elapsed, client, userData, password, account_status, connState);
 
             default:
                 log(`ROUTE->unknown category=${auth_category}`);
@@ -123,9 +129,12 @@ async function performLogin(reqId, elapsed, email, password, mfaToken) {
                 );
         }
 
+    } catch (err) {
+        if (pool.isRetryableError(err)) connState.releaseErr = err;
+        throw err;
     } finally {
-        client.release();
-        log(`CLIENT_RELEASED pool=${JSON.stringify(poolSnap())}`);
+        client.release(connState.releaseErr || undefined);
+        log(`CLIENT_RELEASED${connState.releaseErr ? ' (destroyed—stale)' : ''} pool=${JSON.stringify(poolSnap())}`);
     }
 }
 
@@ -197,7 +206,7 @@ async function handleAdminLogin(reqId, elapsed, userData, password, mfaToken) {
     }
 }
 
-async function handleBankEmployeeLogin(reqId, elapsed, client, userData, password) {
+async function handleBankEmployeeLogin(reqId, elapsed, client, userData, password, connState = {}) {
     const log = (msg) => console.log(`[LOGIN:${reqId}] ${elapsed()} BANK_EMP ${msg}`);
     log(`START email=${maskEmail(userData.email)}`);
     try {
@@ -278,6 +287,7 @@ async function handleBankEmployeeLogin(reqId, elapsed, client, userData, passwor
 
     } catch (error) {
         log(`ERROR ${error.message} code=${error.code}`);
+        if (pool.isRetryableError(error)) connState.releaseErr = error;
         return NextResponse.json(
             { success: false, error: 'Bank employee authentication failed' },
             { status: 500 }
@@ -285,7 +295,7 @@ async function handleBankEmployeeLogin(reqId, elapsed, client, userData, passwor
     }
 }
 
-async function handleRegularUserLogin(reqId, elapsed, client, userData, password, account_status) {
+async function handleRegularUserLogin(reqId, elapsed, client, userData, password, account_status, connState = {}) {
     const log = (msg) => console.log(`[LOGIN:${reqId}] ${elapsed()} REGULAR ${msg}`);
     log(`START type=${userData.user_type} status=${account_status} email=${maskEmail(userData.email)}`);
     try {
@@ -341,6 +351,7 @@ async function handleRegularUserLogin(reqId, elapsed, client, userData, password
 
     } catch (error) {
         log(`ERROR ${error.message} code=${error.code}`);
+        if (pool.isRetryableError(error)) connState.releaseErr = error;
         return NextResponse.json(
             { success: false, error: 'User authentication failed' },
             { status: 500 }

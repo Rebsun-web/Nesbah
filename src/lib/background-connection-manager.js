@@ -99,19 +99,18 @@ class BackgroundConnectionManager {
 
         try {
             console.warn(`⚠️ Force releasing connection ${connectionId} for ${connection.taskName}`)
-            
-            // Clear timeout
+
             if (connection.timeout) {
                 clearTimeout(connection.timeout)
             }
 
-            // Force release the client
-            connection.client.release()
-            
-            // Remove from tracking
+            // Pass an error so pg-pool destroys the connection rather than
+            // returning a potentially stale socket to the idle pool.
+            connection.client.release(new Error('force released — timeout'))
+
             this.activeConnections.delete(connectionId)
-            
-            console.log(`🔓 Connection ${connectionId} force released`)
+
+            console.log(`🔓 Connection ${connectionId} force released (destroyed)`)
         } catch (error) {
             console.error(`❌ Error force releasing connection ${connectionId}:`, error.message)
         }

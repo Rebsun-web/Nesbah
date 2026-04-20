@@ -132,8 +132,9 @@ pool.withConnection = async (callback, taskName = 'unknown') => {
 pool.withConnectionRetry = pool.withConnection;
 
 pool.isRetryableError = (err) => {
-  const codes = ['53300', 'ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOENT', '57P01', '57P02'];
-  return codes.includes(err.code) || /timeout|terminating connection/.test(err.message);
+  // QUERY_TIMEOUT_ERROR = pg client-side query timeout (stale socket, bytes never reached Cloud SQL)
+  const codes = ['53300', 'ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOENT', '57P01', '57P02', 'QUERY_TIMEOUT_ERROR'];
+  return codes.includes(err.code) || /timeout|terminating connection/i.test(err.message);
 };
 
 pool.getStatus = () => ({
