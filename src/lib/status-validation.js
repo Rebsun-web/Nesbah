@@ -135,40 +135,48 @@ export async function getValidatedApplicationStatus(applicationId) {
 }
 
 /**
- * Batch validation for all applications in the system
- * Useful for periodic maintenance
- * @returns {Promise<Object>} - Summary of validation results
+ * Batch validation for all applications in the system — single bulk UPDATE.
+ * Replaces the previous N+1 pattern (one connection per application) which
+ * hammered the pool at startup and caused connection exhaustion.
  */
 export async function validateAllApplicationStatuses() {
     const client = await pool.connectWithRetry(2, 1000, 'status-validation');
-    
     try {
-        // Get all applications
-        const allAppsQuery = `
-            SELECT application_id, status
-            FROM pos_application
-        `;
-        const allAppsResult = await client.query(allAppsQuery);
-        
-        const applicationIds = allAppsResult.rows.map(row => row.application_id);
-        const results = await validateMultipleApplicationStatuses(applicationIds);
-        
-        const summary = {
-            total: results.length,
-            corrected: results.filter(r => r.wasCorrected).length,
-            errors: results.filter(r => r.error).length,
-            correct: results.filter(r => !r.wasCorrected && !r.error).length,
-            details: results
-        };
-        
+        const result = await client.query(`
+            WITH correct AS (
+                SELECT
+                    application_id,
+                    status AS old_status,
+                    CASE
+                        WHEN auction_end_time < NOW() AND offers_count > 0 THEN 'completed'
+                        WHEN auction_end_time < NOW() AND offers_count = 0 THEN 'ignored'
+                        ELSE 'live_auction'
+                    END AS new_status
+                FROM pos_application
+            )
+            UPDATE pos_application pa
+            SET
+                status                    = c.new_status,
+                current_application_status = c.new_status,
+                updated_at                = NOW()
+            FROM correct c
+            WHERE pa.application_id = c.application_id
+              AND pa.status != c.new_status
+            RETURNING pa.application_id, c.old_status, c.new_status
+        `);
+
+        const corrected = result.rowCount;
+        const totalResult = await client.query('SELECT COUNT(*) AS total FROM pos_application');
+        const total = parseInt(totalResult.rows[0].total, 10);
+        const correct = total - corrected;
+
         console.log(`📊 Application Status Validation Summary:`);
-        console.log(`   Total applications: ${summary.total}`);
-        console.log(`   Statuses corrected: ${summary.corrected}`);
-        console.log(`   Statuses already correct: ${summary.correct}`);
-        console.log(`   Errors encountered: ${summary.errors}`);
-        
-        return summary;
-        
+        console.log(`   Total applications: ${total}`);
+        console.log(`   Statuses corrected: ${corrected}`);
+        console.log(`   Statuses already correct: ${correct}`);
+        console.log(`   Errors encountered: 0`);
+
+        return { total, corrected, correct, errors: 0, details: result.rows };
     } finally {
         client.release();
     }

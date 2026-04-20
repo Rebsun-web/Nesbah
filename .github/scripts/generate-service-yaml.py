@@ -79,6 +79,10 @@ spec:
           containerPort: 8080
         env:
 {env_block}
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
 """
 
 out = "/tmp/cloudrun-service.yaml"

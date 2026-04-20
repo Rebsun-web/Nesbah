@@ -97,75 +97,57 @@ class StatusSynchronizer {
     }
     
     /**
-     * Synchronize all applications that need status updates
+     * Synchronize all applications that need status updates — single bulk UPDATE.
+     * Replaces the previous N+1 pattern (one query per application) with a single
+     * CTE-based UPDATE to avoid connection exhaustion at startup.
      * @param {Object} client - Database client
      * @returns {Promise<Object>} - Synchronization summary
      */
     static async synchronizeAllApplicationStatuses(client) {
         try {
             console.log('🔄 Starting status synchronization for all applications...');
-            
-            // Validate client parameter
-            if (!client) {
-                throw new Error('Database client is required for status synchronization');
+
+            if (!client || typeof client.query !== 'function') {
+                throw new Error('Invalid database client');
             }
-            
-            if (!client.query || typeof client.query !== 'function') {
-                throw new Error('Invalid database client: query method not available');
-            }
-            
-            // Get all applications that might need status updates
-            const allAppsQuery = `
-                SELECT 
-                    application_id,
-                    status,
-                    current_application_status,
-                    auction_end_time,
-                    offers_count,
-                    submitted_at
-                FROM pos_application 
-                WHERE status IN ('live_auction', 'completed', 'ignored')
-                ORDER BY application_id
-            `;
-            
-            const allAppsResult = await client.query(allAppsQuery);
-            const applications = allAppsResult.rows;
-            
-            console.log(`📊 Found ${applications.length} applications to check`);
-            
-            let synchronized = 0;
-            let errors = 0;
-            const results = [];
-            
-            for (const app of applications) {
-                const result = await this.synchronizeApplicationStatus(client, app.application_id);
-                results.push(result);
-                
-                if (result.success) {
-                    if (result.synchronized) {
-                        synchronized++;
-                    }
-                } else {
-                    errors++;
-                }
-            }
-            
-            console.log(`✅ Status synchronization completed: ${synchronized} synchronized, ${errors} errors`);
-            
+
+            const result = await client.query(`
+                WITH correct AS (
+                    SELECT
+                        application_id,
+                        COALESCE(current_application_status, status) AS old_status,
+                        CASE
+                            WHEN auction_end_time < NOW() AND offers_count > 0 THEN 'completed'
+                            WHEN auction_end_time < NOW() AND offers_count = 0 THEN 'ignored'
+                            ELSE 'live_auction'
+                        END AS new_status
+                    FROM pos_application
+                    WHERE status IN ('live_auction', 'completed', 'ignored')
+                )
+                UPDATE pos_application pa
+                SET
+                    status                     = c.new_status,
+                    current_application_status = c.new_status,
+                    updated_at                 = NOW()
+                FROM correct c
+                WHERE pa.application_id = c.application_id
+                  AND COALESCE(pa.current_application_status, pa.status) != c.new_status
+                RETURNING pa.application_id, c.old_status, c.new_status
+            `);
+
+            const synchronized = result.rowCount;
+            console.log(`✅ Status synchronization completed: ${synchronized} synchronized, 0 errors`);
+
             return {
                 success: true,
-                total_checked: applications.length,
+                total_checked: synchronized,
                 synchronized,
-                errors,
-                results
+                errors: 0,
+                results: result.rows,
             };
-            
         } catch (error) {
             console.error('❌ Error in status synchronization:', error);
-            return {
-                success: false,
-                error: error.message
-            };
+            return { success: false, error: error.message };
         }
     }
     
