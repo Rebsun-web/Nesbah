@@ -6,7 +6,8 @@ import AdminAuth from '@/lib/auth/admin-auth';
 
 // Tell Next.js to abort this route after 30s and return a proper error
 // instead of letting the request hang until Cloud Run's 300s hard limit.
-export const maxDuration = 30;
+// export const maxDuration = 30;
+export const runtime = 'nodejs';
 
 const LOGIN_TIMEOUT_MS = 30000;
 

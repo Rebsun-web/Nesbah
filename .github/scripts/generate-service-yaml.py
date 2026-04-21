@@ -69,9 +69,10 @@ spec:
         run.googleapis.com/execution-environment: gen2
         run.googleapis.com/cloudsql-instances: "{cloudsql_instance}"
         run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/startup-cpu-boost: "true"
     spec:
       containerConcurrency: 80
-      timeoutSeconds: 60
+      timeoutSeconds: 300
       containers:
       - name: nesbah-portal
         image: {image}
