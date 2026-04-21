@@ -40,25 +40,28 @@ export default function Login() {
     setIsLoading(true);
     setIsModalOpen(false);
 
+    let timeoutId;
     try {
-      const controller = new AbortController();
-      const fetchTimeout = setTimeout(() => controller.abort(), 35000);
+      // No AbortController — server returns 503 after 28s so no client-side signal needed.
+      // A signal that gets prematurely aborted (e.g. by browser navigation or a stale
+      // timeout from a previous call) would produce "AbortError: signal is aborted without
+      // reason" and make it look like the request never reached the server.
+      const fetchPromise = fetch('/api/auth/unified-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          mfaToken: requiresMFA ? mfaToken : undefined
+        }),
+      });
 
-      let response;
-      try {
-        response = await fetch('/api/auth/unified-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            password,
-            mfaToken: requiresMFA ? mfaToken : undefined
-          }),
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(fetchTimeout);
-      }
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Login timed out — please try again')), 35000);
+      });
+
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      clearTimeout(timeoutId);
 
       const data = await response.json();
       console.log('Unified login response:', response.status, data);
@@ -121,8 +124,12 @@ export default function Login() {
         setIsModalOpen(true);
       }
     } catch (error) {
-      console.error('Error during login:', error);
-      setModalMessage(t('auth.loginError'));
+      clearTimeout(timeoutId);
+      console.error('Error during login:', error.message);
+      const msg = error.message.startsWith('Login timed out')
+        ? error.message
+        : t('auth.loginError');
+      setModalMessage(msg);
       setIsModalOpen(true);
     } finally {
       setIsLoading(false);
