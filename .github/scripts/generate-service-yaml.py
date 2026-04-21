@@ -16,7 +16,7 @@ if not image:
     print("ERROR: IMAGE_SHA env var is required", file=sys.stderr)
     sys.exit(1)
 
-cloudsql_instance = os.environ.get("CLOUDSQL_INSTANCE", "nesbahdev:me-central2:production").strip()
+cloudsql_instance = os.environ.get("CLOUDSQL_INSTANCE", "nesbahdev:europe-west1:production-eu").strip()
 
 env_vars = {
     "NODE_ENV": "production",

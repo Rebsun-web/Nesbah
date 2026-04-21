@@ -10,7 +10,7 @@ env:
   SERVICE: nesbah-portal
   REGION: me-central2  
   IMAGE: gcr.io/nesbahdev/nesbah-portal
-  CLOUDSQL_INSTANCE: nesbahdev:me-central2:production
+  CLOUDSQL_INSTANCE: nesbahdev:europe-west1:production-eu
 
 jobs:
   deploy:
