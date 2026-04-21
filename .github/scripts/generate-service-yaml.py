@@ -59,7 +59,7 @@ kind: Service
 metadata:
   name: nesbah-portal
   labels:
-    cloud.googleapis.com/location: europe-west1
+    cloud.googleapis.com/location: me-central2
 spec:
   template:
     metadata:
@@ -68,6 +68,7 @@ spec:
         autoscaling.knative.dev/maxScale: "10"
         run.googleapis.com/execution-environment: gen2
         run.googleapis.com/cloudsql-instances: "{cloudsql_instance}"
+        run.googleapis.com/cpu-throttling: "false"
     spec:
       containerConcurrency: 80
       timeoutSeconds: 60
