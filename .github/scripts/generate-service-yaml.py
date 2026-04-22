@@ -57,7 +57,7 @@ env_block = "\n".join(env_lines)
 service_yaml = f"""apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: nesbah-portal
+  name: nesbah-portal-v2
   labels:
     cloud.googleapis.com/location: europe-west1
 spec:
