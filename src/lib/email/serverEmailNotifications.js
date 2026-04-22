@@ -6,22 +6,30 @@ const isEmailDisabled = process.env.DISABLE_EMAIL_NOTIFICATIONS === 'true';
  * Raw call to the EmailJS REST API.
  * Returns the response text on success, throws on HTTP error.
  */
-async function emailjsSend(templateId, templateParams) {
-    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            service_id:      process.env.EMAILJS_SERVICE_ID,
-            template_id:     templateId,
-            user_id:         process.env.EMAILJS_PUBLIC_KEY,
-            accessToken:     process.env.EMAILJS_PRIVATE_KEY,
-            template_params: templateParams,
-        }),
-    });
+async function emailjsSend(templateId, templateParams, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    const text = await res.text();
-    if (!res.ok) throw { status: res.status, text };
-    return text;
+    try {
+        const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                service_id:      process.env.EMAILJS_SERVICE_ID,
+                template_id:     templateId,
+                user_id:         process.env.EMAILJS_PUBLIC_KEY,
+                accessToken:     process.env.EMAILJS_PRIVATE_KEY,
+                template_params: templateParams,
+            }),
+            signal: controller.signal,
+        });
+
+        const text = await res.text();
+        if (!res.ok) throw { status: res.status, text };
+        return text;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 /**
