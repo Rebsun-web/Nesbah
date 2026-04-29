@@ -3,7 +3,7 @@ import Navbar from '@/components/public/landing/Navbar'
 import Footer from '@/components/public/landing/Footer'
 
 export const metadata = {
-  title: 'الشروط والأحكام | نسبة',
+  title: 'الشروط والأحكام',
   description: 'الشروط والأحكام الخاصة باستخدام منصة نسبة لتجميع وتسهيل خدمات التمويل للشركات في السعودية.',
 }
 

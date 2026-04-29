@@ -2,7 +2,7 @@ import { PublicLanguageProvider } from '@/contexts/PublicLanguageContext'
 import FinancingPageTemplate from '@/components/public/landing/FinancingPageTemplate'
 
 export const metadata = {
-  title: 'التمويل العقاري التجاري للشركات في السعودية | نسبة',
+  title: 'التمويل العقاري التجاري للشركات في السعودية',
   description: 'قارن عروض التمويل العقاري التجاري لشراء أو تطوير العقارات لمنشأتك. عروض من عدة جهات تمويل مرخصة — مجاناً وبدون التزام.',
 }
 

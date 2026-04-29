@@ -1,7 +1,7 @@
 import OnboardingClient from './OnboardingClient'
 
 export const metadata = {
-  title: 'قدّم طلب تمويل لشركتك — مجاناً | نسبة',
+  title: 'قدّم طلب تمويل لشركتك — مجاناً',
   description: 'قدّم طلب تمويل واحد واحصل على عروض من عدة بنوك وشركات تمويل مرخصة في السعودية. الخدمة مجانية وبدون التزام.',
 }
 

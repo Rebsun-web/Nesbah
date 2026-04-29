@@ -2,7 +2,7 @@ import { PublicLanguageProvider } from '@/contexts/PublicLanguageContext'
 import FinancingPageTemplate from '@/components/public/landing/FinancingPageTemplate'
 
 export const metadata = {
-  title: 'تمويل المشاريع في السعودية — عروض من عدة جهات | نسبة',
+  title: 'تمويل المشاريع في السعودية — عروض من عدة جهات',
   description: 'تمويل مخصص للمشاريع الكبيرة والعقود. قارن عروض تمويل المشاريع من بنوك وشركات تمويل مرخصة عبر نسبة — مجاناً وبدون التزام.',
 }
 

@@ -3,7 +3,7 @@ import Navbar from '@/components/public/landing/Navbar'
 import Footer from '@/components/public/landing/Footer'
 
 export const metadata = {
-  title: 'سياسة الخصوصية | نسبة',
+  title: 'سياسة الخصوصية',
   description: 'سياسة الخصوصية وحماية البيانات في منصة نسبة. بياناتك لا تُشارك إلا بموافقتك مع جهات التمويل المرخصة.',
 }
 
