@@ -94,6 +94,47 @@ export async function sendBankNewLeadNotifications(bankEmails) {
 }
 
 /**
+ * Send new-lead notification to admin with full application context.
+ * Uses EMAILJS_ADMIN_NEW_LEAD_TEMPLATE_ID if set, falls back to EMAILJS_SUBMISSION_TEMPLATE_ID.
+ */
+export async function sendAdminNewLeadEmail(adminEmail, {
+    reference_number,
+    business_name,
+    financing_type,
+    cr_national_number,
+    contact_person,
+    contact_person_number,
+    city_of_operation,
+}) {
+    if (isEmailDisabled) return { success: true, disabled: true };
+    if (!adminEmail) return { success: false, error: 'No admin email provided' };
+
+    const templateId = process.env.EMAILJS_ADMIN_NEW_LEAD_TEMPLATE_ID || process.env.EMAILJS_SUBMISSION_TEMPLATE_ID;
+    if (!templateId) {
+        console.warn('⚠️ No admin notification template configured — skipping admin email');
+        return { success: false, error: 'No admin template configured' };
+    }
+
+    try {
+        await emailjsSend(templateId, {
+            email:                adminEmail,
+            reference_number,
+            business_name:        business_name || '',
+            financing_type:       financing_type || '',
+            cr_national_number:   cr_national_number || '',
+            contact_person:       contact_person || '',
+            contact_person_number: contact_person_number || '',
+            city_of_operation:    city_of_operation || '',
+        });
+        console.log(`✅ Admin new lead notification sent to ${adminEmail}`);
+        return { success: true };
+    } catch (error) {
+        console.error(`❌ Failed to send admin new lead notification to ${adminEmail}:`, JSON.stringify(error));
+        return { success: false, error: JSON.stringify(error) };
+    }
+}
+
+/**
  * Send application submission confirmation email (legacy — kept for existing callers)
  */
 export async function sendApplicationSubmissionEmail(businessEmail, applicationData) {

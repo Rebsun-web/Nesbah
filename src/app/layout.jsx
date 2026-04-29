@@ -1,4 +1,5 @@
 import { Inter, IBM_Plex_Sans_Arabic } from 'next/font/google'
+import Script from 'next/script'
 import '../styles/tailwind.css'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import HydrationHandler from '@/components/HydrationHandler'
@@ -11,17 +12,17 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({ subsets: ['arabic', 'latin'], weigh
 
 export const metadata = {
   title: {
-    template: '%s | Nesbah',
-    default: 'Nesbah — POS & Business Financing Marketplace in Saudi Arabia',
+    template: '%s | نسبة',
+    default: 'نسبة | تمويل الشركات في السعودية',
   },
   description:
-    'Compare POS financing, business loans, and working capital offers from top Saudi banks. Free to use. Submit one request, receive multiple offers.',
+    'قدّم طلب تمويل واحد واحصل على عروض من بنوك وشركات تمويل مرخصة في السعودية. نسبة منصة مجانية تساعد الشركات في مقارنة عروض التمويل واختيار الأنسب.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://nesbah.com.sa'),
   openGraph: {
     type: 'website',
     locale: 'ar_SA',
     alternateLocale: 'en_US',
-    siteName: 'Nesbah',
+    siteName: 'نسبة',
   },
   twitter: {
     card: 'summary_large_image',
@@ -79,6 +80,13 @@ export default function RootLayout({ children }) {
         </LanguageProvider>
         
         <HydrationHandler />
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-ZQK27MRML9" strategy="afterInteractive" />
+        <Script id="ga4-init" strategy="afterInteractive">{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-ZQK27MRML9');
+        `}</Script>
       </body>
     </html>
   )

@@ -1,6 +1,11 @@
 import { PublicLanguageProvider } from '@/contexts/PublicLanguageContext'
 import FinancingPageTemplate from '@/components/public/landing/FinancingPageTemplate'
 
+export const metadata = {
+  title: 'تمويل الشركات في السعودية — قارن عروض من عدة جهات مجاناً | نسبة',
+  description: 'احصل على عروض تمويل لشركتك من بنوك وشركات تمويل مرخصة بطلب واحد. نسبة تساعدك في مقارنة الخيارات واختيار الأنسب — مجاناً وبدون التزام.',
+}
+
 const data = {
   slug: 'business-financing',
   heroTitle: { ar: 'تمويل الشركات', en: 'Business Financing' },

@@ -1,6 +1,11 @@
 import { PublicLanguageProvider } from '@/contexts/PublicLanguageContext'
 import FinancingPageTemplate from '@/components/public/landing/FinancingPageTemplate'
 
+export const metadata = {
+  title: 'تمويل التوسع والنمو للشركات في السعودية | نسبة',
+  description: 'تخطط لفتح فرع جديد أو التوسع؟ قارن عروض تمويل التوسع من بنوك وشركات تمويل مرخصة عبر نسبة — مجاناً وبدون التزام.',
+}
+
 const data = {
   slug: 'expansion-financing',
   heroTitle: { ar: 'تمويل التوسع والنمو', en: 'Expansion Financing' },

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import wathiqAPIService from '@/lib/wathiq-api-service';
-import { sendSubmissionConfirmationEmail, sendBankNewLeadNotifications } from '@/lib/email/serverEmailNotifications';
+import { sendSubmissionConfirmationEmail, sendAdminNewLeadEmail, sendBankNewLeadNotifications } from '@/lib/email/serverEmailNotifications';
 import { auctionConfig } from '@/lib/config/auction-config';
 
 const VALID_FINANCING_TYPES = [
@@ -311,9 +311,15 @@ async function performSubmit(reqId, elapsed, log, req) {
 
         const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
         if (adminEmail) {
-            sendSubmissionConfirmationEmail(adminEmail, emailPayload, 'admins').catch((e) =>
-                log(`EMAIL_ADMIN_FAIL ${e.message}`)
-            );
+            sendAdminNewLeadEmail(adminEmail, {
+                reference_number,
+                business_name:         emailPayload.business_name,
+                financing_type,
+                cr_national_number,
+                contact_person,
+                contact_person_number,
+                city_of_operation,
+            }).catch((e) => log(`EMAIL_ADMIN_FAIL ${e.message}`));
         }
 
         pool.query(

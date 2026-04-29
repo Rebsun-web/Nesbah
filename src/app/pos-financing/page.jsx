@@ -1,6 +1,11 @@
 import { PublicLanguageProvider } from '@/contexts/PublicLanguageContext'
 import FinancingPageTemplate from '@/components/public/landing/FinancingPageTemplate'
 
+export const metadata = {
+  title: 'تمويل نقاط البيع للشركات في السعودية | نسبة',
+  description: 'احصل على سيولة سريعة بناءً على مبيعات نقاط البيع. قارن عروض تمويل POS من عدة جهات تمويل مرخصة عبر نسبة — مجاناً.',
+}
+
 const data = {
   slug: 'pos-financing',
   heroTitle: { ar: 'تمويل نقاط البيع', en: 'POS Financing' },

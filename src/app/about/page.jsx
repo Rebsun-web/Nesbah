@@ -3,6 +3,11 @@ import Navbar from '@/components/public/landing/Navbar'
 import Footer from '@/components/public/landing/Footer'
 import { Shield, Users, Target, Eye } from 'lucide-react'
 
+export const metadata = {
+  title: 'عن نسبة — منصة تجميع وتسهيل التمويل للشركات في السعودية',
+  description: 'نسبة منصة سعودية تربط الشركات بالبنوك وشركات التمويل المرخصة لمقارنة العروض واختيار الأنسب. نسبة ليست جهة تمويل.',
+}
+
 function AboutContent() {
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">

@@ -1,6 +1,11 @@
 import { PublicLanguageProvider } from '@/contexts/PublicLanguageContext'
 import FinancingPageTemplate from '@/components/public/landing/FinancingPageTemplate'
 
+export const metadata = {
+  title: 'تمويل المعدات والأجهزة للشركات في السعودية | نسبة',
+  description: 'احصل على عروض تمويل لشراء المعدات والآلات والأجهزة التي تحتاجها منشأتك. قارن العروض من عدة جهات تمويل مرخصة — مجاناً.',
+}
+
 const data = {
   slug: 'equipment-financing',
   heroTitle: { ar: 'تمويل المعدات والأجهزة', en: 'Equipment Financing' },
