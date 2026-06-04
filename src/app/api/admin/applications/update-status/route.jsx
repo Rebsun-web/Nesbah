@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
+import { AUCTION_TIMEFRAME_ENABLED } from '@/lib/config/auction-config';
 
 // POST - Update application statuses using the correct logic
 export async function POST(req) {
@@ -20,6 +21,16 @@ export async function POST(req) {
                 success: false, 
                 error: sessionValidation.error || 'Invalid admin session' 
             }, { status: 401 });
+        }
+
+        // Auction time-frame disabled: status is offer-driven only, so there is nothing to
+        // transition by the clock. No-op so "Update Now" can never write 'ignored'.
+        if (!AUCTION_TIMEFRAME_ENABLED) {
+            return NextResponse.json({
+                success: true,
+                message: 'Updated 0 applications (auction time-frame disabled)',
+                data: { updated_count: 0, applications: [] }
+            });
         }
 
         const body = await req.json();
@@ -120,8 +131,23 @@ export async function GET(req) {
             }, { status: 401 });
         }
 
+        // Auction time-frame disabled: no application "needs" a clock-based status update,
+        // so the dashboard banner stays hidden.
+        if (!AUCTION_TIMEFRAME_ENABLED) {
+            return NextResponse.json({
+                success: true,
+                data: {
+                    total_applications: 0,
+                    needs_update: 0,
+                    no_update_needed: 0,
+                    applications_needing_update: [],
+                    applications_current: []
+                }
+            });
+        }
+
         const client = await pool.connectWithRetry(2, 1000, 'app_api_admin_applications_update_status_route.jsx');
-        
+
         try {
             // Get applications that need status updates
             const query = `

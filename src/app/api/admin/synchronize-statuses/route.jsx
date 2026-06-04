@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
 import StatusSynchronizer from '@/lib/status-synchronizer';
+import { AUCTION_TIMEFRAME_ENABLED } from '@/lib/config/auction-config';
 
 export async function POST(req) {
     try {
@@ -22,8 +23,24 @@ export async function POST(req) {
             }, { status: 401 });
         }
 
+        // Auction time-frame disabled: status is offer-driven only, so there is nothing to
+        // synchronize by the clock. No-op so this can never write 'ignored'.
+        if (!AUCTION_TIMEFRAME_ENABLED) {
+            return NextResponse.json({
+                success: true,
+                message: 'Status synchronization skipped (auction time-frame disabled)',
+                data: {
+                    total_checked: 0,
+                    synchronized: 0,
+                    errors: 0,
+                    synchronizedBy: sessionValidation.adminUser.email,
+                    timestamp: new Date().toISOString()
+                }
+            });
+        }
+
         console.log('🔄 Admin requested status synchronization...');
-        
+
         const client = await pool.connectWithRetry(2, 1000, 'synchronize-statuses');
         
         try {
@@ -83,6 +100,19 @@ export async function GET(req) {
                 success: false, 
                 error: sessionValidation.error || 'Invalid admin session' 
             }, { status: 401 });
+        }
+
+        // Auction time-frame disabled: nothing needs clock-based synchronization,
+        // so the dashboard banner stays hidden.
+        if (!AUCTION_TIMEFRAME_ENABLED) {
+            return NextResponse.json({
+                success: true,
+                data: {
+                    total_applications: 0,
+                    need_synchronization: 0,
+                    applications_needing_sync: []
+                }
+            });
         }
 
         // Check which applications need synchronization (without updating them)

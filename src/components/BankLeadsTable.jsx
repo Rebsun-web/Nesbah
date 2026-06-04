@@ -3,13 +3,15 @@
 import { useState } from 'react'
 import BusinessInfoModal from './BusinessInfoModal'
 import OfferSuccessModal from './OfferSuccessModal'
-import { AUCTION_DURATION_MILLISECONDS } from '@/lib/config/auction-config'
+
+const ITEMS_PER_PAGE = 10
 
 export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
     const [selectedBusiness, setSelectedBusiness] = useState(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [showOfferModal, setShowOfferModal] = useState(false)
     const [showSuccessModal, setShowSuccessModal] = useState(false)
+    const [currentPage, setCurrentPage] = useState(1)
     const [offerForm, setOfferForm] = useState({
         approvedAmount: '',
         repaymentPeriod: '',
@@ -134,44 +136,17 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
         }
     }
 
-    const formatCountdown = (submittedAt, auctionEndTime) => {
-        // If auction_end_time is available, use it; otherwise calculate configured duration from submission
-        const endTime = auctionEndTime ? new Date(auctionEndTime) : new Date(new Date(submittedAt).getTime() + AUCTION_DURATION_MILLISECONDS);
-        const now = new Date();
-        const timeLeft = endTime - now;
+    // Newest applications first (auction time-frame disabled — no countdown sorting).
+    const sortedData = [...data].sort(
+        (a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)
+    )
 
-        if (timeLeft <= 0) {
-            return '⛔ Expired';
-        } else {
-            const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
-            const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-            return `${hoursLeft}h ${minutesLeft}m left`;
-        }
-    };
-
-
-
-    const sortedData = [...data].sort((a, b) => {
-        // Sort by countdown time (closest to expiry first)
-        const aEndTime = a.auction_end_time ? new Date(a.auction_end_time) : new Date(new Date(a.submitted_at).getTime() + AUCTION_DURATION_MILLISECONDS);
-        const bEndTime = b.auction_end_time ? new Date(b.auction_end_time) : new Date(new Date(b.submitted_at).getTime() + AUCTION_DURATION_MILLISECONDS);
-        const now = new Date();
-        
-        const aTimeLeft = aEndTime - now;
-        const bTimeLeft = bEndTime - now;
-        
-        // If both are expired, show most recently expired first
-        if (aTimeLeft <= 0 && bTimeLeft <= 0) {
-            return new Date(b.submitted_at) - new Date(a.submitted_at);
-        }
-        
-        // If only one is expired, show expired one first
-        if (aTimeLeft <= 0) return 1;
-        if (bTimeLeft <= 0) return -1;
-        
-        // Otherwise, show closest to expiry first
-        return aTimeLeft - bTimeLeft;
-    });
+    // Client-side pagination over the already-fetched leads.
+    const totalPages = Math.max(1, Math.ceil(sortedData.length / ITEMS_PER_PAGE))
+    const safePage = Math.min(currentPage, totalPages)
+    const indexOfLast = safePage * ITEMS_PER_PAGE
+    const indexOfFirst = indexOfLast - ITEMS_PER_PAGE
+    const pageData = sortedData.slice(indexOfFirst, indexOfLast)
 
     return (
         <>
@@ -191,29 +166,18 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                     <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-28">
                                         Financing Amount
                                     </th>
-                                    <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-24">
+                                    <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 rounded-tr-md w-24">
                                         Submitted
-                                    </th>
-                                    <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 rounded-tr-md w-20">
-                                        Countdown
                                     </th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {sortedData.map((lead) => {
-                                    // Use the same logic as formatCountdown for consistency
-                                    const endTime = lead.auction_end_time ? new Date(lead.auction_end_time) : new Date(new Date(lead.submitted_at).getTime() + AUCTION_DURATION_MILLISECONDS);
-                                    const now = new Date();
-                                    const timeLeft = endTime - now;
-                                    const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
-
+                                {pageData.map((lead) => {
                                     return (
                                         <tr
                                             key={lead.application_id}
                                             onClick={() => handleRowClick(lead)}
-                                            className={`cursor-pointer hover:bg-gray-50 ${
-                                                hoursLeft < 2 ? 'bg-red-50' : hoursLeft < 6 ? 'bg-yellow-50' : ''
-                                            }`}
+                                            className="cursor-pointer hover:bg-gray-50"
                                         >
                                             <td className="px-3 py-3 text-xs text-start">
                                                 <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
@@ -232,9 +196,6 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                             <td className="px-3 py-3 text-xs text-start text-gray-700 truncate" title={new Date(lead.submitted_at).toLocaleString()}>
                                                 {new Date(lead.submitted_at).toLocaleDateString()}
                                             </td>
-                                            <td className="px-3 py-3 text-xs text-start font-semibold text-red-600">
-                                                ⏳ {formatCountdown(lead.submitted_at, lead.auction_end_time)}
-                                            </td>
                                         </tr>
                                     )
                                 })}
@@ -246,19 +207,12 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
 
             {/* Mobile Cards */}
             <div className="lg:hidden mt-4 space-y-4">
-                {sortedData.map((lead) => {
-                    const endTime = lead.auction_end_time ? new Date(lead.auction_end_time) : new Date(new Date(lead.submitted_at).getTime() + AUCTION_DURATION_MILLISECONDS);
-                    const now = new Date();
-                    const timeLeft = endTime - now;
-                    const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
-
+                {pageData.map((lead) => {
                     return (
                         <div
                             key={lead.application_id}
                             onClick={() => handleRowClick(lead)}
-                            className={`cursor-pointer bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow ${
-                                hoursLeft < 2 ? 'border-red-200 bg-red-50' : hoursLeft < 6 ? 'border-yellow-200 bg-yellow-50' : ''
-                            }`}
+                            className="cursor-pointer bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow"
                         >
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center space-x-2">
@@ -277,12 +231,8 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center space-x-1 text-xs font-semibold text-red-600">
-                                    <span>⏳</span>
-                                    <span>{formatCountdown(lead.submitted_at, lead.auction_end_time)}</span>
-                                </div>
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-3 text-xs">
                                 <div>
                                     <span className="text-gray-500">City:</span>
@@ -307,6 +257,46 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                     )
                 })}
             </div>
+
+            {/* Pagination */}
+            {sortedData.length > ITEMS_PER_PAGE && (
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-sm text-gray-700">
+                        Showing <span className="font-medium">{indexOfFirst + 1}</span> to{' '}
+                        <span className="font-medium">{Math.min(indexOfLast, sortedData.length)}</span> of{' '}
+                        <span className="font-medium">{sortedData.length}</span> requests
+                    </p>
+                    <nav className="inline-flex -space-x-px rounded-md shadow-sm">
+                        <button
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={safePage === 1}
+                            className="relative inline-flex items-center rounded-l-md px-3 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Previous
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                className={`relative inline-flex items-center px-4 py-2 text-sm font-medium border ${
+                                    page === safePage
+                                        ? 'z-10 bg-purple-50 border-purple-500 text-purple-600'
+                                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                        <button
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={safePage === totalPages}
+                            className="relative inline-flex items-center rounded-r-md px-3 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Next
+                        </button>
+                    </nav>
+                </div>
+            )}
 
             {/* Business Info Modal */}
             <BusinessInfoModal

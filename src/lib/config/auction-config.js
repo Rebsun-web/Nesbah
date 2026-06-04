@@ -6,6 +6,13 @@
 // Get auction duration from environment variable or use default
 const DEFAULT_AUCTION_DURATION_HOURS = parseInt(process.env.DEFAULT_AUCTION_HOURS) || 48;
 
+// Master switch for the auction time-frame.
+// TEMPORARILY DISABLED: when false, applications never expire — they stay in 'live_auction'
+// (and never become 'ignored') until they receive an offer, at which point they become 'completed'.
+// This is a plain constant (not an env var) so client and server evaluate it identically.
+// Flip to true to re-enable the auction clock (expiry, 'ignored' transitions, countdowns).
+export const AUCTION_TIMEFRAME_ENABLED = false;
+
 // Export configuration object
 export const auctionConfig = {
     // Duration settings

@@ -3,12 +3,13 @@
  * This module provides consistent status calculation across all components
  */
 
-import { 
-    ClockIcon, 
-    CheckCircleIcon, 
-    XCircleIcon, 
-    QuestionMarkCircleIcon 
+import {
+    ClockIcon,
+    CheckCircleIcon,
+    XCircleIcon,
+    QuestionMarkCircleIcon
 } from '@heroicons/react/24/outline'
+import { AUCTION_TIMEFRAME_ENABLED } from './config/auction-config.js'
 
 /**
  * Calculate the correct application status based on auction timing and offers
@@ -20,12 +21,19 @@ import {
  */
 export function calculateApplicationStatus(application) {
     const { auction_end_time, offers_count, status } = application;
-    
+
+    // Auction time-frame temporarily disabled: status no longer depends on the clock.
+    // An application is 'completed' once it has an offer, otherwise it stays 'live_auction'
+    // (it is never 'ignored').
+    if (!AUCTION_TIMEFRAME_ENABLED) {
+        return offers_count > 0 ? 'completed' : 'live_auction';
+    }
+
     // If no auction end time, return the database status
     if (!auction_end_time) {
         return status || 'live_auction';
     }
-    
+
     const now = new Date();
     const auctionEnd = new Date(auction_end_time);
     const timeRemaining = auctionEnd.getTime() - now.getTime();
@@ -138,29 +146,42 @@ export function safeTextFormat(text, maxLength = null) {
 }
 
 /**
- * SQL query fragment for calculating status in database queries
- * This should be used in all database queries that need status calculation
- * Note: This calculates the CORRECT status based on auction timing and offers
+ * Status CASE expression that depends on the auction clock (original behaviour).
+ * Used when AUCTION_TIMEFRAME_ENABLED is true.
  */
-export const STATUS_CALCULATION_SQL = `
-    CASE 
-        WHEN pa.auction_end_time < NOW() AND pa.offers_count > 0 THEN 'completed'
-        WHEN pa.auction_end_time < NOW() AND pa.offers_count = 0 THEN 'ignored'
-        ELSE 'live_auction'
-    END as calculated_status
-`;
-
-/**
- * SQL query fragment for filtering by status in database queries
- * This should be used when filtering applications by status
- */
-export const STATUS_FILTER_SQL = `
-    CASE 
+const TIMEFRAME_STATUS_CASE = `
+    CASE
         WHEN pa.auction_end_time < NOW() AND pa.offers_count > 0 THEN 'completed'
         WHEN pa.auction_end_time < NOW() AND pa.offers_count = 0 THEN 'ignored'
         ELSE 'live_auction'
     END
 `;
+
+/**
+ * Status CASE expression with the auction clock disabled.
+ * An application is 'completed' once it has an offer, otherwise 'live_auction' (never 'ignored').
+ */
+const NO_TIMEFRAME_STATUS_CASE = `
+    CASE
+        WHEN pa.offers_count > 0 THEN 'completed'
+        ELSE 'live_auction'
+    END
+`;
+
+// Select the active CASE based on the master switch in auction-config.
+const ACTIVE_STATUS_CASE = AUCTION_TIMEFRAME_ENABLED ? TIMEFRAME_STATUS_CASE : NO_TIMEFRAME_STATUS_CASE;
+
+/**
+ * SQL query fragment for calculating status in database queries
+ * This should be used in all database queries that need status calculation
+ */
+export const STATUS_CALCULATION_SQL = `${ACTIVE_STATUS_CASE} as calculated_status`;
+
+/**
+ * SQL query fragment for filtering by status in database queries
+ * This should be used when filtering applications by status
+ */
+export const STATUS_FILTER_SQL = ACTIVE_STATUS_CASE;
 
 /**
  * Validate and correct application status in database

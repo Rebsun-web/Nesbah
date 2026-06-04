@@ -1,6 +1,6 @@
 import pool from './db.js';
 import { STATUS_CALCULATION_SQL } from './application-status.js';
-import { auctionConfig } from './config/auction-config.js';
+import { auctionConfig, AUCTION_TIMEFRAME_ENABLED } from './config/auction-config.js';
 
 class AuctionExpiryHandler {
     /**
@@ -8,6 +8,11 @@ class AuctionExpiryHandler {
      * This function should be called periodically or when needed
      */
     static async handleExpiredAuctions(existingClient = null) {
+        // Auction time-frame disabled: never expire applications into completed/ignored.
+        if (!AUCTION_TIMEFRAME_ENABLED) {
+            return { processed: 0, completed: 0, ignored: 0 };
+        }
+
         const client = existingClient || await pool.connectWithRetry(2, 1000, 'auction-expiry-handler');
         const ownsClient = !existingClient;
 
@@ -149,6 +154,11 @@ class AuctionExpiryHandler {
      * Get applications that are approaching auction end (within 2 hours)
      */
     static async getUrgentApplications(existingClient = null) {
+        // Auction time-frame disabled: there are no approaching deadlines.
+        if (!AUCTION_TIMEFRAME_ENABLED) {
+            return [];
+        }
+
         const client = existingClient || await pool.connectWithRetry(2, 1000, 'auction-expiry-handler');
         const ownsClient = !existingClient;
 

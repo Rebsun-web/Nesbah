@@ -22,6 +22,27 @@ import ViewApplicationModal from './ViewApplicationModal'
 import EditApplicationModal from './EditApplicationModal'
 import DeleteApplicationModal from './DeleteApplicationModal'
 
+// Build a compact, windowed list of page numbers (with '...' gaps) so the pager
+// stays usable even with many pages. Always includes first, last, and a window
+// around the current page.
+function getPageWindow(current, total) {
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1)
+    }
+
+    const pages = new Set([1, total, current, current - 1, current + 1])
+    const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b)
+
+    const result = []
+    let prev = 0
+    for (const page of sorted) {
+        if (page - prev > 1) result.push('...')
+        result.push(page)
+        prev = page
+    }
+    return result
+}
+
 export default function AdminApplicationsDashboard() {
     const [applications, setApplications] = useState([])
     const [loading, setLoading] = useState(true)
@@ -32,6 +53,7 @@ export default function AdminApplicationsDashboard() {
     const [sortBy, setSortBy] = useState('submitted_at')
     const [sortOrder, setSortOrder] = useState('desc')
     const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(10)
     const [totalPages, setTotalPages] = useState(1)
     const [totalApplications, setTotalApplications] = useState(0)
     const [showStatusUpdateModal, setShowStatusUpdateModal] = useState(false)
@@ -49,7 +71,7 @@ export default function AdminApplicationsDashboard() {
             
             const params = new URLSearchParams({
                 page: currentPage.toString(),
-                limit: '10',
+                limit: pageSize.toString(),
                 search: searchTerm,
                 status: statusFilter,
                 financing_type: financingFilter,
@@ -141,7 +163,12 @@ export default function AdminApplicationsDashboard() {
     useEffect(() => {
         fetchApplications()
         checkStatusUpdates()
-    }, [currentPage, searchTerm, statusFilter, financingFilter, sortBy, sortOrder])
+    }, [currentPage, pageSize, searchTerm, statusFilter, financingFilter, sortBy, sortOrder])
+
+    // Reset to the first page whenever filters or page size change.
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [pageSize, searchTerm, statusFilter, financingFilter, sortBy, sortOrder])
 
     const handleNewApplicationSuccess = (newApplication) => {
         fetchApplications()
@@ -300,6 +327,18 @@ export default function AdminApplicationsDashboard() {
                     >
                         {sortOrder === 'asc' ? '↑' : '↓'}
                     </button>
+
+                    <select
+                        value={pageSize}
+                        onChange={(e) => setPageSize(parseInt(e.target.value))}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        title="Applications per page"
+                    >
+                        <option value="10">10 / page</option>
+                        <option value="25">25 / page</option>
+                        <option value="50">50 / page</option>
+                        <option value="100">100 / page</option>
+                    </select>
                 </div>
             </div>
 
@@ -429,7 +468,7 @@ export default function AdminApplicationsDashboard() {
                 </div>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
+                {totalApplications > pageSize && (
                     <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                         <div className="flex-1 flex justify-between sm:hidden">
                             <button
@@ -450,28 +489,51 @@ export default function AdminApplicationsDashboard() {
                         <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                             <div>
                                 <p className="text-sm text-gray-700">
-                                    Showing <span className="font-medium">{(currentPage - 1) * 10 + 1}</span> to{' '}
+                                    Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{' '}
                                     <span className="font-medium">
-                                        {Math.min(currentPage * 10, totalApplications)}
+                                        {Math.min(currentPage * pageSize, totalApplications)}
                                     </span>{' '}
                                     of <span className="font-medium">{totalApplications}</span> results
                                 </p>
                             </div>
                             <div>
                                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                        <button
-                                            key={page}
-                                            onClick={() => setCurrentPage(page)}
-                                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                                page === currentPage
-                                                    ? 'z-10 bg-purple-50 border-purple-500 text-purple-600'
-                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            {page}
-                                        </button>
+                                    <button
+                                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                        disabled={currentPage === 1}
+                                        className="relative inline-flex items-center rounded-l-md px-3 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Prev
+                                    </button>
+                                    {getPageWindow(currentPage, totalPages).map((page, idx) => (
+                                        page === '...' ? (
+                                            <span
+                                                key={`ellipsis-${idx}`}
+                                                className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-400"
+                                            >
+                                                …
+                                            </span>
+                                        ) : (
+                                            <button
+                                                key={page}
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                                    page === currentPage
+                                                        ? 'z-10 bg-purple-50 border-purple-500 text-purple-600'
+                                                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        )
                                     ))}
+                                    <button
+                                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="relative inline-flex items-center rounded-r-md px-3 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Next
+                                    </button>
                                 </nav>
                             </div>
                         </div>
