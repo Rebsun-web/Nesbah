@@ -48,7 +48,7 @@ export async function GET(req) {
 
             if (search) {
                 paramCount++;
-                whereConditions.push(`(wd.trade_name ILIKE $${paramCount} OR pa.application_id::text ILIKE $${paramCount} OR wd.cr_number ILIKE $${paramCount})`);
+                whereConditions.push(`(wd.trade_name ILIKE $${paramCount} OR pa.application_id::text ILIKE $${paramCount} OR wd.cr_number ILIKE $${paramCount} OR pa.cr_national_number ILIKE $${paramCount})`);
                 queryParams.push(`%${search}%`);
             }
 
@@ -67,9 +67,11 @@ export async function GET(req) {
             const whereClause = whereConditions.length > 0 ? `AND ${whereConditions.join(' AND ')}` : '';
 
             // Count total applications
+            // NOTE: must join wathiq_data because the search filter references wd.* columns.
             const countQuery = `
                 SELECT COUNT(DISTINCT pa.application_id) as total
                 FROM pos_application pa
+                LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 WHERE 1=1 ${whereClause}
             `;
             
