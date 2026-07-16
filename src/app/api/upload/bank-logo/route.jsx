@@ -1,10 +1,26 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import path from 'path';
+import gcsStorage from '@/lib/storage/gcs-storage';
+import { authenticateAPIRequest } from '@/lib/auth/api-auth';
 
 export async function POST(req) {
     try {
+        // Authenticate — bank users/employees (self-serve) and admins may upload.
+        const authResult = await authenticateAPIRequest(req);
+        if (!authResult.success) {
+            return NextResponse.json(
+                { success: false, error: authResult.error || 'Unauthorized' },
+                { status: authResult.status || 401 }
+            );
+        }
+        const { user_type } = authResult.user;
+        if (!['bank_user', 'bank_employee', 'admin_user'].includes(user_type)) {
+            return NextResponse.json(
+                { success: false, error: 'Forbidden' },
+                { status: 403 }
+            );
+        }
+
         const formData = await req.formData();
         const file = formData.get('logo');
 
@@ -41,20 +57,8 @@ export async function POST(req) {
             );
         }
 
-        // Create uploads directory if it doesn't exist
-        const uploadsDir = join(process.cwd(), 'public', 'uploads', 'bank-logos');
-        if (!existsSync(uploadsDir)) {
-            await mkdir(uploadsDir, { recursive: true });
-        }
-
-        // Generate unique filename with better security
-        const timestamp = Date.now();
-        const randomString = Math.random().toString(36).substring(2, 15);
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-        const filename = `bank-logo-${timestamp}-${randomString}.${fileExtension}`;
-        const filepath = join(uploadsDir, filename);
-
-        // Additional security check for file extension
+        // Validate extension as a second line of defence
+        const fileExtension = (file.name.split('.').pop() || '').toLowerCase();
         const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         if (!allowedExtensions.includes(fileExtension)) {
             return NextResponse.json(
@@ -63,23 +67,23 @@ export async function POST(req) {
             );
         }
 
-        // Convert file to buffer and save
+        // Generate a unique filename
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(2, 15);
+        const fileName = `bank-logo-${timestamp}-${randomString}${path.extname(file.name)}`;
+
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        
-        // Write file to disk
-        await writeFile(filepath, buffer);
 
-        // Return the public URL
-        const logoUrl = `/uploads/bank-logos/${filename}`;
-
-        console.log(`✅ Bank logo uploaded successfully: ${filename} (${(buffer.length / 1024).toFixed(2)}KB)`);
+        // Store durably via the storage service (GCS in production, local in dev).
+        // Ephemeral local-disk writes were the cause of logos not displaying on Cloud Run.
+        const logoUrl = await gcsStorage.uploadFile(buffer, fileName, 'bank-logos', file.type);
 
         return NextResponse.json({
             success: true,
             message: 'Logo uploaded successfully',
             logo_url: logoUrl,
-            filename: filename,
+            filename: fileName,
             size: buffer.length,
             type: file.type
         });

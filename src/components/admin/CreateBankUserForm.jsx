@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { XMarkIcon, BuildingOfficeIcon, EnvelopeIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { collectErrors, checkRequired, checkNumber, checkSaudiMobile } from '@/lib/validators';
 
 export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
-        email: '',
         entity_name: '',
-        password: '',
         logo_url: '',
         contact_person: '',
         contact_person_number: '',
@@ -13,8 +12,22 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [logoFile, setLogoFile] = useState(null);
     const [logoPreview, setLogoPreview] = useState(null);
+
+    const validateForm = () => collectErrors({
+        entity_name: () => checkRequired(formData.entity_name, 'Bank name'),
+        credit_limit: () => checkNumber(formData.credit_limit, { min: 0, required: false, label: 'Credit limit' }),
+        contact_person_number: () => (formData.contact_person_number
+            ? checkSaudiMobile(formData.contact_person_number, { label: 'Contact number' })
+            : null),
+    });
+
+    const handleFieldBlur = (field) => {
+        const { errors } = validateForm();
+        setFieldErrors(prev => ({ ...prev, [field]: errors[field] || '' }));
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -55,46 +68,48 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        const { valid, errors, firstError } = validateForm();
+        if (!valid) {
+            setFieldErrors(errors);
+            setError(firstError);
+            return;
+        }
+
         setLoading(true);
         setError('');
 
         try {
-            // Handle logo file upload if present
+            // Handle logo file upload if present. Use the admin GCS-backed endpoint so
+            // the logo is stored durably (Cloud Storage) rather than on the container's
+            // ephemeral local disk (which is wiped on restart — the old cause of
+            // "logos don't display").
             if (logoFile) {
-                console.log('🔄 Starting logo upload for file:', logoFile.name, logoFile.size);
                 try {
                     const uploadFormData = new FormData();
                     uploadFormData.append('logo', logoFile);
-                    
-                    console.log('🔄 Sending logo upload request to /api/upload/bank-logo');
-                    const uploadResponse = await fetch('/api/upload/bank-logo', {
+
+                    const uploadResponse = await fetch('/api/admin/users/upload-bank-logo', {
                         method: 'POST',
+                        credentials: 'include',
                         body: uploadFormData
                     });
-                    
-                    console.log('🔄 Upload response status:', uploadResponse.status);
-                    
+
                     if (!uploadResponse.ok) {
                         const errorText = await uploadResponse.text();
-                        console.error('❌ Upload failed with status:', uploadResponse.status, errorText);
                         throw new Error(`Upload failed with status ${uploadResponse.status}: ${errorText}`);
                     }
-                    
+
                     const uploadResult = await uploadResponse.json();
-                    console.log('🔄 Upload result:', uploadResult);
-                    
+
                     if (uploadResult.success) {
                         formData.logo_url = uploadResult.logo_url;
-                        console.log('✅ Logo uploaded successfully:', uploadResult.logo_url);
                     } else {
                         throw new Error(uploadResult.error || 'Logo upload failed');
                     }
                 } catch (uploadError) {
-                    console.error('❌ Logo upload error:', uploadError);
                     throw new Error(`Logo upload failed: ${uploadError.message}`);
                 }
-            } else {
-                console.log('ℹ️ No logo file to upload');
             }
 
             const response = await fetch('/api/admin/users/create-bank', {
@@ -122,9 +137,7 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
 
     const resetForm = () => {
         setFormData({
-            email: '',
             entity_name: '',
-            password: '',
             logo_url: '',
             contact_person: '',
             contact_person_number: '',
@@ -149,7 +162,7 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
                     {/* Header */}
                     <div className="flex items-center justify-between pb-4 border-b border-gray-200">
                         <h3 className="text-lg font-medium text-gray-900">
-                            Create New Bank User
+                            Create New Bank / Financing Partner
                         </h3>
                         <button
                             onClick={handleClose}
@@ -175,19 +188,11 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
                         {/* Bank Information */}
                         <div>
                             <h4 className="text-md font-semibold text-gray-900 mb-3 border-b pb-2">Bank Information</h4>
+                            <p className="text-xs text-gray-500 mb-3">
+                                A bank/financing partner is created as an entity. Login credentials are created
+                                later by adding bank employees under this partner.
+                            </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="bank@example.com"
-                                    />
-                                </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
                                     <input
@@ -195,41 +200,12 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
                                         name="entity_name"
                                         value={formData.entity_name}
                                         onChange={handleInputChange}
+                                        onBlur={() => handleFieldBlur('entity_name')}
                                         required
                                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="Bank Name"
                                     />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                                    <div className="flex space-x-2">
-                                        <input
-                                            type="text"
-                                            name="password"
-                                            value={formData.password}
-                                            onChange={handleInputChange}
-                                            required
-                                            className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Enter password"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const generatedPassword = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-                                                setFormData(prev => ({
-                                                    ...prev,
-                                                    password: generatedPassword
-                                                }));
-                                            }}
-                                            className="px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                                            title="Generate random password"
-                                        >
-                                            🔑
-                                        </button>
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Password must be at least 8 characters long
-                                    </p>
+                                    {fieldErrors.entity_name && <p className="mt-1 text-sm text-red-600">{fieldErrors.entity_name}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit (SAR)</label>
@@ -238,11 +214,13 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
                                         name="credit_limit"
                                         value={formData.credit_limit}
                                         onChange={handleInputChange}
+                                        onBlur={() => handleFieldBlur('credit_limit')}
                                         min="0"
                                         step="1000"
                                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="10000"
                                     />
+                                    {fieldErrors.credit_limit && <p className="mt-1 text-sm text-red-600">{fieldErrors.credit_limit}</p>}
                                     <p className="text-xs text-gray-500 mt-1">
                                         Default credit limit for this bank
                                     </p>
@@ -272,9 +250,11 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
                                         name="contact_person_number"
                                         value={formData.contact_person_number}
                                         onChange={handleInputChange}
+                                        onBlur={() => handleFieldBlur('contact_person_number')}
                                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="+966 50 123 4567"
                                     />
+                                    {fieldErrors.contact_person_number && <p className="mt-1 text-sm text-red-600">{fieldErrors.contact_person_number}</p>}
                                 </div>
                             </div>
                         </div>
@@ -335,7 +315,7 @@ export default function CreateBankUserForm({ isOpen, onClose, onSuccess }) {
                                 disabled={loading}
                                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                             >
-                                {loading ? 'Creating...' : 'Create Bank User'}
+                                {loading ? 'Creating...' : 'Create Partner'}
                             </button>
                         </div>
                     </form>

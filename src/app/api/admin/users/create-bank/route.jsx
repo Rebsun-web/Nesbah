@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import bcrypt from 'bcrypt';
 import AdminAuth from '@/lib/auth/admin-auth';
 
 export async function POST(req) {
     try {
         const body = await req.json();
-        const { 
-            email, 
-            password, 
+        const {
             entity_name,
             credit_limit = 10000.00,
             contact_person,
@@ -16,10 +13,17 @@ export async function POST(req) {
             logo_url
         } = body;
 
-        // Validate required fields
-        if (!email || !password || !entity_name) {
+        // A bank/financing partner is created as an entity WITHOUT login credentials.
+        // Login is provided later via bank employees created under this bank.
+        if (!entity_name || !entity_name.trim()) {
             return NextResponse.json(
-                { success: false, error: 'Email, password, and entity name are required' },
+                { success: false, error: 'Bank name is required' },
+                { status: 400 }
+            );
+        }
+        if (credit_limit != null && (isNaN(Number(credit_limit)) || Number(credit_limit) < 0)) {
+            return NextResponse.json(
+                { success: false, error: 'Credit limit must be a non-negative number' },
                 { status: 400 }
             );
         }
@@ -42,40 +46,24 @@ export async function POST(req) {
         try {
             await client.query('BEGIN');
 
-            // Check if user already exists
-            const existingUser = await client.query(
-                `SELECT user_id FROM users WHERE email = $1`,
-                [email]
-            );
-
-            if (existingUser.rowCount > 0) {
-                await client.query('ROLLBACK');
-                return NextResponse.json(
-                    { success: false, error: 'User with this email already exists' },
-                    { status: 409 }
-                );
-            }
-
-            // Hash the password
-            const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-            // Create user record
+            // Create the entity's users row WITHOUT credentials (NULL email/password).
+            // A NULL password can never authenticate (unified-login filters it out).
+            // logo_url is written to BOTH users and bank_users so every display path
+            // resolves regardless of which table it reads.
             const userRes = await client.query(
-                `INSERT INTO users (email, password, user_type, entity_name, account_status, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+                `INSERT INTO users (email, password, user_type, entity_name, account_status, logo_url, created_at, updated_at)
+                 VALUES (NULL, NULL, 'bank_user', $1, 'active', $2, NOW(), NOW())
                  RETURNING user_id`,
-                [email, hashedPassword, 'bank_user', entity_name, 'active']
+                [entity_name.trim(), logo_url || null]
             );
             const user_id = userRes.rows[0].user_id;
 
-            // Create bank user record with MVP fields only
+            // Create the bank profile row (anchors offers/views FKs). No email.
             await client.query(
                 `INSERT INTO bank_users (user_id, email, credit_limit, contact_person, contact_person_number, logo_url)
-                 VALUES ($1, $2, $3, $4, $5, $6)`,
+                 VALUES ($1, NULL, $2, $3, $4, $5)`,
                 [
                     user_id,
-                    email,
                     credit_limit,
                     contact_person || null,
                     contact_person_number || null,
@@ -87,11 +75,10 @@ export async function POST(req) {
 
             return NextResponse.json({
                 success: true,
-                message: 'Bank user created successfully',
+                message: 'Bank/financing partner created successfully',
                 data: {
                     user_id,
-                    email,
-                    entity_name,
+                    entity_name: entity_name.trim(),
                     credit_limit,
                     contact_person,
                     contact_person_number,

@@ -9,6 +9,7 @@ import {
   Shield, Building2, FileText, Send, PartyPopper,
 } from 'lucide-react'
 import { PublicLanguageProvider, useLang, translations } from '@/contexts/PublicLanguageContext'
+import { CR_NATIONAL_NUMBER_RE, SAUDI_MOBILE_RE, EMAIL_RE } from '@/lib/validators'
 
 // API code for each financing type — same index order as translations.onboarding.financingTypes
 const FINANCING_TYPE_CODES = [
@@ -126,6 +127,8 @@ function OnboardingForm() {
   const [error, setError] = useState('')
 
   const [crTouched, setCrTouched] = useState(false)
+  const [phoneTouched, setPhoneTouched] = useState(false)
+  const [emailTouched, setEmailTouched] = useState(false)
 
   const [formData, setFormData] = useState({
     businessName: '',
@@ -142,10 +145,13 @@ function OnboardingForm() {
 
   const updateField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }))
 
-  const crValid = /^7\d{9}$/.test(formData.crNumber)
+  const crValid = CR_NATIONAL_NUMBER_RE.test(formData.crNumber)
+  const phoneValid = SAUDI_MOBILE_RE.test(formData.phone.replace(/[\s-]/g, ''))
+  // Email is optional — only flag it as invalid if the user actually typed something.
+  const emailValid = !formData.email || EMAIL_RE.test(formData.email.trim())
 
   const canProceed = () => {
-    if (currentStep === 0) return formData.businessName && crValid && formData.contactName && formData.phone
+    if (currentStep === 0) return formData.businessName && crValid && formData.contactName && phoneValid && emailValid
     if (currentStep === 1) return formData.financingType && formData.amount
     return true
   }
@@ -294,7 +300,7 @@ function OnboardingForm() {
                         <Input id="crNumber" placeholder={t(o.crNumberPh)} value={formData.crNumber} onChange={(e) => updateField('crNumber', e.target.value)} onBlur={() => setCrTouched(true)} dir="ltr" />
                         {crTouched && !crValid && (
                           <p className="mt-1.5 text-xs text-red-500">
-                            {lang === 'ar' ? 'الرقم الوطني يجب أن يتكون من 10 أرقام ويبدأ بالرقم 7' : 'National number must be exactly 10 digits and start with 7'}
+                            {lang === 'ar' ? 'الرقم الوطني يجب أن يتكون من 10 أرقام ويبدأ بـ 70' : 'National number must be exactly 10 digits and start with 70'}
                           </p>
                         )}
                       </div>
@@ -318,12 +324,22 @@ function OnboardingForm() {
                         </div>
                         <div>
                           <Label htmlFor="phone">{t(o.phone)} *</Label>
-                          <Input id="phone" type="tel" placeholder={t(o.phonePh)} value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} dir="ltr" />
+                          <Input id="phone" type="tel" placeholder={t(o.phonePh)} value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} onBlur={() => setPhoneTouched(true)} dir="ltr" />
+                          {phoneTouched && !phoneValid && (
+                            <p className="mt-1.5 text-xs text-red-500">
+                              {lang === 'ar' ? 'يرجى إدخال رقم جوال سعودي صحيح (مثال: 05XXXXXXXX)' : 'Enter a valid Saudi mobile number (e.g. 05XXXXXXXX)'}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="mt-5">
                         <Label htmlFor="email">{t(o.email)}</Label>
-                        <Input id="email" type="email" placeholder={t(o.emailPh)} value={formData.email} onChange={(e) => updateField('email', e.target.value)} dir="ltr" />
+                        <Input id="email" type="email" placeholder={t(o.emailPh)} value={formData.email} onChange={(e) => updateField('email', e.target.value)} onBlur={() => setEmailTouched(true)} dir="ltr" />
+                        {emailTouched && !emailValid && (
+                          <p className="mt-1.5 text-xs text-red-500">
+                            {lang === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Enter a valid email address'}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

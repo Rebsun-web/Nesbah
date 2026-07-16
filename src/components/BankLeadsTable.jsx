@@ -3,14 +3,18 @@
 import { useState } from 'react'
 import BusinessInfoModal from './BusinessInfoModal'
 import OfferSuccessModal from './OfferSuccessModal'
+import { collectErrors, checkNumber, checkLength } from '@/lib/validators'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 const ITEMS_PER_PAGE = 10
 
 export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
+    const { t } = useLanguage()
     const [selectedBusiness, setSelectedBusiness] = useState(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [showOfferModal, setShowOfferModal] = useState(false)
     const [showSuccessModal, setShowSuccessModal] = useState(false)
+    const [offerFormError, setOfferFormError] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const [offerForm, setOfferForm] = useState({
         approvedAmount: '',
@@ -68,11 +72,27 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
         // Close the business info modal and open the offer modal
         setIsModalOpen(false)
         setShowOfferModal(true)
+        setOfferFormError('')
     }
 
     const handleOfferSubmit = async (e) => {
         e.preventDefault()
-        
+
+        const { valid, firstError } = collectErrors({
+            approvedAmount: () => checkNumber(offerForm.approvedAmount, { min: 0, label: 'Approved amount' }),
+            repaymentPeriod: () => checkNumber(offerForm.repaymentPeriod, { min: 1, integer: true, label: 'Repayment period' }),
+            interestRate: () => checkNumber(offerForm.interestRate, { min: 0, label: 'Interest rate' }),
+            monthlyInstallment: () => checkNumber(offerForm.monthlyInstallment, { min: 0, label: 'Monthly installment' }),
+            gracePeriod: () => (offerForm.gracePeriod ? checkNumber(offerForm.gracePeriod, { min: 0, integer: true, label: 'Grace period' }) : null),
+            relationshipManagerContact: () => checkLength(offerForm.relationshipManagerContact, { max: 255, label: 'Relationship manager contact' }),
+            comment: () => (offerForm.comment ? checkLength(offerForm.comment, { max: 2000, label: 'Comment' }) : null),
+        })
+        if (!valid) {
+            setOfferFormError(firstError)
+            return
+        }
+        setOfferFormError('')
+
         try {
             // Create FormData for the API call
             const formData = new FormData()
@@ -158,16 +178,16 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                             <thead>
                                 <tr>
                                     <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 rounded-tl-md w-28">
-                                        Type
+                                        {t('leads.type')}
                                     </th>
                                     <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-32">
-                                        City
+                                        {t('common.city')}
                                     </th>
                                     <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 w-28">
-                                        Financing Amount
+                                        {t('leads.financingAmount')}
                                     </th>
                                     <th className="bg-gray-100 px-3 py-3 text-start text-sm font-semibold text-gray-700 rounded-tr-md w-24">
-                                        Submitted
+                                        {t('offers.submitted')}
                                     </th>
                                 </tr>
                             </thead>
@@ -235,22 +255,22 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
 
                             <div className="grid grid-cols-2 gap-3 text-xs">
                                 <div>
-                                    <span className="text-gray-500">City:</span>
+                                    <span className="text-gray-500">{t('common.city')}:</span>
                                     <div className="font-medium text-gray-900">{lead.city || '—'}</div>
                                 </div>
                                 <div>
-                                    <span className="text-gray-500">Financing Amount:</span>
+                                    <span className="text-gray-500">{t('leads.financingAmount')}:</span>
                                     <div className="font-medium text-gray-900">{lead.approximate_financing_amount || '—'}</div>
                                 </div>
                                 <div>
-                                    <span className="text-gray-500">Contact:</span>
+                                    <span className="text-gray-500">{t('leads.contact')}:</span>
                                     <div className="font-medium text-gray-900">{lead.contact_person || '—'}</div>
                                 </div>
                             </div>
-                            
+
                             <div className="mt-3 pt-3 border-t border-gray-100">
                                 <div className="text-xs text-gray-500">
-                                    Submitted: {new Date(lead.submitted_at).toLocaleDateString()}
+                                    {t('offers.submitted')}: {new Date(lead.submitted_at).toLocaleDateString()}
                                 </div>
                             </div>
                         </div>
@@ -262,8 +282,8 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
             {sortedData.length > ITEMS_PER_PAGE && (
                 <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
                     <p className="text-sm text-gray-700">
-                        Showing <span className="font-medium">{indexOfFirst + 1}</span> to{' '}
-                        <span className="font-medium">{Math.min(indexOfLast, sortedData.length)}</span> of{' '}
+                        {t('offers.showing')} <span className="font-medium">{indexOfFirst + 1}</span> {t('offers.to')}{' '}
+                        <span className="font-medium">{Math.min(indexOfLast, sortedData.length)}</span> {t('offers.of')}{' '}
                         <span className="font-medium">{sortedData.length}</span> requests
                     </p>
                     <nav className="inline-flex -space-x-px rounded-md shadow-sm">
@@ -272,7 +292,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                             disabled={safePage === 1}
                             className="relative inline-flex items-center rounded-l-md px-3 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Previous
+                            {t('common.previous')}
                         </button>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                             <button
@@ -292,7 +312,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                             disabled={safePage === totalPages}
                             className="relative inline-flex items-center rounded-r-md px-3 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Next
+                            {t('common.next')}
                         </button>
                     </nav>
                 </div>
@@ -313,7 +333,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                         <div className="mt-3">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-xl font-semibold text-gray-900">
-                                    Submit Bank Offer - {selectedBusiness.trade_name}
+                                    {t('leads.submitBankOffer')} - {selectedBusiness.trade_name}
                                 </h3>
                                 <button
                                     onClick={() => setShowOfferModal(false)}
@@ -326,15 +346,21 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                             </div>
                             
                             <form onSubmit={handleOfferSubmit} className="space-y-6">
+                                {offerFormError && (
+                                    <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                                        <p className="text-sm text-red-600">{offerFormError}</p>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Approved Financing Amount */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Approved Financing Amount (SAR) *
+                                            {t('leads.approvedFinancingAmount')} *
                                         </label>
                                         <input
                                             type="number"
                                             step="0.01"
+                                            min="0"
                                             required
                                             value={offerForm.approvedAmount}
                                             onChange={(e) => setOfferForm(prev => ({ ...prev, approvedAmount: e.target.value }))}
@@ -346,10 +372,11 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                     {/* Proposed Repayment Period */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Proposed Repayment Period (months) *
+                                            {t('leads.proposedRepaymentPeriod')} *
                                         </label>
                                         <input
                                             type="number"
+                                            min="1"
                                             required
                                             value={offerForm.repaymentPeriod}
                                             onChange={(e) => setOfferForm(prev => ({ ...prev, repaymentPeriod: e.target.value }))}
@@ -361,11 +388,12 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                     {/* Interest Rate */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Interest Rate (%) *
+                                            {t('leads.interestRate')} *
                                         </label>
                                         <input
                                             type="number"
                                             step="0.01"
+                                            min="0"
                                             required
                                             value={offerForm.interestRate}
                                             onChange={(e) => setOfferForm(prev => ({ ...prev, interestRate: e.target.value }))}
@@ -377,11 +405,12 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                     {/* Monthly Installment Amount */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Monthly Installment Amount (SAR) *
+                                            {t('leads.monthlyInstallmentAmount')} *
                                         </label>
                                         <input
                                             type="number"
                                             step="0.01"
+                                            min="0"
                                             required
                                             value={offerForm.monthlyInstallment}
                                             onChange={(e) => setOfferForm(prev => ({ ...prev, monthlyInstallment: e.target.value }))}
@@ -393,10 +422,11 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                     {/* Grace Period */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Grace Period (months)
+                                            {t('leads.gracePeriod')}
                                         </label>
                                         <input
                                             type="number"
+                                            min="0"
                                             value={offerForm.gracePeriod}
                                             onChange={(e) => setOfferForm(prev => ({ ...prev, gracePeriod: e.target.value }))}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -407,7 +437,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                     {/* Relationship Manager Contact Details */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Relationship Manager Contact Details *
+                                            {t('leads.relationshipManagerContact')} *
                                         </label>
                                         <input
                                             type="text"
@@ -415,7 +445,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                             value={offerForm.relationshipManagerContact}
                                             onChange={(e) => setOfferForm(prev => ({ ...prev, relationshipManagerContact: e.target.value }))}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                            placeholder="Name, Phone, Email"
+                                            placeholder={t('leads.namePhoneEmail')}
                                         />
                                     </div>
                                 </div>
@@ -423,7 +453,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                 {/* File Upload Section */}
                                 <div className="space-y-4">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Supporting Documents
+                                        {t('leads.supportingDocuments')}
                                     </label>
                                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
                                         <input
@@ -440,12 +470,12 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                             </svg>
                                             <p className="mt-1 text-sm text-gray-600">
                                                 <span className="font-medium text-indigo-600 hover:text-indigo-500">
-                                                    Upload files
+                                                    {t('leads.uploadFiles')}
                                                 </span>
-                                                {' '}or drag and drop
+                                                {' '}{t('leads.orDragAndDrop')}
                                             </p>
                                             <p className="mt-1 text-xs text-gray-500">
-                                                PDF, DOC, DOCX, JPG, PNG up to 10MB
+                                                {t('leads.fileTypesUpTo10MB')}
                                             </p>
                                         </label>
                                     </div>
@@ -453,7 +483,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                     {/* File List */}
                                     {offerForm.files.length > 0 && (
                                         <div className="space-y-2">
-                                            <p className="text-sm font-medium text-gray-700">Selected Files:</p>
+                                            <p className="text-sm font-medium text-gray-700">{t('leads.selectedFiles')}:</p>
                                             <div className="space-y-1">
                                                 {offerForm.files.map((file, index) => (
                                                     <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
@@ -466,7 +496,7 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                                             }))}
                                                             className="text-red-500 hover:text-red-700 text-sm"
                                                         >
-                                                            Remove
+                                                            {t('leads.remove')}
                                                         </button>
                                                     </div>
                                                 ))}
@@ -478,14 +508,14 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                 {/* Comments Section */}
                                 <div className="space-y-4">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Additional Comments
+                                        {t('leads.additionalComments')}
                                     </label>
                                     <textarea
                                         value={offerForm.comment}
                                         onChange={(e) => setOfferForm(prev => ({ ...prev, comment: e.target.value }))}
                                         rows={4}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                        placeholder="Any additional terms, conditions, or special requirements..."
+                                        placeholder={t('leads.additionalTermsPlaceholder')}
                                     />
                                 </div>
 
@@ -496,13 +526,13 @@ export default function BankLeadsTable({ data, onLeadSubmitSuccess }) {
                                         onClick={() => setShowOfferModal(false)}
                                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                                     >
-                                        Cancel
+                                        {t('common.cancel')}
                                     </button>
                                     <button
                                         type="submit"
                                         className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                                     >
-                                        Submit Offer
+                                        {t('leads.submitOffer')}
                                     </button>
                                 </div>
                             </form>

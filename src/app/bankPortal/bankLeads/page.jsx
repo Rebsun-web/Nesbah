@@ -5,8 +5,11 @@ import { useEffect, useState } from 'react'
 import { ArrowDownTrayIcon, ChevronLeftIcon, ChevronRightIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline'
 import UnmaskedContactInfo from '@/components/UnmaskedContactInfo'
 import OfferSuccessModal from '@/components/OfferSuccessModal'
+import { collectErrors, checkNumber, checkSaudiMobile, checkEmail, checkLength } from '@/lib/validators'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 function BankLeadsPage() {
+    const { t } = useLanguage()
     const [purchasedLeads, setPurchasedLeads] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -28,6 +31,7 @@ function BankLeadsPage() {
         supportingDocuments: []
     })
     const [submittingOffer, setSubmittingOffer] = useState(false)
+    const [offerFormError, setOfferFormError] = useState('')
 
     useEffect(() => {
         fetchPurchasedLeads()
@@ -92,23 +96,44 @@ function BankLeadsPage() {
 
     const handleOfferSubmit = async (e) => {
         e.preventDefault()
+
+        const { valid, firstError } = collectErrors({
+            approvedAmount: () => checkNumber(offerForm.approvedAmount, { min: 0, label: 'Approved amount' }),
+            repaymentPeriod: () => checkNumber(offerForm.repaymentPeriod, { min: 1, integer: true, label: 'Repayment period' }),
+            interestRate: () => checkNumber(offerForm.interestRate, { min: 0, label: 'Interest rate' }),
+            monthlyInstallment: () => checkNumber(offerForm.monthlyInstallment, { min: 0, label: 'Monthly installment' }),
+            gracePeriod: () => (offerForm.gracePeriod ? checkNumber(offerForm.gracePeriod, { min: 0, integer: true, label: 'Grace period' }) : null),
+            relationshipManagerName: () => checkLength(offerForm.relationshipManagerName, { max: 255, label: 'Relationship manager name' }),
+            relationshipManagerPhone: () => checkSaudiMobile(offerForm.relationshipManagerPhone, { label: 'Relationship manager phone' }),
+            relationshipManagerEmail: () => checkEmail(offerForm.relationshipManagerEmail, { required: false }),
+        })
+        if (!valid) {
+            setOfferFormError(firstError)
+            return
+        }
+        setOfferFormError('')
         setSubmittingOffer(true)
-        
+
         try {
             const user = JSON.parse(localStorage.getItem('user') || '{}')
             const formData = new FormData()
-            
-            // Add form fields
-            Object.keys(offerForm).forEach(key => {
-                if (key === 'supportingDocuments') {
-                    offerForm[key].forEach((file, index) => {
-                        formData.append(`supportingDocuments[${index}]`, file)
-                    })
-                } else {
-                    formData.append(key, offerForm[key])
-                }
-            })
-            
+
+            // The API only reads a single `relationshipManagerContact` field (not
+            // separate name/phone/email keys) — combine them here so this data
+            // actually reaches the offer record instead of being silently dropped.
+            const relationshipManagerContact = [
+                offerForm.relationshipManagerName,
+                offerForm.relationshipManagerPhone,
+                offerForm.relationshipManagerEmail,
+            ].filter(Boolean).join(', ')
+
+            formData.append('approvedAmount', offerForm.approvedAmount)
+            formData.append('repaymentPeriod', offerForm.repaymentPeriod)
+            formData.append('interestRate', offerForm.interestRate)
+            formData.append('monthlyInstallment', offerForm.monthlyInstallment)
+            formData.append('gracePeriod', offerForm.gracePeriod)
+            formData.append('relationshipManagerContact', relationshipManagerContact)
+
             formData.append('leadId', selectedLead.application_id)
             formData.append('bankUserId', user.user_id)
             
@@ -196,7 +221,7 @@ function BankLeadsPage() {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading approved leads...</p>
+                    <p className="mt-4 text-gray-600">{t('leads.loadingApprovedLeads')}</p>
                 </div>
             </div>
         )
@@ -211,7 +236,7 @@ function BankLeadsPage() {
                         onClick={fetchPurchasedLeads}
                         className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
                     >
-                        Retry
+                        {t('leads.retry')}
                     </button>
                 </div>
             </div>
@@ -225,15 +250,15 @@ function BankLeadsPage() {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-xl font-semibold text-gray-900">Approved Leads</h2>
-                            <p className="text-gray-600">{purchasedLeads.length} lead{purchasedLeads.length !== 1 ? 's' : ''} approved</p>
+                            <h2 className="text-xl font-semibold text-gray-900">{t('leads.approvedLeads')}</h2>
+                            <p className="text-gray-600">{purchasedLeads.length} {purchasedLeads.length !== 1 ? t('leads.leadsApproved') : t('leads.leadApproved')}</p>
                         </div>
                         <button
                             onClick={handleExport}
                             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                         >
                             <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-                            Export XLSX
+                            {t('leads.exportXlsx')}
                         </button>
                     </div>
                 </div>
@@ -242,7 +267,7 @@ function BankLeadsPage() {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     {purchasedLeads.length === 0 ? (
                         <div className="p-8 text-center">
-                            <p className="text-gray-500">No purchased leads found.</p>
+                            <p className="text-gray-500">{t('leads.noPurchasedLeads')}</p>
                         </div>
                     ) : (
                         <>
@@ -251,22 +276,22 @@ function BankLeadsPage() {
                                     <thead className="bg-gray-50">
                                         <tr>
                                             <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
-                                                Company & Business Info
+                                                {t('leads.companyBusinessInfo')}
                                             </th>
                                             <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
-                                                Contact
+                                                {t('leads.contact')}
                                             </th>
                                             <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
-                                                Phone
+                                                {t('leads.phone')}
                                             </th>
                                             <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
-                                                Email
+                                                {t('business.email')}
                                             </th>
                                             <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
-                                                Date
+                                                {t('portal.submittedDate')}
                                             </th>
                                             <th className="px-3 py-3 text-start text-sm font-medium text-gray-500 uppercase tracking-wider">
-                                                Actions
+                                                {t('admin.actions')}
                                             </th>
                                         </tr>
                                     </thead>
@@ -280,13 +305,13 @@ function BankLeadsPage() {
                                                     <div className="text-xs text-gray-500">ID: {lead.application_id}</div>
                                                 </td>
                                                 <td className="px-3 py-3 whitespace-nowrap">
-                                                    <div className="text-sm text-gray-900" title={lead.contact_person || 'Not provided'}>
-                                                        {lead.contact_person || 'Not provided'}
+                                                    <div className="text-sm text-gray-900" title={lead.contact_person || t('leads.notProvided')}>
+                                                        {lead.contact_person || t('leads.notProvided')}
                                                     </div>
                                                 </td>
                                                 <td className="px-3 py-3 whitespace-nowrap">
-                                                    <div className="text-sm text-gray-900" title={lead.contact_person_number || 'Not provided'}>
-                                                        {lead.contact_person_number || 'Not provided'}
+                                                    <div className="text-sm text-gray-900" title={lead.contact_person_number || t('leads.notProvided')}>
+                                                        {lead.contact_person_number || t('leads.notProvided')}
                                                     </div>
                                                 </td>
                                                 <td className="px-3 py-3 whitespace-nowrap">
@@ -334,7 +359,7 @@ function BankLeadsPage() {
                                                         }}
                                                         className="text-indigo-600 hover:text-green-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-md text-xs font-medium transition-colors"
                                                     >
-                                                        View Details
+                                                        {t('leads.viewDetails')}
                                                     </button>
                                                 </td>
                                             </tr>
@@ -350,7 +375,7 @@ function BankLeadsPage() {
                                         <div className="mt-3">
                                             <div className="flex items-center justify-between mb-6">
                                                 <h3 className="text-xl font-semibold text-gray-900">
-                                                    Lead Details - {selectedLead.trade_name}
+                                                    {t('leads.leadDetails')} - {selectedLead.trade_name}
                                                 </h3>
                                                 <button
                                                     onClick={() => setShowUnmaskedInfo(false)}
@@ -371,48 +396,48 @@ function BankLeadsPage() {
                                                         <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                         </svg>
-                                                        Application Details
+                                                        {t('application.details')}
                                                     </h4>
                                                     <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Application ID:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.applicationId')}:</span>
                                                             <span className="text-sm text-gray-900">#{selectedLead.application_id}</span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Submitted:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('offers.submitted')}:</span>
                                                             <span className="text-sm text-gray-900">
                                                                 {new Date(selectedLead.submitted_at).toLocaleString()}
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">POS Provider Name:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.posProviderName')}:</span>
                                                             <span className="text-sm text-gray-900">{selectedLead.pos_provider_name || 'N/A'}</span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">POS Age Duration:</span>
-                                                            <span className="text-sm text-gray-900">{selectedLead.pos_age_duration_months ? `${selectedLead.pos_age_duration_months} months` : 'N/A'}</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.posAgeDuration')}:</span>
+                                                            <span className="text-sm text-gray-900">{selectedLead.pos_age_duration_months ? `${selectedLead.pos_age_duration_months} ${t('leads.months')}` : 'N/A'}</span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Average Monthly POS Sales:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.avgMonthlyPosSales')}:</span>
                                                             <span className="text-sm text-gray-900">
                                                                 {selectedLead.avg_monthly_pos_sales ? `SAR ${parseFloat(selectedLead.avg_monthly_pos_sales).toLocaleString()}` : 'N/A'}
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Requested Financing Amount:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.requestedFinancingAmount')}:</span>
                                                             <span className="text-sm text-gray-900">
                                                                 {selectedLead.approximate_financing_amount || 'N/A'}
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Preferred Repayment Period:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.preferredRepaymentPeriod')}:</span>
                                                             <span className="text-sm text-gray-900">
-                                                                {selectedLead.preferred_repayment_period_months ? `${selectedLead.preferred_repayment_period_months} months` : 'N/A'}
+                                                                {selectedLead.preferred_repayment_period_months ? `${selectedLead.preferred_repayment_period_months} ${t('leads.months')}` : 'N/A'}
                                                             </span>
                                                         </div>
                                                         {selectedLead.store_url && (
                                                             <div className="flex justify-between">
-                                                                <span className="text-sm font-medium text-gray-700">Store URL:</span>
+                                                                <span className="text-sm font-medium text-gray-700">{t('leads.storeUrl')}:</span>
                                                                 <span className="text-sm text-gray-900">
                                                                     <a href={selectedLead.store_url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
                                                                         {selectedLead.store_url}
@@ -429,19 +454,23 @@ function BankLeadsPage() {
                                                         <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                                         </svg>
-                                                        Business Information
+                                                        {t('business.businessInformation')}
                                                     </h4>
                                                     <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Company Name:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.companyName')}:</span>
                                                             <span className="text-sm text-gray-900">{selectedLead.trade_name || 'N/A'}</span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">CR Number:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.crNumber')}:</span>
                                                             <span className="text-sm text-gray-900">{selectedLead.cr_number || 'N/A'}</span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Activities:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.crNationalNumberWathiq')}:</span>
+                                                            <span className="text-sm text-gray-900">{selectedLead.cr_national_number || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-gray-700">{t('business.activities')}:</span>
                                                              <div className="text-sm text-gray-900 text-right max-w-xs">
                                                                  {selectedLead.activities ? (
                                                                      Array.isArray(selectedLead.activities) 
@@ -471,18 +500,15 @@ function BankLeadsPage() {
                                                         <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                                         </svg>
-                                                        Submitted Offers
+                                                        {t('leads.submittedOffers')}
                                                     </h4>
                                                     <div className="space-y-3">
                                                                  {selectedLead.offers.map((offer, index) => {
-                                                             // Debug: Log the offer data to see what fields are available
-                                                             console.log('🔍 Offer data:', offer);
-                                                             
                                                              return (
                                                                  <div key={offer.offer_id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                                                                      <div className="flex items-center justify-between mb-3">
                                                                          <h5 className="text-sm font-semibold text-gray-900">
-                                                                             Offer #{offer.offer_id} by {offer.bank_name || 'Unknown Bank'}
+                                                                             {t('leads.offer')} #{offer.offer_id} {t('leads.by')} {offer.bank_name || t('leads.unknownBank')}
                                                                          </h5>
                                                                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                                                                              offer.status === 'live_auction' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
@@ -494,37 +520,37 @@ function BankLeadsPage() {
                                                                       {/* Offer Details Grid */}
                                                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-3">
                                                                           <div className="flex justify-between">
-                                                                              <span className="font-medium text-gray-700">Approved Amount:</span>
+                                                                              <span className="font-medium text-gray-700">{t('leads.approvedAmount')}:</span>
                                                                               <span className="text-gray-900">
                                                                                   {offer.approved_financing_amount ? `SAR ${parseFloat(offer.approved_financing_amount).toLocaleString()}` : 'N/A'}
                                                                               </span>
                                                                           </div>
                                                                           <div className="flex justify-between">
-                                                                              <span className="font-medium text-gray-700">Repayment Period:</span>
+                                                                              <span className="font-medium text-gray-700">{t('leads.repaymentPeriod')}:</span>
                                                                               <span className="text-gray-900">
-                                                                                  {offer.proposed_repayment_period_months ? `${offer.proposed_repayment_period_months} months` : 'N/A'}
+                                                                                  {offer.proposed_repayment_period_months ? `${offer.proposed_repayment_period_months} ${t('leads.months')}` : 'N/A'}
                                                                               </span>
                                                                           </div>
                                                                           <div className="flex justify-between">
-                                                                              <span className="font-medium text-gray-700">Interest Rate:</span>
+                                                                              <span className="font-medium text-gray-700">{t('leads.interestRate')}:</span>
                                                                               <span className="text-gray-900">
                                                                                   {offer.interest_rate ? `${offer.interest_rate}%` : 'N/A'}
                                                                               </span>
                                                                           </div>
                                                                           <div className="flex justify-between">
-                                                                              <span className="text-sm font-medium text-gray-700">Monthly Installment:</span>
+                                                                              <span className="text-sm font-medium text-gray-700">{t('leads.monthlyInstallmentAmount')}:</span>
                                                                               <span className="text-sm text-gray-900">
                                                                                   {offer.monthly_installment_amount ? `SAR ${parseFloat(offer.monthly_installment_amount).toLocaleString()}` : 'N/A'}
                                                                               </span>
                                                                           </div>
                                                                           <div className="flex justify-between">
-                                                                              <span className="text-sm font-medium text-gray-700">Grace Period:</span>
+                                                                              <span className="text-sm font-medium text-gray-700">{t('leads.gracePeriod')}:</span>
                                                                               <span className="text-sm text-gray-900">
-                                                                                  {offer.grace_period_months ? `${offer.grace_period_months} months` : 'N/A'}
+                                                                                  {offer.grace_period_months ? `${offer.grace_period_months} ${t('leads.months')}` : 'N/A'}
                                                                               </span>
                                                                           </div>
                                                                           <div className="flex justify-between">
-                                                                              <span className="text-sm font-medium text-gray-700">Submitted:</span>
+                                                                              <span className="text-sm font-medium text-gray-700">{t('offers.submitted')}:</span>
                                                                               <span className="text-sm text-gray-900">
                                                                                   {new Date(offer.submitted_at).toLocaleDateString()}
                                                                               </span>
@@ -534,7 +560,7 @@ function BankLeadsPage() {
                                                                       {/* Relationship Manager Details */}
                                                                       {offer.relationship_manager_name && (
                                                                           <div className="border-t pt-3 mb-3">
-                                                                              <h6 className="text-sm font-medium text-gray-700 mb-2">Relationship Manager:</h6>
+                                                                              <h6 className="text-sm font-medium text-gray-700 mb-2">{t('leads.relationshipManager')}:</h6>
                                                                               <div className="text-sm text-gray-900">
                                                                                   {offer.relationship_manager_name}
                                                                               </div>
@@ -544,16 +570,16 @@ function BankLeadsPage() {
                                                                      {/* Offer Terms and Comments */}
                                                                      {offer.offer_terms && (
                                                                          <div className="border-t pt-3 mb-3">
-                                                                             <h6 className="text-sm font-medium text-gray-700 mb-2">Full Offer Terms:</h6>
+                                                                             <h6 className="text-sm font-medium text-gray-700 mb-2">{t('leads.fullOfferTerms')}:</h6>
                                                                              <div className="text-sm text-gray-900 whitespace-pre-wrap">
                                                                                  {offer.offer_terms}
                                                                              </div>
                                                                          </div>
                                                                      )}
-                                                                     
+
                                                                      {offer.offer_comment && (
                                                                          <div className="border-t pt-3">
-                                                                             <h6 className="text-sm font-medium text-gray-700 mb-2">Additional Comments:</h6>
+                                                                             <h6 className="text-sm font-medium text-gray-700 mb-2">{t('leads.additionalComments')}:</h6>
                                                                              <div className="text-sm text-gray-900">
                                                                                  {offer.offer_comment}
                                                                              </div>
@@ -572,21 +598,21 @@ function BankLeadsPage() {
                                                     <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                                     </svg>
-                                                    Contact Information
+                                                    {t('business.contactInformation')}
                                                 </h4>
                                                 <div className="bg-gray-50 rounded-lg p-4">
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                         <div>
-                                                            <span className="text-sm font-medium text-gray-700">Contact Person:</span>
-                                                            <p className="text-sm text-gray-900">{selectedLead.contact_person || 'Not provided'}</p>
+                                                            <span className="text-sm font-medium text-gray-700">{t('business.contactPerson')}:</span>
+                                                            <p className="text-sm text-gray-900">{selectedLead.contact_person || t('leads.notProvided')}</p>
                                                         </div>
                                                         <div>
-                                                            <span className="text-sm font-medium text-gray-700">Phone:</span>
-                                                            <p className="text-sm text-gray-900">{selectedLead.contact_person_number || 'Not provided'}</p>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.phone')}:</span>
+                                                            <p className="text-sm text-gray-900">{selectedLead.contact_person_number || t('leads.notProvided')}</p>
                                                         </div>
                                                         <div>
-                                                            <span className="text-sm font-medium text-gray-700">Email:</span>
-                                                            <p className="text-sm text-gray-900">business@nesbah.com</p>
+                                                            <span className="text-sm font-medium text-gray-700">{t('business.email')}:</span>
+                                                            <p className="text-sm text-gray-900">{selectedLead.business_contact_email || t('leads.notProvided')}</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -599,7 +625,7 @@ function BankLeadsPage() {
                                                         <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                         </svg>
-                                                        Application Notes
+                                                        {t('leads.applicationNotes')}
                                                     </h4>
                                                     <div className="bg-gray-50 rounded-lg p-4">
                                                         <p className="text-sm text-gray-900 whitespace-pre-wrap">
@@ -615,12 +641,12 @@ function BankLeadsPage() {
                                                     <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                     </svg>
-                                                    Uploaded Files
+                                                    {t('leads.uploadedFiles')}
                                                 </h4>
                                                 <div className="bg-gray-50 rounded-lg p-4">
                                                     {/* Application Files */}
                                                     <div className="mb-4">
-                                                        <h5 className="text-md font-medium text-gray-800 mb-3">Application Documents</h5>
+                                                        <h5 className="text-md font-medium text-gray-800 mb-3">{t('leads.applicationDocuments')}</h5>
                                                         {selectedLead.uploaded_filename ? (
                                                             <div className="flex items-center justify-between p-3 bg-white rounded-md border border-gray-200">
                                                                 <div className="flex items-center space-x-3">
@@ -629,7 +655,7 @@ function BankLeadsPage() {
                                                                     </svg>
                                                                     <div>
                                                                         <p className="text-sm font-medium text-gray-900">{selectedLead.uploaded_filename}</p>
-                                                                        <p className="text-xs text-gray-500">Application Document</p>
+                                                                        <p className="text-xs text-gray-500">{t('application.applicationDocument')}</p>
                                                                     </div>
                                                                 </div>
                                                                 <a
@@ -638,17 +664,17 @@ function BankLeadsPage() {
                                                                     rel="noopener noreferrer"
                                                                     className="px-3 py-1 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                                                 >
-                                                                    Download
+                                                                    {t('common.download')}
                                                                 </a>
                                                             </div>
                                                         ) : (
-                                                            <p className="text-sm text-gray-500 italic">No application documents uploaded</p>
+                                                            <p className="text-sm text-gray-500 italic">{t('leads.noApplicationDocuments')}</p>
                                                         )}
                                                     </div>
 
                                                                                                         {/* Offer Files */}
                                                     <div>
-                                                        <h5 className="text-md font-medium text-gray-800 mb-3">Offer Documents</h5>
+                                                        <h5 className="text-md font-medium text-gray-800 mb-3">{t('leads.offerDocuments')}</h5>
                                                         {selectedLead.offers && selectedLead.offers.length > 0 ? (
                                                             <div className="space-y-3">
                                                                 {selectedLead.offers.map((offer, index) => (
@@ -660,7 +686,7 @@ function BankLeadsPage() {
                                                                                 </svg>
                                                                                 <div>
                                                                                     <p className="text-sm font-medium text-gray-900">{offer.uploaded_filename}</p>
-                                                                                    <p className="text-xs text-gray-500">Offer #{offer.id} - {offer.submitted_by_bank_name || 'Bank Offer'}</p>
+                                                                                    <p className="text-xs text-gray-500">{t('leads.offer')} #{offer.id} - {offer.submitted_by_bank_name || t('leads.bankOffer')}</p>
                                                                                 </div>
                                                                             </div>
                                                                             <a
@@ -669,17 +695,17 @@ function BankLeadsPage() {
                                                                                 rel="noopener noreferrer"
                                                                                 className="px-3 py-1 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                                                                             >
-                                                                                Download
+                                                                                {t('common.download')}
                                                                             </a>
                                                                         </div>
                                                                     )
                                                                 ))}
                                                                 {!selectedLead.offers.some(offer => offer.uploaded_filename) && (
-                                                                    <p className="text-sm text-gray-500 italic">No offer documents uploaded</p>
+                                                                    <p className="text-sm text-gray-500 italic">{t('leads.noOfferDocuments')}</p>
                                                                 )}
                                                             </div>
                                                         ) : (
-                                                            <p className="text-sm text-gray-500 italic">No offers submitted yet</p>
+                                                            <p className="text-sm text-gray-500 italic">{t('leads.noOffersSubmittedYet')}</p>
                                                         )}
                                                     </div>
                                                 </div>
@@ -867,24 +893,24 @@ function BankLeadsPage() {
                                             disabled={currentPage === 1}
                                             className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            Previous
+                                            {t('common.previous')}
                                         </button>
                                         <button
                                             onClick={() => handlePageChange(currentPage + 1)}
                                             disabled={currentPage === totalPages}
                                             className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            Next
+                                            {t('common.next')}
                                         </button>
                                     </div>
                                     <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                                         <div>
                                             <p className="text-sm text-gray-700">
-                                                Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
+                                                {t('offers.showing')} <span className="font-medium">{indexOfFirstItem + 1}</span> {t('offers.to')}{' '}
                                                 <span className="font-medium">
                                                     {Math.min(indexOfLastItem, purchasedLeads.length)}
                                                 </span>{' '}
-                                                of <span className="font-medium">{purchasedLeads.length}</span> results
+                                                {t('offers.of')} <span className="font-medium">{purchasedLeads.length}</span> results
                                             </p>
                                         </div>
                                         <div>
@@ -894,7 +920,7 @@ function BankLeadsPage() {
                                                     disabled={currentPage === 1}
                                                     className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
-                                                    <span className="sr-only">Previous</span>
+                                                    <span className="sr-only">{t('common.previous')}</span>
                                                     <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
                                                 </button>
                                                 
@@ -918,7 +944,7 @@ function BankLeadsPage() {
                                                     disabled={currentPage === totalPages}
                                                     className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
-                                                    <span className="sr-only">Next</span>
+                                                    <span className="sr-only">{t('common.next')}</span>
                                                     <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
                                                 </button>
                                             </nav>

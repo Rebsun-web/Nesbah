@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import bcrypt from 'bcrypt';
 import { sendBusinessRegistrationEmail } from '@/lib/email/emailNotifications';
+import { collectErrors, checkEmail, checkPassword, checkCRNationalNumber, checkSaudiMobile, checkLength } from '@/lib/validators';
 
 export async function POST(req) {
     console.log('🚀 ========== BUSINESS USER REGISTRATION API CALLED ==========');
@@ -52,6 +53,20 @@ export async function POST(req) {
                 { success: false, error: 'CR National Number, password, and email are required' },
                 { status: 400 }
             );
+        }
+
+        // Format checks — the client's verify step already enforces these, but this
+        // route can be called directly, so it must not trust an arbitrary caller.
+        const { valid: inputValid, firstError: inputError } = collectErrors({
+            email: () => checkEmail(email),
+            password: () => checkPassword(password),
+            cr_national_number: () => checkCRNationalNumber(cr_national_number),
+            contact_person: () => (contact_person ? checkLength(contact_person, { max: 255, label: 'Contact person' }) : null),
+            contact_person_number: () => (contact_person_number ? checkSaudiMobile(contact_person_number, { label: 'Contact number' }) : null),
+        });
+        if (!inputValid) {
+            console.log(`❌ Validation failed: ${inputError}`);
+            return NextResponse.json({ success: false, error: inputError }, { status: 400 });
         }
 
         console.log('🔒 Hashing password...');

@@ -3,13 +3,15 @@
 import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BuildingOfficeIcon, DocumentTextIcon, MapPinIcon, UserIcon, PhoneIcon, EnvelopeIcon, CurrencyDollarIcon, ClockIcon } from '@heroicons/react/24/outline'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function BusinessInfoModal({ isOpen, onClose, businessData, onSubmitOffer }) {
+    const { t } = useLanguage()
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     if (!businessData) return null
 
-    const ns = (val) => (val === null || val === undefined || val === '') ? 'Not specified' : val
+    const ns = (val) => (val === null || val === undefined || val === '') ? t('leads.notSpecified') : val
 
     const handleSubmitOffer = async () => {
         if (onSubmitOffer) {
@@ -25,17 +27,17 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
     }
 
     const formatMoney = (amount) => {
-        if (!amount) return 'Not specified'
+        if (!amount) return t('leads.notSpecified')
         const num = typeof amount === 'string' ? parseFloat(amount.replace(/[^\d.]/g, '')) : amount
-        if (isNaN(num)) return 'Not specified'
-        return `SAR ${num.toLocaleString('en-US', { 
-            minimumFractionDigits: 0, 
-            maximumFractionDigits: 2 
+        if (isNaN(num)) return t('leads.notSpecified')
+        return `SAR ${num.toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
         })}`
     }
 
     const formatDate = (dateString) => {
-        if (!dateString) return 'Not specified'
+        if (!dateString) return t('leads.notSpecified')
         try {
             return new Date(dateString).toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -43,23 +45,15 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                 day: 'numeric'
             })
         } catch {
-            return 'Not specified'
+            return t('leads.notSpecified')
         }
     }
 
+    // Contact details are visible to all bank/partner users without an offer
+    // (client requirement — Platform Enhancements §3). No masking.
     const maskContactInfo = (type, value) => {
-        if (!value) return 'Not specified'
-        
-        switch (type) {
-            case 'email':
-                return '***@***.com'
-            case 'phone':
-                return '05********'
-            case 'name':
-                return value.charAt(0) + '***'
-            default:
-                return value
-        }
+        if (!value) return t('leads.notSpecified')
+        return value
     }
 
     return (
@@ -107,24 +101,24 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                             <div className="space-y-4">
                                                 <h4 className="text-md font-medium text-gray-900 flex items-center">
                                                     <BuildingOfficeIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                                                    Business Information
+                                                    {t('business.businessInformation')}
                                                 </h4>
                                                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                                                     {(businessData.company_name || businessData.trade_name) && (
                                                         <div className="flex justify-between items-start">
-                                                            <span className="text-sm font-medium text-gray-700">Business Name:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.businessName')}:</span>
                                                             <span className="text-sm text-gray-900 text-right max-w-[60%] break-words">{businessData.company_name || businessData.trade_name}</span>
                                                         </div>
                                                     )}
                                                     {(businessData.city || businessData.city_of_operation) && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">City:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('common.city')}:</span>
                                                             <span className="text-sm text-gray-900">{businessData.city_of_operation || businessData.city}</span>
                                                         </div>
                                                     )}
                                                     {businessData.sector && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Sector:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('business.sector')}:</span>
                                                             <span className="text-sm text-gray-900">{businessData.sector}</span>
                                                         </div>
                                                     )}
@@ -135,12 +129,12 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                             <div className="space-y-4">
                                                 <h4 className="text-md font-medium text-gray-900 flex items-center">
                                                     <CurrencyDollarIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                                                    Financing Details
+                                                    {t('leads.financingDetails')}
                                                 </h4>
                                                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                                                     {businessData.financing_type && (
                                                         <div className="flex justify-between items-center">
-                                                            <span className="text-sm font-medium text-gray-700">Financing Type:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.financingType')}:</span>
                                                             <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
                                                                 {businessData.financing_type.replace(/_/g, ' ')}
                                                             </span>
@@ -148,7 +142,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                     )}
                                                     {businessData.approximate_financing_amount && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Approximate Amount Needed:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.approximateAmountNeeded')}:</span>
                                                             <span className="text-sm text-gray-900">{businessData.approximate_financing_amount}</span>
                                                         </div>
                                                     )}
@@ -159,24 +153,24 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                             <div className="space-y-4">
                                                 <h4 className="text-md font-medium text-gray-900 flex items-center">
                                                     <UserIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                                                    Contact Information
+                                                    {t('business.contactInformation')}
                                                 </h4>
                                                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                                                     {businessData.contact_person && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Contact Person:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('business.contactPerson')}:</span>
                                                             <span className="text-sm text-gray-900">{maskContactInfo('name', businessData.contact_person)}</span>
                                                         </div>
                                                     )}
                                                     {businessData.contact_person_number && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Mobile Number:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('application.mobileNumber')}:</span>
                                                             <span className="text-sm text-gray-900">{maskContactInfo('phone', businessData.contact_person_number)}</span>
                                                         </div>
                                                     )}
                                                     {businessData.business_contact_email && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Email:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('business.email')}:</span>
                                                             <span className="text-sm text-gray-900">{maskContactInfo('email', businessData.business_contact_email)}</span>
                                                         </div>
                                                     )}
@@ -188,84 +182,88 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                         <div className="mt-6 space-y-4">
                                             <h4 className="text-md font-medium text-gray-900 flex items-center">
                                                 <DocumentTextIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                                                Business Registry (Wathiq)
+                                                {t('leads.businessRegistryWathiq')}
                                             </h4>
                                             <div className="bg-blue-50 rounded-lg p-4 space-y-3">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">CR Number:</span>
+                                                        <span className="text-sm font-medium text-gray-700">{t('leads.crNumber')}:</span>
                                                         <span className="text-sm text-gray-900">{ns(businessData.cr_number)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Legal Form:</span>
+                                                        <span className="text-sm font-medium text-gray-700">{t('leads.crNationalNumberWathiq')}:</span>
+                                                        <span className="text-sm text-gray-900">{ns(businessData.cr_national_number)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">{t('leads.legalForm')}:</span>
                                                         <span className="text-sm text-gray-900">{ns(businessData.legal_form)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Registration Status:</span>
+                                                        <span className="text-sm font-medium text-gray-700">{t('leads.registrationStatus')}:</span>
                                                         <span className="text-sm text-gray-900">{ns(businessData.registration_status)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Issue Date:</span>
+                                                        <span className="text-sm font-medium text-gray-700">{t('leads.issueDate')}:</span>
                                                         <span className="text-sm text-gray-900">{ns(businessData.issue_date_gregorian)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Confirmation Date:</span>
+                                                        <span className="text-sm font-medium text-gray-700">{t('leads.confirmationDate')}:</span>
                                                         <span className="text-sm text-gray-900">{ns(businessData.confirmation_date_gregorian)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">City (HQ):</span>
+                                                        <span className="text-sm font-medium text-gray-700">{t('leads.cityHQ')}:</span>
                                                         <span className="text-sm text-gray-900">{ns(businessData.hq_city)}</span>
                                                     </div>
                                                     {businessData.headquarter_district_name && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">District:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.district')}:</span>
                                                             <span className="text-sm text-gray-900">{businessData.headquarter_district_name}</span>
                                                         </div>
                                                     )}
                                                     {businessData.headquarter_street_name && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Street:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.street')}:</span>
                                                             <span className="text-sm text-gray-900">{businessData.headquarter_street_name}</span>
                                                         </div>
                                                     )}
                                                     {businessData.headquarter_building_number && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Building No.:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.buildingNo')}:</span>
                                                             <span className="text-sm text-gray-900">{businessData.headquarter_building_number}</span>
                                                         </div>
                                                     )}
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">CR Capital:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.cr_capital ? formatMoney(businessData.cr_capital) : 'Not specified'}</span>
+                                                        <span className="text-sm font-medium text-gray-700">{t('leads.crCapital')}:</span>
+                                                        <span className="text-sm text-gray-900">{businessData.cr_capital ? formatMoney(businessData.cr_capital) : t('leads.notSpecified')}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Cash Capital:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.cash_capital ? formatMoney(businessData.cash_capital) : 'Not specified'}</span>
+                                                        <span className="text-sm font-medium text-gray-700">{t('business.cashCapital')}:</span>
+                                                        <span className="text-sm text-gray-900">{businessData.cash_capital ? formatMoney(businessData.cash_capital) : t('leads.notSpecified')}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Management Structure:</span>
+                                                        <span className="text-sm font-medium text-gray-700">{t('leads.managementStructure')}:</span>
                                                         <span className="text-sm text-gray-900">{ns(businessData.management_structure)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Has E-Commerce:</span>
+                                                        <span className="text-sm font-medium text-gray-700">{t('leads.hasEcommerce')}:</span>
                                                         <span className="text-sm text-gray-900">
                                                             {businessData.has_ecommerce === null || businessData.has_ecommerce === undefined
-                                                                ? 'Not specified'
-                                                                : businessData.has_ecommerce ? 'Yes' : 'No'}
+                                                                ? t('leads.notSpecified')
+                                                                : businessData.has_ecommerce ? t('common.yes') : t('common.no')}
                                                         </span>
                                                     </div>
                                                     {businessData.has_ecommerce && businessData.store_url && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">Store URL:</span>
+                                                            <span className="text-sm font-medium text-gray-700">{t('leads.storeUrl')}:</span>
                                                             <span className="text-sm text-gray-900 break-all">{businessData.store_url}</span>
                                                         </div>
                                                     )}
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">Verified:</span>
+                                                        <span className="text-sm font-medium text-gray-700">{t('leads.verified')}:</span>
                                                         <span className="text-sm text-gray-900">
                                                             {businessData.is_verified === null || businessData.is_verified === undefined
-                                                                ? 'Not specified'
-                                                                : businessData.is_verified ? 'Yes' : 'No'}
+                                                                ? t('leads.notSpecified')
+                                                                : businessData.is_verified ? t('common.yes') : t('common.no')}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -273,7 +271,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                 {/* Activities — only shown for purchased leads */}
                                                 {Array.isArray(businessData.activities) && businessData.activities.length > 0 && (
                                                     <div className="pt-3 border-t border-blue-200">
-                                                        <span className="text-sm font-medium text-gray-700 block mb-1">Activities:</span>
+                                                        <span className="text-sm font-medium text-gray-700 block mb-1">{t('business.activities')}:</span>
                                                         <div className="flex flex-wrap gap-1">
                                                             {businessData.activities.map((a, i) => (
                                                                 <span key={i} className="inline-block px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">{a}</span>
@@ -285,7 +283,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                 {/* Management Managers — only shown for purchased leads */}
                                                 {Array.isArray(businessData.management_managers) && businessData.management_managers.length > 0 && (
                                                     <div className="pt-3 border-t border-blue-200">
-                                                        <span className="text-sm font-medium text-gray-700 block mb-2">Management:</span>
+                                                        <span className="text-sm font-medium text-gray-700 block mb-2">{t('leads.management')}:</span>
                                                         <div className="space-y-1">
                                                             {businessData.management_managers.map((m, i) => {
                                                                 const manager = typeof m === 'string' ? { name: m } : m
@@ -306,7 +304,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                             <div className="mt-6 space-y-2">
                                                 <h4 className="text-md font-medium text-gray-900 flex items-center">
                                                     <DocumentTextIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                                                    Purpose of Financing
+                                                    {t('leads.purposeOfFinancing')}
                                                 </h4>
                                                 <div className="bg-gray-50 rounded-lg p-4">
                                                     <p className="text-sm text-gray-900 whitespace-pre-wrap">{businessData.notes}</p>
@@ -318,22 +316,22 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                         <div className="mt-6 space-y-4">
                                             <h4 className="text-md font-medium text-gray-900 flex items-center">
                                                 <ClockIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                                                Application Details
+                                                {t('application.details')}
                                             </h4>
                                             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                                                 <div className="flex justify-between">
-                                                    <span className="text-sm font-medium text-gray-700">Application ID:</span>
-                                                    <span className="text-sm text-gray-900">{businessData.application_id || 'Not specified'}</span>
+                                                    <span className="text-sm font-medium text-gray-700">{t('leads.applicationId')}:</span>
+                                                    <span className="text-sm text-gray-900">{businessData.application_id || t('leads.notSpecified')}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-sm font-medium text-gray-700">Submitted At:</span>
+                                                    <span className="text-sm font-medium text-gray-700">{t('leads.submittedAt')}:</span>
                                                     <span className="text-sm text-gray-900">
-                                                        {businessData.submitted_at ? new Date(businessData.submitted_at).toLocaleString() : 'Not specified'}
+                                                        {businessData.submitted_at ? new Date(businessData.submitted_at).toLocaleString() : t('leads.notSpecified')}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-sm font-medium text-gray-700">Status:</span>
-                                                    <span className="text-sm text-gray-900">{businessData.status || 'Not specified'}</span>
+                                                    <span className="text-sm font-medium text-gray-700">{t('leads.status')}:</span>
+                                                    <span className="text-sm text-gray-900">{businessData.status || t('leads.notSpecified')}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -348,7 +346,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                     <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                     </svg>
-                                                    Uploaded Documents
+                                                    {t('application.uploadedDocuments')}
                                                 </h4>
                                                 <div className="bg-gray-50 rounded-lg p-4">
                                                     <div className="flex items-center space-x-3">
@@ -360,7 +358,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                                 📎 {businessData.uploaded_filename}
                                                             </p>
                                                             <p className="text-xs text-gray-500">
-                                                                Uploaded with application • {businessData.uploaded_mimetype || 'Unknown type'}
+                                                                {t('leads.uploadedWithApplication')} • {businessData.uploaded_mimetype || t('leads.unknownType')}
                                                             </p>
                                                         </div>
                                                         <a
@@ -372,7 +370,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                             <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                                             </svg>
-                                                            Download
+                                                            {t('common.download')}
                                                         </a>
                                                     </div>
                                                 </div>
@@ -386,7 +384,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                     <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                                     </svg>
-                                                    Offers ({businessData.offers.length})
+                                                    {t('offers.offers')} ({businessData.offers.length})
                                                 </h4>
                                                 <div className="space-y-3">
                                                     {businessData.offers && Array.isArray(businessData.offers) ? businessData.offers.map((offer, index) => {
@@ -395,26 +393,26 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                                 <div key={offer.offer_id || index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                                                                     <div className="flex items-center justify-between mb-2">
                                                                         <h5 className="text-sm font-semibold text-gray-900">
-                                                                            Offer #{offer.offer_id || 'Not specified'} by {offer.bank_name || 'Unknown Bank'}
+                                                                            {t('leads.offer')} #{offer.offer_id || t('leads.notSpecified')} {t('leads.by')} {offer.bank_name || t('leads.unknownBank')}
                                                                         </h5>
                                                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                                                                             offer.status === 'live_auction' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                                                                         }`}>
-                                                                            {offer.status || 'Not specified'}
+                                                                            {offer.status || t('leads.notSpecified')}
                                                                         </span>
                                                                     </div>
                                                                     {offer.offer_comment && (
                                                                         <p className="text-sm text-gray-700 mb-2">
-                                                                            <strong>Comment:</strong> {offer.offer_comment || 'Not specified'}
+                                                                            <strong>{t('leads.comment')}:</strong> {offer.offer_comment || t('leads.notSpecified')}
                                                                         </p>
                                                                     )}
                                                                     {offer.offer_terms && (
                                                                         <p className="text-sm text-gray-700 mb-2">
-                                                                            <strong>Terms:</strong> {offer.offer_terms || 'Not specified'}
+                                                                            <strong>{t('leads.terms')}:</strong> {offer.offer_terms || t('leads.notSpecified')}
                                                                         </p>
                                                                     )}
                                                                     <p className="text-xs text-gray-500">
-                                                                        Submitted: {offer.submitted_at ? new Date(offer.submitted_at).toLocaleString() : 'Not specified'}
+                                                                        {t('offers.submitted')}: {offer.submitted_at ? new Date(offer.submitted_at).toLocaleString() : t('leads.notSpecified')}
                                                                     </p>
                                                                 </div>
                                                             );
@@ -422,24 +420,24 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                             console.error('Error rendering offer:', error);
                                                             return (
                                                                 <div key={index} className="bg-red-50 rounded-lg p-4 border border-red-200">
-                                                                    <p className="text-sm text-red-600">Error loading offer data</p>
+                                                                    <p className="text-sm text-red-600">{t('leads.errorLoadingOffer')}</p>
                                                                 </div>
                                                             );
                                                         }
-                                                    }) : <span className="text-gray-500 italic">No offers available</span>}
+                                                    }) : <span className="text-gray-500 italic">{t('offers.noOffersAvailable')}</span>}
                                                 </div>
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                                
+
                                 <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse space-y-3 sm:space-y-0">
                                     <button
                                         type="button"
                                         className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto"
                                         onClick={onClose}
                                     >
-                                        Close
+                                        {t('common.close')}
                                     </button>
                                     {onSubmitOffer && (
                                         <button
@@ -448,7 +446,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                             onClick={handleSubmitOffer}
                                             disabled={isSubmitting}
                                         >
-                                            {isSubmitting ? 'Submitting...' : 'Submit Offer'}
+                                            {isSubmitting ? t('leads.submitting') : t('leads.submitOffer')}
                                         </button>
                                     )}
                                 </div>

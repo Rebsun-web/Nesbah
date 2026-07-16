@@ -34,6 +34,16 @@ export async function POST(req) {
 
         console.log(`[LOGIN:${reqId}] START email=${maskEmail(email)} mfa=${!!mfaToken} pool=${JSON.stringify(poolSnap())}`);
 
+        // Reject missing fields before touching the DB. Deliberately not a format
+        // check here (e.g. "not a valid email") — that plus a different error
+        // message than a real login failure could let a caller enumerate accounts.
+        if (!email || !password) {
+            return NextResponse.json(
+                { success: false, error: 'Invalid credentials' },
+                { status: 401 }
+            );
+        }
+
         const loginPromise = performLogin(reqId, elapsed, email, password, mfaToken);
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Login timeout')), LOGIN_TIMEOUT_MS)
@@ -92,7 +102,14 @@ async function performLogin(reqId, elapsed, email, password, mfaToken) {
                     ELSE 'unknown'
                 END as auth_category
              FROM users u
-             WHERE u.email = $1`,
+             WHERE u.email = $1
+               -- Exclude login-less entity rows (e.g. bank/partner profiles created
+               -- without credentials). Only rows with a real password can authenticate.
+               AND u.password IS NOT NULL
+             -- Deterministic pick if two rows ever share an email, so we never
+             -- bcrypt.compare against an arbitrary row.
+             ORDER BY u.user_id ASC
+             LIMIT 1`,
             [email]
         );
 
@@ -235,7 +252,9 @@ async function handleBankEmployeeLogin(reqId, elapsed, client, userData, passwor
         const employeeData = employeeQuery.rows[0];
 
         log('BCRYPT_START');
-        const passwordMatch = await bcrypt.compare(password, userData.password);
+        // Trim to match create/reset flows (which also trim) so trailing whitespace
+        // never causes a false mismatch on first login.
+        const passwordMatch = await bcrypt.compare((password || '').trim(), userData.password);
         log(`BCRYPT_DONE match=${passwordMatch}`);
 
         if (!passwordMatch) {
@@ -314,7 +333,9 @@ async function handleRegularUserLogin(reqId, elapsed, client, userData, password
         const logoUrl = userInfoQuery.rowCount > 0 ? userInfoQuery.rows[0].logo_url : null;
 
         log('BCRYPT_START');
-        const passwordMatch = await bcrypt.compare(password, userData.password);
+        // Trim to match create/reset flows (which also trim) so trailing whitespace
+        // never causes a false mismatch on first login.
+        const passwordMatch = await bcrypt.compare((password || '').trim(), userData.password);
         log(`BCRYPT_DONE match=${passwordMatch}`);
 
         if (!passwordMatch) {

@@ -48,20 +48,8 @@ export async function GET(req, { params }) {
             }
         }
 
-        // Check if the bank has submitted an offer for this application
-        const offerCheck = await pool.query(
-            `SELECT COUNT(*) as offer_count 
-             FROM application_offers 
-             WHERE submitted_application_id = $1 AND bank_user_id = $2`,
-            [applicationId, bankUserId]
-        );
-
-        if (parseInt(offerCheck.rows[0].offer_count) === 0) {
-            return NextResponse.json(
-                { success: false, error: 'No offer submitted for this application' },
-                { status: 403 }
-            );
-        }
+        // Contact details are available to any bank/partner user without an offer
+        // (client requirement — Platform Enhancements §3). No offer gate.
 
         // Fetch the unmasked contact information
         const result = await pool.query(

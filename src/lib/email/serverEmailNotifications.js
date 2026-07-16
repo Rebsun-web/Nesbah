@@ -32,6 +32,44 @@ async function emailjsSend(templateId, templateParams, timeoutMs = 8000) {
     }
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Spacing between bulk sends, to stay under EmailJS per-second/rate limits.
+const BULK_THROTTLE_MS = Number(process.env.EMAILJS_THROTTLE_MS) || 400;
+// Max attempts per email before giving up.
+const MAX_EMAIL_RETRIES = Number(process.env.EMAILJS_MAX_RETRIES) || 3;
+
+// An error is worth retrying if it's a rate-limit (429), a transient server
+// error (5xx), or a network/timeout error (no HTTP status attached).
+function isRetryableEmailError(error) {
+    if (!error) return false;
+    if (error.name === 'AbortError') return true;      // timed out
+    if (typeof error.status !== 'number') return true;  // network failure
+    return error.status === 429 || error.status >= 500;
+}
+
+/**
+ * emailjsSend with retry + exponential backoff. On a 429, honours EmailJS's
+ * pacing by backing off before the next attempt. Throws the last error if all
+ * attempts fail.
+ */
+async function emailjsSendWithRetry(templateId, templateParams, timeoutMs = 8000) {
+    let lastError;
+    for (let attempt = 1; attempt <= MAX_EMAIL_RETRIES; attempt++) {
+        try {
+            return await emailjsSend(templateId, templateParams, timeoutMs);
+        } catch (error) {
+            lastError = error;
+            if (attempt === MAX_EMAIL_RETRIES || !isRetryableEmailError(error)) break;
+            // Exponential backoff: 500ms, 1000ms, 2000ms... + jitter.
+            const backoff = 500 * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 250);
+            console.warn(`⏳ EmailJS send attempt ${attempt} failed (retryable), backing off ${backoff}ms`);
+            await sleep(backoff);
+        }
+    }
+    throw lastError;
+}
+
 /**
  * Send newsletter subscription confirmation email
  */
@@ -39,7 +77,7 @@ export async function sendNewsletterSubscriptionEmail(userEmail) {
     if (isEmailDisabled) return { success: true, disabled: true };
     try {
         console.log(`📤 Sending newsletter confirmation to ${userEmail}`);
-        await emailjsSend(process.env.EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID, { email: userEmail });
+        await emailjsSendWithRetry(process.env.EMAILJS_NEWSLETTER_SUBSCRIPTION_TEMPLATE_ID, { email: userEmail });
         console.log(`✅ Newsletter confirmation sent to ${userEmail}`);
         return { success: true };
     } catch (error) {
@@ -57,7 +95,7 @@ export async function sendSubmissionConfirmationEmail(toEmail, { reference_numbe
     if (!toEmail) return { success: false, error: 'No email provided' };
 
     try {
-        await emailjsSend(process.env.EMAILJS_SUBMISSION_TEMPLATE_ID, {
+        await emailjsSendWithRetry(process.env.EMAILJS_SUBMISSION_TEMPLATE_ID, {
             email:            toEmail,
             reference_number,
             business_name:    business_name || '',
@@ -83,12 +121,20 @@ export async function sendBankNewLeadNotifications(bankEmails) {
         return;
     }
 
-    for (const email of bankEmails) {
+    // De-duplicate to avoid sending the same partner multiple emails.
+    const uniqueEmails = [...new Set(bankEmails.filter(Boolean))];
+
+    for (let i = 0; i < uniqueEmails.length; i++) {
+        const email = uniqueEmails[i];
         try {
-            await emailjsSend(templateId, { to_email: email });
-            console.log(`✅ Submission confirmation sent to banks: ${email}`);
+            await emailjsSendWithRetry(templateId, { to_email: email });
+            console.log(`✅ New-lead notification sent to: ${email}`);
         } catch (error) {
-            console.error(`❌ Failed to notify bank ${email}:`, JSON.stringify(error));
+            console.error(`❌ Failed to notify ${email}:`, JSON.stringify(error));
+        }
+        // Throttle between sends (skip after the last one) to respect rate limits.
+        if (i < uniqueEmails.length - 1) {
+            await sleep(BULK_THROTTLE_MS);
         }
     }
 }
@@ -116,7 +162,7 @@ export async function sendAdminNewLeadEmail(adminEmail, {
     }
 
     try {
-        await emailjsSend(templateId, {
+        await emailjsSendWithRetry(templateId, {
             email:                adminEmail,
             reference_number,
             business_name:        business_name || '',
@@ -140,7 +186,7 @@ export async function sendAdminNewLeadEmail(adminEmail, {
 export async function sendApplicationSubmissionEmail(businessEmail, applicationData) {
     if (isEmailDisabled) return { success: true, disabled: true };
     try {
-        await emailjsSend(process.env.EMAILJS_APPLICATION_SUBMITTED_TEMPLATE_ID, {
+        await emailjsSendWithRetry(process.env.EMAILJS_APPLICATION_SUBMITTED_TEMPLATE_ID, {
             to_email:          businessEmail,
             business_name:     applicationData.trade_name,
             application_id:    applicationData.application_id,

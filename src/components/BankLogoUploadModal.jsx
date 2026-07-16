@@ -68,13 +68,20 @@ export default function BankLogoUploadModal({
                 })
             }, 100)
 
-            const response = await fetch('/api/upload/bank-logo', {
+            // Authenticated upload (endpoint now requires a bank/admin session and
+            // stores to GCS). Do NOT set Content-Type — the browser adds the
+            // multipart boundary for FormData automatically.
+            const response = await makeAuthenticatedRequest('/api/upload/bank-logo', {
                 method: 'POST',
                 body: formData
             })
 
             clearInterval(progressInterval)
             setUploadProgress(100)
+
+            if (!response) {
+                throw new Error('Authentication failed')
+            }
 
             const data = await response.json()
 

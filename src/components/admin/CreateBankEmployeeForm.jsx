@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, BuildingOfficeIcon, UserIcon, PhoneIcon, BriefcaseIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { collectErrors, checkEmail, checkRequired, checkPassword, checkSaudiMobile } from '@/lib/validators';
 
 export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
@@ -13,8 +14,24 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [banks, setBanks] = useState([]);
     const [showPassword, setShowPassword] = useState(false);
+
+    // Field-level validation rules (client mirror of the server checks).
+    const validateForm = () => collectErrors({
+        bank_user_id: () => checkRequired(formData.bank_user_id, 'Bank'),
+        first_name: () => checkRequired(formData.first_name, 'First name'),
+        last_name: () => checkRequired(formData.last_name, 'Last name'),
+        email: () => checkEmail(formData.email),
+        password: () => checkPassword(formData.password),
+        phone: () => (formData.phone ? checkSaudiMobile(formData.phone, { label: 'Phone' }) : null),
+    });
+
+    const handleFieldBlur = (field) => {
+        const { errors } = validateForm();
+        setFieldErrors(prev => ({ ...prev, [field]: errors[field] || '' }));
+    };
     
     // Bank search state
     const [bankSearchTerm, setBankSearchTerm] = useState('');
@@ -47,17 +64,8 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
         const bankName = (bank.entity_name || '').toLowerCase();
         const bankEmail = (bank.email || '').toLowerCase();
         
-        const matches = bankName.includes(searchTerm) || bankEmail.includes(searchTerm);
-        
-        // Debug logging
-        if (bankSearchTerm.trim()) {
-            console.log(`🔍 Bank search: "${bankSearchTerm}" -> "${bankName}" (${bankEmail}) - Match: ${matches}`);
-        }
-        
-        return matches;
+        return bankName.includes(searchTerm) || bankEmail.includes(searchTerm);
     }).slice(0, 10); // Limit to 10 results for better UX
-    
-    console.log(`🏦 Available banks: ${banks.length}, Search term: "${bankSearchTerm}", Filtered: ${filteredBanks.length}`);
 
     const fetchBanks = async () => {
         try {
@@ -82,15 +90,9 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
     };
 
     const handleBankSelect = (bank) => {
-        console.log('🎯 handleBankSelect called with bank:', bank);
-        console.log('🎯 Setting bank_user_id to:', bank.user_id);
-        console.log('🎯 Setting bankSearchTerm to:', bank.entity_name);
-        
         setFormData(prev => ({ ...prev, bank_user_id: bank.user_id }));
         setBankSearchTerm(bank.entity_name || bank.email);
         setShowBankDropdown(false);
-        
-        console.log('🎯 Bank selection completed');
     };
 
     const generatePassword = () => {
@@ -104,6 +106,14 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        const { valid, errors, firstError } = validateForm();
+        if (!valid) {
+            setFieldErrors(errors);
+            setError(firstError);
+            return;
+        }
+
         setLoading(true);
         setError('');
 
@@ -118,12 +128,14 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                // Show success message with password info if applicable
-                if (data.data.default_password) {
-                    alert(`Bank employee created successfully!\n\nDefault password: ${data.data.default_password}\n\nPlease share this with the employee - they should change it on first login.`);
-                } else {
-                    alert('Bank employee created successfully!');
-                }
+                // Always show the exact login credentials so the employee can sign in
+                // immediately (fixes the "login fails until password reset" issue).
+                alert(
+                    `Bank employee created successfully!\n\n` +
+                    `Login email: ${data.data.login_email}\n` +
+                    `Login password: ${data.data.login_password}\n\n` +
+                    `Share these credentials with the employee — they can log in immediately.`
+                );
                 onSuccess(data.data);
                 onClose();
             } else {
@@ -337,11 +349,13 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
                                         name="phone"
                                         value={formData.phone}
                                         onChange={handleInputChange}
+                                        onBlur={() => handleFieldBlur('phone')}
                                         className="w-full border border-gray-300 rounded-md pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="+966 50 123 4567"
                                     />
                                     <PhoneIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                                 </div>
+                                {fieldErrors.phone && <p className="mt-1 text-sm text-red-600">{fieldErrors.phone}</p>}
                             </div>
                         </div>
 
@@ -356,6 +370,7 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
                                     name="email"
                                     value={formData.email}
                                     onChange={handleInputChange}
+                                    onBlur={() => handleFieldBlur('email')}
                                     required
                                     className="w-full border border-gray-300 rounded-md pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder="employee@bank.com"
@@ -364,6 +379,7 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                                 </svg>
                             </div>
+                            {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
                         </div>
 
                         {/* Password */}
@@ -377,6 +393,7 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
                                     name="password"
                                     value={formData.password}
                                     onChange={handleInputChange}
+                                    onBlur={() => handleFieldBlur('password')}
                                     required
                                     minLength={8}
                                     className="w-full border border-gray-300 rounded-md pl-10 pr-20 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -411,6 +428,7 @@ export default function CreateBankEmployeeForm({ isOpen, onClose, onSuccess }) {
                                     </button>
                                 </div>
                             </div>
+                            {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
                             <p className="text-xs text-gray-500 mt-1">
                                 Password must be at least 8 characters long. Use the Generate button for a secure password.
                             </p>

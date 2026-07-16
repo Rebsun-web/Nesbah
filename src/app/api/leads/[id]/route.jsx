@@ -108,17 +108,10 @@ export async function GET(req, { params }) {
             WHERE pa.application_id = $1
         `;
 
-        if (isOpened && !isPurchased) {
-            // Hide sensitive information for opened but not purchased applications
-            appQuery = appQuery.replace('wd.contact_info,', `'{}'::jsonb AS contact_info,`);
-            // Contact fields are masked client-side in BusinessInfoModal (maskContactInfo)
-            // Server returns the data; client shows t***, 05********, ***@***.com
-
-            // Hide some Wathiq data for opened but not purchased applications
-            appQuery = appQuery.replace('wd.management_managers,', `'{}'::jsonb AS management_managers,`);
-            appQuery = appQuery.replace('wd.activities,', `ARRAY[]::text[] AS activities,`);
-            appQuery = appQuery.replace('wd.admin_notes,', `'' as admin_notes,`);
-        }
+        // Contact details are now visible to all bank/partner users without requiring
+        // an offer or purchase (client requirement — Platform Enhancements §3).
+        // admin_notes stays internal-only and is never returned to bank users.
+        appQuery = appQuery.replace('wd.admin_notes,', `'' as admin_notes,`);
 
         if (!isOpened) {
             // UPDATED: Update opened_by array in pos_application table

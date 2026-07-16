@@ -48,14 +48,16 @@ export async function POST(req) {
             let newPassword;
 
             if (custom_password) {
-                // Admin provided a custom password
-                if (custom_password.length < 8) {
+                // Admin provided a custom password. Trim so the stored hash matches
+                // exactly what login will compare (login also trims).
+                const trimmed = custom_password.trim();
+                if (trimmed.length < 8) {
                     return NextResponse.json(
                         { success: false, error: 'Custom password must be at least 8 characters long' },
                         { status: 400 }
                     );
                 }
-                newPassword = custom_password;
+                newPassword = trimmed;
             } else {
                 // Generate a new secure password
                 newPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);

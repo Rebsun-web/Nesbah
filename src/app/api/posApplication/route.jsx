@@ -134,9 +134,13 @@ export async function POST(req) {
             const application_id = posAppResult.rows[0].application_id;
 
             // Get bank users for email notification
+            // Notify login-capable bank employees (entity banks have no email) plus any
+            // legacy bank_user rows that still carry an email.
             const bankUsersResult = await client.query(
-                'SELECT email FROM users WHERE user_type = $1 AND account_status = $2',
-                ['bank_user', 'active']
+                `SELECT email FROM users
+                 WHERE account_status = 'active'
+                   AND email IS NOT NULL
+                   AND user_type IN ('bank_user', 'bank_employee')`
             );
 
             await client.query('COMMIT');

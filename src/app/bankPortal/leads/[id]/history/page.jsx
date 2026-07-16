@@ -18,9 +18,11 @@ import {
     ChevronLeftIcon,
 } from '@heroicons/react/16/solid'
 import { useViewTracking } from '@/hooks/useViewTracking';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 export default function LeadPage({ params }) {
+    const { t } = useLanguage()
     const router = useRouter()
     const resolvedParams = use(params)
     const [application, setApplication] = useState(null)
@@ -80,10 +82,11 @@ export default function LeadPage({ params }) {
     );
 
     if (!application) {
-        return <p className="px-4 py-6">Loading application...</p>
+        return <p className="px-4 py-6">{t('leads.loadingApplication')}</p>
     }
 
     const contactInfo = application.contact_info || {}
+    const notProvided = t('leads.notProvided')
     const sector = Array.isArray(application.sector)
         ? (() => {
             try {
@@ -93,10 +96,10 @@ export default function LeadPage({ params }) {
               return 'Error loading sector data';
             }
           })()
-        : application.sector || 'Not Provided'
-    
+        : application.sector || notProvided
+
     // Format sector data to display each activity on a new line
-    const formattedSector = sector !== 'Not Provided' 
+    const formattedSector = sector !== notProvided
         ? (() => {
             try {
               return sector.split(', ').map((activity, index) => (
@@ -109,7 +112,7 @@ export default function LeadPage({ params }) {
               return <div className="text-red-600">Error loading sector data</div>;
             }
           })()
-        : 'Not Provided'
+        : notProvided
 
     return (
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
@@ -119,15 +122,15 @@ export default function LeadPage({ params }) {
                     className="inline-flex items-center gap-2 text-sm/6 text-zinc-500"
                 >
                     <ChevronLeftIcon className="size-4 fill-zinc-400" />
-                    Back
+                    {t('leads.back')}
                 </button>
             </div>
 
             <div className="mt-4 lg:mt-8">
                 <div className="flex items-center gap-4">
-                    <Heading>Application #{application.application_id}</Heading>
+                    <Heading>{t('application.application')} #{application.application_id}</Heading>
                     <Badge color={isPurchased ? 'lime' : 'rose'}>
-                        {isPurchased ? 'Purchased' : 'Unopened'}
+                        {isPurchased ? t('leads.purchased') : t('leads.unopened')}
                     </Badge>
                 </div>
 
@@ -135,108 +138,108 @@ export default function LeadPage({ params }) {
                     <div className="flex flex-wrap gap-x-10 gap-y-4 py-1.5">
             <span className="flex items-center gap-3 text-sm text-zinc-800">
               <BanknotesIcon className="size-4 shrink-0 fill-zinc-400" />
-              Cash capital: {application.cash_capital ?? 'Not Provided'}
+              {t('leads.cashCapital')}: {application.cash_capital ?? notProvided}
             </span>
 
                         <span className="flex items-center gap-3 text-sm text-zinc-800">
               <BanknotesIcon className="size-4 shrink-0 fill-zinc-400" />
-              In kind capital: {application.in_kind_capital ?? 'Not Provided'}
+              {t('leads.inKindCapital')}: {application.in_kind_capital ?? notProvided}
             </span>
 
                         <span className="flex items-center gap-3 text-sm text-zinc-800">
               <CalendarIcon className="size-4 shrink-0 fill-zinc-400" />
-              Submitted: {new Date(application.submitted_at).toLocaleString()}
+              {t('offers.submitted')}: {new Date(application.submitted_at).toLocaleString()}
             </span>
                     </div>
                 </div>
             </div>
 
             <div className="mt-12">
-                <Subheading>Business Details</Subheading>
+                <Subheading>{t('leads.businessDetails')}</Subheading>
                 <Divider className="mt-4" />
                 <DescriptionList>
-                    <DescriptionTerm>Business Name</DescriptionTerm>
+                    <DescriptionTerm>{t('leads.businessName')}</DescriptionTerm>
                     <DescriptionDetails>{application.trade_name}</DescriptionDetails>
 
-                    <DescriptionTerm>CR number</DescriptionTerm>
+                    <DescriptionTerm>{t('leads.crNumber')}</DescriptionTerm>
                     <DescriptionDetails>
                         {application.cr_national_number}
                     </DescriptionDetails>
 
-                    <DescriptionTerm>Sector</DescriptionTerm>
+                    <DescriptionTerm>{t('business.sector')}</DescriptionTerm>
                     <DescriptionDetails>{formattedSector}</DescriptionDetails>
 
-                    <DescriptionTerm>City</DescriptionTerm>
+                    <DescriptionTerm>{t('common.city')}</DescriptionTerm>
                     <DescriptionDetails>{application.address}</DescriptionDetails>
 
-                    <DescriptionTerm>Store URL</DescriptionTerm>
+                    <DescriptionTerm>{t('leads.storeUrl')}</DescriptionTerm>
                     <DescriptionDetails>
-                        {application.store_url || 'Not Provided'}
+                        {application.store_url || notProvided}
                     </DescriptionDetails>
 
-                    <DescriptionTerm>Own POS System</DescriptionTerm>
+                    <DescriptionTerm>{t('leads.ownPosSystem')}</DescriptionTerm>
                     <DescriptionDetails>
-                        {application.own_pos_system ? 'Yes' : 'No'}
+                        {application.own_pos_system ? t('common.yes') : t('common.no')}
                     </DescriptionDetails>
 
-                    <DescriptionTerm>Number of POS device</DescriptionTerm>
+                    <DescriptionTerm>{t('leads.numberOfPosDevice')}</DescriptionTerm>
                     <DescriptionDetails>{application.number_of_pos_devices}</DescriptionDetails>
 
-                    <DescriptionTerm>City of operations</DescriptionTerm>
+                    <DescriptionTerm>{t('leads.cityOfOperation')}</DescriptionTerm>
                     <DescriptionDetails>{application.city_of_operation}</DescriptionDetails>
 
-                    <DescriptionTerm>Notes</DescriptionTerm>
+                    <DescriptionTerm>{t('application.notes')}</DescriptionTerm>
                     <DescriptionDetails>{application.notes}</DescriptionDetails>
 
-                    <DescriptionTerm>eCommerce</DescriptionTerm>
+                    <DescriptionTerm>{t('leads.eCommerce')}</DescriptionTerm>
                     <DescriptionDetails>
-                        {application.has_ecommerce ? 'Yes' : 'No'}{' '}
+                        {application.has_ecommerce ? t('common.yes') : t('common.no')}{' '}
                         {application.store_url ? `(${application.store_url})` : ''}
                     </DescriptionDetails>
 
-                    <DescriptionTerm>Uploaded Document</DescriptionTerm>
+                    <DescriptionTerm>{t('application.uploadedDocument')}</DescriptionTerm>
                     <DescriptionDetails>
                         {application.uploaded_document ? (
                             <a
                                 href={`/api/leads/${application.application_id}/document`}
                                 className="text-indigo-600 hover:underline"
                             >
-                                {application.uploaded_filename || 'Download file'}
+                                {application.uploaded_filename || t('leads.downloadFile')}
                             </a>
                         ) : (
-                            'Not Provided'
+                            notProvided
                         )}
                     </DescriptionDetails>
                 </DescriptionList>
             </div>
 
             <div className="mt-6">
-                <Subheading>Contact Information</Subheading>
+                <Subheading>{t('business.contactInformation')}</Subheading>
                 <Divider className="mt-4" />
                 <DescriptionList>
-                    <DescriptionTerm>Contact person</DescriptionTerm>
+                    <DescriptionTerm>{t('business.contactPerson')}</DescriptionTerm>
                     <DescriptionDetails>
-                        {isPurchased ? application.contact_person || 'Not Provided' : 'Hidden'}
+                        {application.contact_person || notProvided}
                     </DescriptionDetails>
 
-                    <DescriptionTerm>Mobile number 1</DescriptionTerm>
+                    <DescriptionTerm>{t('leads.mobileNumber1')}</DescriptionTerm>
                     <DescriptionDetails>
-                        {isPurchased ? application.contact_person_number || 'Not Provided' : 'Hidden'}
+                        {application.contact_person_number || notProvided}
                     </DescriptionDetails>
 
-                    <DescriptionTerm>Mobile number 2</DescriptionTerm>
+                    <DescriptionTerm>{t('leads.mobileNumber2')}</DescriptionTerm>
                     <DescriptionDetails>
-                        {isPurchased ? contactInfo.mobileNo || 'Not Provided' : 'Hidden'}
+                        {contactInfo.mobileNo || notProvided}
                     </DescriptionDetails>
 
-                    <DescriptionTerm>Email</DescriptionTerm>
+                    <DescriptionTerm>{t('business.email')}</DescriptionTerm>
                     <DescriptionDetails>
-                        {isPurchased ? contactInfo.email || 'Not Provided' : 'Hidden'}
+                        {contactInfo.email || notProvided}
                     </DescriptionDetails>
 
-                    <DescriptionTerm>Phone</DescriptionTerm>
+                    <DescriptionTerm>{t('leads.phone')}</DescriptionTerm>
                     <DescriptionDetails>
-                        {isPurchased ? contactInfo.phoneNo || 'Not Provided' : 'Hidden'}
+                        {contactInfo.phoneNo || notProvided}
                     </DescriptionDetails>
                 </DescriptionList>
             </div>
@@ -244,20 +247,20 @@ export default function LeadPage({ params }) {
             {/* Offer and rejection info sections */}
 
                 <div className="mt-12">
-                    <Subheading>Submitted Offer</Subheading>
+                    <Subheading>{t('leads.submittedOffer')}</Subheading>
                     <Divider className="mt-4" />
                     <DescriptionList>
-                        <DescriptionTerm>Device Setup Fee</DescriptionTerm>
-                        <DescriptionDetails>{submittedOffer.offer_device_setup_fee || 'Not Provided'}</DescriptionDetails>
-                        <DescriptionTerm>Transaction Fee MADA</DescriptionTerm>
-                        <DescriptionDetails>{submittedOffer.offer_transaction_fee_mada || 'Not Provided'}</DescriptionDetails>
-                        <DescriptionTerm>Transaction Fee Visa/MC</DescriptionTerm>
-                        <DescriptionDetails>{submittedOffer.offer_transaction_fee_visa_mc || 'Not Provided'}</DescriptionDetails>
-                        <DescriptionTerm>Settlement Time MADA</DescriptionTerm>
-                        <DescriptionDetails>{submittedOffer.offer_settlement_time_mada || 'Not Provided'}</DescriptionDetails>
-                        <DescriptionTerm>Comment</DescriptionTerm>
-                        <DescriptionDetails>{submittedOffer.offer_comment || 'Not Provided'}</DescriptionDetails>
-                        <DescriptionTerm>Uploaded File</DescriptionTerm>
+                        <DescriptionTerm>{t('offers.deviceSetupFee')}</DescriptionTerm>
+                        <DescriptionDetails>{submittedOffer.offer_device_setup_fee || notProvided}</DescriptionDetails>
+                        <DescriptionTerm>{t('leads.transactionFeeMada')}</DescriptionTerm>
+                        <DescriptionDetails>{submittedOffer.offer_transaction_fee_mada || notProvided}</DescriptionDetails>
+                        <DescriptionTerm>{t('leads.transactionFeeVisaMc')}</DescriptionTerm>
+                        <DescriptionDetails>{submittedOffer.offer_transaction_fee_visa_mc || notProvided}</DescriptionDetails>
+                        <DescriptionTerm>{t('leads.settlementTimeMada')}</DescriptionTerm>
+                        <DescriptionDetails>{submittedOffer.offer_settlement_time_mada || notProvided}</DescriptionDetails>
+                        <DescriptionTerm>{t('leads.comment')}</DescriptionTerm>
+                        <DescriptionDetails>{submittedOffer.offer_comment || notProvided}</DescriptionDetails>
+                        <DescriptionTerm>{t('leads.uploadedFile')}</DescriptionTerm>
                         <DescriptionDetails>
                             {submittedOffer.uploaded_filename ? (
                                 <a
@@ -267,7 +270,7 @@ export default function LeadPage({ params }) {
                                     {submittedOffer.uploaded_filename}
                                 </a>
                             ) : (
-                                'Not Provided'
+                                notProvided
                             )}
                         </DescriptionDetails>
                     </DescriptionList>
@@ -276,12 +279,12 @@ export default function LeadPage({ params }) {
 
             {rejectionInfo && (
                 <div className="mt-12">
-                    <Subheading>Rejection Information</Subheading>
+                    <Subheading>{t('leads.rejectionInformation')}</Subheading>
                     <Divider className="mt-4" />
                     <DescriptionList>
-                        <DescriptionTerm>Rejection Reason</DescriptionTerm>
-                        <DescriptionDetails>{rejectionInfo.reason || 'Not Provided'}</DescriptionDetails>
-                        <DescriptionTerm>Rejected At</DescriptionTerm>
+                        <DescriptionTerm>{t('leads.rejectionReason')}</DescriptionTerm>
+                        <DescriptionDetails>{rejectionInfo.reason || notProvided}</DescriptionDetails>
+                        <DescriptionTerm>{t('leads.rejectedAt')}</DescriptionTerm>
                         <DescriptionDetails>{new Date(rejectionInfo.created_at).toLocaleString()}</DescriptionDetails>
                     </DescriptionList>
                 </div>

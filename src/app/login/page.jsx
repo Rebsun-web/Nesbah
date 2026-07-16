@@ -15,6 +15,7 @@ import { Navbar } from '@/components/navbar';
 import { Container } from '@/components/container';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { EMAIL_RE } from '@/lib/validators';
 
 export default function Login() {
   const router = useRouter();
@@ -36,7 +37,15 @@ export default function Login() {
       console.log('⚠️ Login already in progress, ignoring duplicate submission');
       return;
     }
-    
+
+    // Format-only check (not "does this account exist") so we don't leak anything
+    // beyond what a fat-fingered email address would already reveal.
+    if (!email || !EMAIL_RE.test(email.trim()) || !password) {
+      setModalMessage('Please enter a valid email address and password.');
+      setIsModalOpen(true);
+      return;
+    }
+
     setIsLoading(true);
     setIsModalOpen(false);
 
@@ -160,7 +169,7 @@ export default function Login() {
             <Field className="mt-8 space-y-3">
               <Label className="text-sm/5 font-medium">{t('auth.email')}</Label>
               <input
-                  type="text"
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

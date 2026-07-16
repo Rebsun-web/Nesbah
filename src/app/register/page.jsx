@@ -16,6 +16,7 @@ import {Container} from "@/components/container";
 import { BuildingOfficeIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { CR_NATIONAL_NUMBER_RE, SAUDI_MOBILE_RE, EMAIL_RE } from '@/lib/validators';
 
 export default function Register() {
     const { t } = useLanguage();
@@ -38,25 +39,15 @@ export default function Register() {
     
     // Field validation states
     const [fieldErrors, setFieldErrors] = useState({});
-    const [phoneNumber, setPhoneNumber] = useState('');
-    const [contactPerson, setContactPerson] = useState('');
     const [termsAccepted, setTermsAccepted] = useState(false);
 
-    // Validation functions
-    const validateEmail = (email) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    };
+    // Validation functions — backed by the shared regex constants so the CR/phone
+    // format rules stay in sync with the rest of the app (onboarding, admin, etc.)
+    const validateEmail = (email) => EMAIL_RE.test(email);
 
-    const validateCRNumber = (crNumber) => {
-        const crRegex = /^70\d{8}$/;
-        return crRegex.test(crNumber);
-    };
+    const validateCRNumber = (crNumber) => CR_NATIONAL_NUMBER_RE.test(crNumber);
 
-    const validatePhoneNumber = (phone) => {
-        const phoneRegex = /^(\+966|966)?[0-9]{9}$/;
-        return phoneRegex.test(phone.replace(/\s/g, ''));
-    };
+    const validatePhoneNumber = (phone) => SAUDI_MOBILE_RE.test(phone.replace(/\s/g, ''));
 
     const validatePassword = (password) => {
         const minLength = password.length >= 8;
@@ -77,49 +68,6 @@ export default function Register() {
         };
     };
 
-    const validateForm = () => {
-        const errors = {};
-        
-        // Email validation
-        if (!email || !validateEmail(email)) {
-            errors.email = 'Please enter a valid email address';
-        }
-        
-        // CR Number validation for business
-        if (!cr_national_number || !validateCRNumber(cr_national_number)) {
-            errors.cr_national_number = 'Please enter a valid 10-digit CR number';
-        }
-        
-        // Phone number validation
-        if (phoneNumber && !validatePhoneNumber(phoneNumber)) {
-            errors.phoneNumber = 'Please enter a valid Saudi phone number (+966XXXXXXXXX)';
-        }
-        
-        // Contact person validation
-        if (!contactPerson.trim()) {
-            errors.contactPerson = 'Contact person name is required';
-        }
-        
-        // Password validation
-        const passwordValidation = validatePassword(password);
-        if (!passwordValidation.isValid) {
-            errors.password = Object.values(passwordValidation.errors).filter(Boolean);
-        }
-        
-        // Confirm password validation
-        if (password !== confirmPassword) {
-            errors.confirmPassword = 'Passwords do not match';
-        }
-        
-        // Terms acceptance validation
-        if (!termsAccepted) {
-            errors.terms = 'You must accept the terms and conditions';
-        }
-        
-        setFieldErrors(errors);
-        return Object.keys(errors).length === 0;
-    };
-
     const resetForm = () => {
         setVerificationStep('initial');
         setVerifiedData(null);
@@ -130,8 +78,6 @@ export default function Register() {
         setConfirmPassword('');
         setPasswordError('');
         setFieldErrors({});
-        setPhoneNumber('');
-        setContactPerson('');
         setTermsAccepted(false);
     };
 

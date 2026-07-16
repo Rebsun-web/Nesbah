@@ -14,7 +14,8 @@ import {
     DocumentTextIcon,
     PlusIcon,
     ChevronDownIcon,
-    ExclamationTriangleIcon
+    ExclamationTriangleIcon,
+    ArrowDownTrayIcon
 } from '@heroicons/react/24/outline'
 import { calculateApplicationStatus, getStatusInfo, formatCountdown, safeTextFormat } from '@/lib/application-status'
 import { getCorrectStatus, needsSynchronization, checkStatusUpdates, synchronizeStatuses, getApplicationStatusInfo } from '@/lib/client-status-utils'
@@ -69,6 +70,41 @@ export default function ApplicationsTable() {
     const [viewModalRefreshTrigger, setViewModalRefreshTrigger] = useState(0)
     const [showStatusUpdateModal, setShowStatusUpdateModal] = useState(false)
     const [statusUpdateInfo, setStatusUpdateInfo] = useState(null)
+    const [exporting, setExporting] = useState(false)
+
+    // Export the full application record (all fields) to Excel, honouring the
+    // active search/status/financing filters. Fetches as a blob so the httpOnly
+    // admin cookie is sent and the download is triggered client-side.
+    const handleExport = async () => {
+        try {
+            setExporting(true)
+            const params = new URLSearchParams({
+                search: searchTerm,
+                status: statusFilter,
+                financing_type: financingTypeFilter
+            })
+            const response = await fetch(`/api/admin/applications/export?${params}`, {
+                credentials: 'include'
+            })
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}))
+                throw new Error(data.error || 'Export failed')
+            }
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `applications-${new Date().toISOString().slice(0, 10)}.xlsx`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(url)
+        } catch (err) {
+            setError(err.message || 'Failed to export applications')
+        } finally {
+            setExporting(false)
+        }
+    }
 
     const fetchApplications = async () => {
         try {
@@ -238,13 +274,22 @@ export default function ApplicationsTable() {
                 
                 <div className="flex items-center space-x-3">
                     <button
+                        onClick={handleExport}
+                        disabled={exporting}
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                    >
+                        <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                        {exporting ? 'Exporting...' : 'Export to Excel'}
+                    </button>
+
+                    <button
                         onClick={() => setShowNewApplicationModal(true)}
                         className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     >
                         <PlusIcon className="h-4 w-4 mr-2" />
                         New Application
                     </button>
-                    
+
                     {statusUpdateInfo && statusUpdateInfo.needsUpdate > 0 && (
                         <div className="flex items-center space-x-3">
                             <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" />

@@ -3,6 +3,12 @@ import pool from '@/lib/db';
 import wathiqAPIService from '@/lib/wathiq-api-service';
 import { sendSubmissionConfirmationEmail, sendAdminNewLeadEmail, sendBankNewLeadNotifications } from '@/lib/email/serverEmailNotifications';
 import { auctionConfig } from '@/lib/config/auction-config';
+import { CR_NATIONAL_NUMBER_RE, SAUDI_MOBILE_RE, EMAIL_RE } from '@/lib/validators';
+
+// Generous but bounded — this is a public, unauthenticated endpoint, so free-text
+// fields need a size cap before they reach the DB.
+const MAX_SHORT_FIELD_LEN = 255;
+const MAX_NOTES_LEN = 2000;
 
 const VALID_FINANCING_TYPES = [
     'pos',
@@ -90,10 +96,26 @@ async function performSubmit(reqId, elapsed, log, req) {
         );
     }
 
-    if (!/^7\d{9}$/.test(cr_national_number.toString())) {
+    if (!CR_NATIONAL_NUMBER_RE.test(cr_national_number.toString())) {
         log(`VALIDATION_FAIL cr_format cr=${cr_national_number}`);
         return NextResponse.json(
-            { success: false, error: 'الرقم الوطني يجب أن يتكون من 10 أرقام ويبدأ بالرقم 7 / National number must be exactly 10 digits and start with 7' },
+            { success: false, error: 'الرقم الوطني يجب أن يتكون من 10 أرقام ويبدأ بـ 70 / National number must be exactly 10 digits and start with 70' },
+            { status: 400 }
+        );
+    }
+
+    if (!SAUDI_MOBILE_RE.test(contact_person_number.toString().replace(/[\s-]/g, ''))) {
+        log(`VALIDATION_FAIL phone_format`);
+        return NextResponse.json(
+            { success: false, error: 'يرجى إدخال رقم جوال سعودي صحيح / Enter a valid Saudi mobile number' },
+            { status: 400 }
+        );
+    }
+
+    if (email && !EMAIL_RE.test(email.toString().trim())) {
+        log(`VALIDATION_FAIL email_format`);
+        return NextResponse.json(
+            { success: false, error: 'يرجى إدخال بريد إلكتروني صحيح / Enter a valid email address' },
             { status: 400 }
         );
     }
@@ -102,6 +124,24 @@ async function performSubmit(reqId, elapsed, log, req) {
         log(`VALIDATION_FAIL financing_type=${financing_type}`);
         return NextResponse.json(
             { success: false, error: `Invalid financing_type. Must be one of: ${VALID_FINANCING_TYPES.join(', ')}` },
+            { status: 400 }
+        );
+    }
+
+    const shortFields = { business_name, contact_person, city_of_operation, sector };
+    for (const [fieldName, value] of Object.entries(shortFields)) {
+        if (value && value.toString().length > MAX_SHORT_FIELD_LEN) {
+            log(`VALIDATION_FAIL field_too_long field=${fieldName}`);
+            return NextResponse.json(
+                { success: false, error: `${fieldName} must be at most ${MAX_SHORT_FIELD_LEN} characters` },
+                { status: 400 }
+            );
+        }
+    }
+    if (notes && notes.toString().length > MAX_NOTES_LEN) {
+        log('VALIDATION_FAIL notes_too_long');
+        return NextResponse.json(
+            { success: false, error: `Notes must be at most ${MAX_NOTES_LEN} characters` },
             { status: 400 }
         );
     }
@@ -322,8 +362,14 @@ async function performSubmit(reqId, elapsed, log, req) {
             }).catch((e) => log(`EMAIL_ADMIN_FAIL ${e.message}`));
         }
 
+        // Notify partners of the new lead. Banks created as entities have no email,
+        // so login-capable bank EMPLOYEE accounts are the notification target. Legacy
+        // bank_user rows that still carry an email are included too (deduped in the sender).
         pool.query(
-            `SELECT u.email FROM users u WHERE u.user_type = 'bank_user' AND u.account_status = 'active'`
+            `SELECT u.email FROM users u
+             WHERE u.account_status = 'active'
+               AND u.email IS NOT NULL
+               AND u.user_type IN ('bank_user', 'bank_employee')`
         ).then(r => {
             const emails = r.rows.map(row => row.email);
             log(`EMAIL_BANKS_SENDING count=${emails.length}`);

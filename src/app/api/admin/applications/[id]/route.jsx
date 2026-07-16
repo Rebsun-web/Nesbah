@@ -255,6 +255,24 @@ export async function PUT(req, { params }) {
             return NextResponse.json({ success: false, error: 'Invalid assigned user ID' }, { status: 400 });
         }
 
+        // Allow-list checks — current_application_status has no DB-level CHECK
+        // constraint, so this is the only thing stopping an arbitrary string being
+        // written and breaking downstream status-based logic.
+        const VALID_STATUSES = ['live_auction', 'completed', 'ignored'];
+        if (status !== undefined && !VALID_STATUSES.includes(status)) {
+            return NextResponse.json(
+                { success: false, error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` },
+                { status: 400 }
+            );
+        }
+        const VALID_FINANCING_TYPES = ['pos', 'working_capital', 'equipment', 'expansion', 'project', 'real_estate', 'general', 'business'];
+        if (financing_type !== undefined && !VALID_FINANCING_TYPES.includes(financing_type)) {
+            return NextResponse.json(
+                { success: false, error: `Invalid financing_type. Must be one of: ${VALID_FINANCING_TYPES.join(', ')}` },
+                { status: 400 }
+            );
+        }
+
         const client = await pool.connectWithRetry(3, 2000, 'app_api_admin_applications_[id]_route.jsx_route');
         
         try {

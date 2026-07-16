@@ -198,7 +198,7 @@ export default function UserManagement() {
                 requestBody = { user_id: deletingUser.user_id }
             } else if (deletingUser.userType === 'employee') {
                 endpoint = '/api/admin/users/delete-bank-employee'
-                requestBody = { employee_id: deletingUser.user_id }
+                requestBody = { employee_id: deletingUser.employee_id }
             }
 
             const response = await fetch(endpoint, {

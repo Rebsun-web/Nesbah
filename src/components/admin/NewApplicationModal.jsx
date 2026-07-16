@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { XMarkIcon, CheckIcon, ExclamationTriangleIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { collectErrors, checkRequired, checkCRNationalNumber, checkSaudiMobile, checkEmail } from '@/lib/validators'
 
 const FINANCING_OPTIONS = [
     { value: 'business', label: 'Business Financing' },
@@ -53,8 +54,9 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
     }, [isOpen])
 
     const handleLookup = async () => {
-        if (!crInput.trim()) {
-            setLookupError('Enter a CR national number first.')
+        const crError = checkCRNationalNumber(crInput.trim())
+        if (crError) {
+            setLookupError(crError)
             return
         }
         setLookupState('loading')
@@ -97,8 +99,15 @@ export default function NewApplicationModal({ isOpen, onClose, onSuccess }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!formData.contact_person || !formData.contact_person_number || !formData.city_of_operation || !formData.financing_type) {
-            setSubmitError('City, contact person, phone, and financing type are required.')
+        const { valid, firstError } = collectErrors({
+            contact_person: () => checkRequired(formData.contact_person, 'Contact person'),
+            contact_person_number: () => checkSaudiMobile(formData.contact_person_number, { label: 'Phone' }),
+            city_of_operation: () => checkRequired(formData.city_of_operation, 'City of operation'),
+            financing_type: () => checkRequired(formData.financing_type, 'Financing type'),
+            email: () => checkEmail(formData.email, { required: false }),
+        })
+        if (!valid) {
+            setSubmitError(firstError)
             return
         }
         setSubmitLoading(true)

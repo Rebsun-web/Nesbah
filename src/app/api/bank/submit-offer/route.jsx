@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { authenticateAPIRequest } from '@/lib/auth/api-auth';
+import { collectErrors, checkNumber, checkLength } from '@/lib/validators';
 
 export async function POST(req) {
     const authResult = await authenticateAPIRequest(req, 'bank_user');
@@ -30,6 +31,21 @@ export async function POST(req) {
                 success: false,
                 message: 'Missing required fields: leadId, approvedAmount, repaymentPeriod, interestRate, monthlyInstallment are required'
             }, { status: 400 });
+        }
+
+        // Reject non-numeric and negative values before they reach the DB —
+        // parseFloat/parseInt on garbage input silently produce NaN otherwise.
+        const { valid: offerValid, firstError: offerError } = collectErrors({
+            approvedAmount: () => checkNumber(approvedAmount, { min: 0, label: 'Approved amount' }),
+            repaymentPeriod: () => checkNumber(repaymentPeriod, { min: 1, integer: true, label: 'Repayment period' }),
+            interestRate: () => checkNumber(interestRate, { min: 0, label: 'Interest rate' }),
+            monthlyInstallment: () => checkNumber(monthlyInstallment, { min: 0, label: 'Monthly installment' }),
+            gracePeriod: () => (gracePeriod ? checkNumber(gracePeriod, { min: 0, integer: true, label: 'Grace period' }) : null),
+            relationshipManagerContact: () => (relationshipManagerContact ? checkLength(relationshipManagerContact, { max: 255, label: 'Relationship manager contact' }) : null),
+            comment: () => (comment ? checkLength(comment, { max: 2000, label: 'Comment' }) : null),
+        });
+        if (!offerValid) {
+            return NextResponse.json({ success: false, message: offerError }, { status: 400 });
         }
 
         // bankUserId is authoritative from the JWT
