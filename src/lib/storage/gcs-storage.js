@@ -86,8 +86,13 @@ class GCSStorageService {
                 },
             });
 
-            // Make the file publicly accessible
-            await file.makePublic();
+            // The bucket has Uniform Bucket-Level Access enabled, which grants public
+            // read via a bucket-level IAM binding (allUsers -> objectViewer) and
+            // disables the legacy per-object ACL API. Calling file.makePublic() here
+            // throws ("Cannot update access control ... uniform bucket-level access is
+            // enabled") and was silently sending every upload through the local-disk
+            // fallback below — no need to call it since the bucket already makes
+            // every object public.
 
             // Return public URL
             const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
