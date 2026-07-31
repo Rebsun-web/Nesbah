@@ -4,9 +4,13 @@ import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BuildingOfficeIcon, DocumentTextIcon, MapPinIcon, UserIcon, PhoneIcon, EnvelopeIcon, CurrencyDollarIcon, ClockIcon } from '@heroicons/react/24/outline'
 import { useLanguage } from '@/contexts/LanguageContext'
+import {
+    formatFinancingType, formatAmountRange, formatAgeRange,
+    formatRevenueRange, formatCity, formatSector, formatHasPos,
+} from '@/lib/apply-options'
 
 export default function BusinessInfoModal({ isOpen, onClose, businessData, onSubmitOffer }) {
-    const { t } = useLanguage()
+    const { t, currentLanguage } = useLanguage()
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     if (!businessData) return null
@@ -68,7 +72,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+                    <div className="fixed inset-0 bg-[hsl(var(--foreground)/0.6)] transition-opacity" />
                 </Transition.Child>
 
                 <div className="fixed inset-0 z-10 overflow-y-auto">
@@ -86,7 +90,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                 <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
                                     <button
                                         type="button"
-                                        className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                        className="rounded-md bg-white text-gray-400 hover:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                                         onClick={onClose}
                                     >
                                         <span className="sr-only">Close</span>
@@ -99,27 +103,27 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             {/* Business Information */}
                                             <div className="space-y-4">
-                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                                <h4 className="text-md font-medium text-[hsl(var(--foreground))] flex items-center">
                                                     <BuildingOfficeIcon className="h-5 w-5 text-indigo-600 mr-2" />
                                                     {t('business.businessInformation')}
                                                 </h4>
-                                                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                                                <div className="bg-[hsl(var(--secondary))] rounded-lg p-4 space-y-3">
                                                     {(businessData.company_name || businessData.trade_name) && (
                                                         <div className="flex justify-between items-start">
-                                                            <span className="text-sm font-medium text-gray-700">{t('leads.businessName')}:</span>
-                                                            <span className="text-sm text-gray-900 text-right max-w-[60%] break-words">{businessData.company_name || businessData.trade_name}</span>
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.businessName')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))] text-right max-w-[60%] break-words">{businessData.company_name || businessData.trade_name}</span>
                                                         </div>
                                                     )}
                                                     {(businessData.city || businessData.city_of_operation) && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">{t('common.city')}:</span>
-                                                            <span className="text-sm text-gray-900">{businessData.city_of_operation || businessData.city}</span>
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('common.city')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{formatCity(businessData.city_code, currentLanguage, businessData.city_of_operation || businessData.city)}</span>
                                                         </div>
                                                     )}
                                                     {businessData.sector && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">{t('business.sector')}:</span>
-                                                            <span className="text-sm text-gray-900">{businessData.sector}</span>
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('business.sector')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{formatSector(businessData.sector_code, currentLanguage, businessData.sector)}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -127,23 +131,41 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
 
                                             {/* Financing Details */}
                                             <div className="space-y-4">
-                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                                <h4 className="text-md font-medium text-[hsl(var(--foreground))] flex items-center">
                                                     <CurrencyDollarIcon className="h-5 w-5 text-indigo-600 mr-2" />
                                                     {t('leads.financingDetails')}
                                                 </h4>
-                                                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                                                <div className="bg-[hsl(var(--secondary))] rounded-lg p-4 space-y-3">
                                                     {businessData.financing_type && (
                                                         <div className="flex justify-between items-center">
-                                                            <span className="text-sm font-medium text-gray-700">{t('leads.financingType')}:</span>
-                                                            <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
-                                                                {businessData.financing_type.replace(/_/g, ' ')}
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.financingType')}:</span>
+                                                            <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                                                                {formatFinancingType(businessData.financing_type, currentLanguage)}
                                                             </span>
                                                         </div>
                                                     )}
-                                                    {businessData.approximate_financing_amount && (
+                                                    {(businessData.amount_range_code || businessData.approximate_financing_amount) && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">{t('leads.approximateAmountNeeded')}:</span>
-                                                            <span className="text-sm text-gray-900">{businessData.approximate_financing_amount}</span>
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.approximateAmountNeeded')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{formatAmountRange(businessData.amount_range_code, currentLanguage, businessData.approximate_financing_amount)}</span>
+                                                        </div>
+                                                    )}
+                                                    {(businessData.annual_revenue_code || businessData.is_pre_revenue) && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.annualRevenue')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{formatRevenueRange(businessData.annual_revenue_code, currentLanguage, { isPreRevenue: businessData.is_pre_revenue === true })}</span>
+                                                        </div>
+                                                    )}
+                                                    {businessData.business_age_range_code && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.businessAge')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{formatAgeRange(businessData.business_age_range_code, currentLanguage)}</span>
+                                                        </div>
+                                                    )}
+                                                    {typeof businessData.own_pos_system === 'boolean' && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.ownPosSystem')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{formatHasPos(businessData.own_pos_system, currentLanguage)}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -151,27 +173,27 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
 
                                             {/* Contact Information */}
                                             <div className="space-y-4">
-                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                                <h4 className="text-md font-medium text-[hsl(var(--foreground))] flex items-center">
                                                     <UserIcon className="h-5 w-5 text-indigo-600 mr-2" />
                                                     {t('business.contactInformation')}
                                                 </h4>
-                                                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                                                <div className="bg-[hsl(var(--secondary))] rounded-lg p-4 space-y-3">
                                                     {businessData.contact_person && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">{t('business.contactPerson')}:</span>
-                                                            <span className="text-sm text-gray-900">{maskContactInfo('name', businessData.contact_person)}</span>
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('business.contactPerson')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{maskContactInfo('name', businessData.contact_person)}</span>
                                                         </div>
                                                     )}
                                                     {businessData.contact_person_number && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">{t('application.mobileNumber')}:</span>
-                                                            <span className="text-sm text-gray-900">{maskContactInfo('phone', businessData.contact_person_number)}</span>
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('application.mobileNumber')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{maskContactInfo('phone', businessData.contact_person_number)}</span>
                                                         </div>
                                                     )}
                                                     {businessData.business_contact_email && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">{t('business.email')}:</span>
-                                                            <span className="text-sm text-gray-900">{maskContactInfo('email', businessData.business_contact_email)}</span>
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('business.email')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{maskContactInfo('email', businessData.business_contact_email)}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -180,73 +202,73 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
 
                                         {/* Wathiq / Business Registry Data */}
                                         <div className="mt-6 space-y-4">
-                                            <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                            <h4 className="text-md font-medium text-[hsl(var(--foreground))] flex items-center">
                                                 <DocumentTextIcon className="h-5 w-5 text-indigo-600 mr-2" />
                                                 {t('leads.businessRegistryWathiq')}
                                             </h4>
                                             <div className="bg-blue-50 rounded-lg p-4 space-y-3">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('leads.crNumber')}:</span>
-                                                        <span className="text-sm text-gray-900">{ns(businessData.cr_number)}</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.crNumber')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">{ns(businessData.cr_number)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('leads.crNationalNumberWathiq')}:</span>
-                                                        <span className="text-sm text-gray-900">{ns(businessData.cr_national_number)}</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.crNationalNumberWathiq')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">{ns(businessData.cr_national_number)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('leads.legalForm')}:</span>
-                                                        <span className="text-sm text-gray-900">{ns(businessData.legal_form)}</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.legalForm')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">{ns(businessData.legal_form)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('leads.registrationStatus')}:</span>
-                                                        <span className="text-sm text-gray-900">{ns(businessData.registration_status)}</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.registrationStatus')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">{ns(businessData.registration_status)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('leads.issueDate')}:</span>
-                                                        <span className="text-sm text-gray-900">{ns(businessData.issue_date_gregorian)}</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.issueDate')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">{ns(businessData.issue_date_gregorian)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('leads.confirmationDate')}:</span>
-                                                        <span className="text-sm text-gray-900">{ns(businessData.confirmation_date_gregorian)}</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.confirmationDate')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">{ns(businessData.confirmation_date_gregorian)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('leads.cityHQ')}:</span>
-                                                        <span className="text-sm text-gray-900">{ns(businessData.hq_city)}</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.cityHQ')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">{ns(businessData.hq_city)}</span>
                                                     </div>
                                                     {businessData.headquarter_district_name && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">{t('leads.district')}:</span>
-                                                            <span className="text-sm text-gray-900">{businessData.headquarter_district_name}</span>
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.district')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{businessData.headquarter_district_name}</span>
                                                         </div>
                                                     )}
                                                     {businessData.headquarter_street_name && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">{t('leads.street')}:</span>
-                                                            <span className="text-sm text-gray-900">{businessData.headquarter_street_name}</span>
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.street')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{businessData.headquarter_street_name}</span>
                                                         </div>
                                                     )}
                                                     {businessData.headquarter_building_number && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">{t('leads.buildingNo')}:</span>
-                                                            <span className="text-sm text-gray-900">{businessData.headquarter_building_number}</span>
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.buildingNo')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))]">{businessData.headquarter_building_number}</span>
                                                         </div>
                                                     )}
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('leads.crCapital')}:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.cr_capital ? formatMoney(businessData.cr_capital) : t('leads.notSpecified')}</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.crCapital')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">{businessData.cr_capital ? formatMoney(businessData.cr_capital) : t('leads.notSpecified')}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('business.cashCapital')}:</span>
-                                                        <span className="text-sm text-gray-900">{businessData.cash_capital ? formatMoney(businessData.cash_capital) : t('leads.notSpecified')}</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('business.cashCapital')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">{businessData.cash_capital ? formatMoney(businessData.cash_capital) : t('leads.notSpecified')}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('leads.managementStructure')}:</span>
-                                                        <span className="text-sm text-gray-900">{ns(businessData.management_structure)}</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.managementStructure')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">{ns(businessData.management_structure)}</span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('leads.hasEcommerce')}:</span>
-                                                        <span className="text-sm text-gray-900">
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.hasEcommerce')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">
                                                             {businessData.has_ecommerce === null || businessData.has_ecommerce === undefined
                                                                 ? t('leads.notSpecified')
                                                                 : businessData.has_ecommerce ? t('common.yes') : t('common.no')}
@@ -254,13 +276,13 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                     </div>
                                                     {businessData.has_ecommerce && businessData.store_url && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm font-medium text-gray-700">{t('leads.storeUrl')}:</span>
-                                                            <span className="text-sm text-gray-900 break-all">{businessData.store_url}</span>
+                                                            <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.storeUrl')}:</span>
+                                                            <span className="text-sm text-[hsl(var(--foreground))] break-all">{businessData.store_url}</span>
                                                         </div>
                                                     )}
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-gray-700">{t('leads.verified')}:</span>
-                                                        <span className="text-sm text-gray-900">
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.verified')}:</span>
+                                                        <span className="text-sm text-[hsl(var(--foreground))]">
                                                             {businessData.is_verified === null || businessData.is_verified === undefined
                                                                 ? t('leads.notSpecified')
                                                                 : businessData.is_verified ? t('common.yes') : t('common.no')}
@@ -271,7 +293,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                 {/* Activities — only shown for purchased leads */}
                                                 {Array.isArray(businessData.activities) && businessData.activities.length > 0 && (
                                                     <div className="pt-3 border-t border-blue-200">
-                                                        <span className="text-sm font-medium text-gray-700 block mb-1">{t('business.activities')}:</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))] block mb-1">{t('business.activities')}:</span>
                                                         <div className="flex flex-wrap gap-1">
                                                             {businessData.activities.map((a, i) => (
                                                                 <span key={i} className="inline-block px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">{a}</span>
@@ -283,12 +305,12 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                 {/* Management Managers — only shown for purchased leads */}
                                                 {Array.isArray(businessData.management_managers) && businessData.management_managers.length > 0 && (
                                                     <div className="pt-3 border-t border-blue-200">
-                                                        <span className="text-sm font-medium text-gray-700 block mb-2">{t('leads.management')}:</span>
+                                                        <span className="text-sm font-medium text-[hsl(var(--ink-soft))] block mb-2">{t('leads.management')}:</span>
                                                         <div className="space-y-1">
                                                             {businessData.management_managers.map((m, i) => {
                                                                 const manager = typeof m === 'string' ? { name: m } : m
                                                                 return (
-                                                                    <div key={i} className="text-sm text-gray-900">
+                                                                    <div key={i} className="text-sm text-[hsl(var(--foreground))]">
                                                                         {manager.name}{manager.role ? ` — ${manager.role}` : ''}
                                                                     </div>
                                                                 )
@@ -302,36 +324,36 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                         {/* Purpose of Financing */}
                                         {businessData.notes && (
                                             <div className="mt-6 space-y-2">
-                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                                <h4 className="text-md font-medium text-[hsl(var(--foreground))] flex items-center">
                                                     <DocumentTextIcon className="h-5 w-5 text-indigo-600 mr-2" />
                                                     {t('leads.purposeOfFinancing')}
                                                 </h4>
-                                                <div className="bg-gray-50 rounded-lg p-4">
-                                                    <p className="text-sm text-gray-900 whitespace-pre-wrap">{businessData.notes}</p>
+                                                <div className="bg-[hsl(var(--secondary))] rounded-lg p-4">
+                                                    <p className="text-sm text-[hsl(var(--foreground))] whitespace-pre-wrap">{businessData.notes}</p>
                                                 </div>
                                             </div>
                                         )}
 
                                         {/* Additional Information */}
                                         <div className="mt-6 space-y-4">
-                                            <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                            <h4 className="text-md font-medium text-[hsl(var(--foreground))] flex items-center">
                                                 <ClockIcon className="h-5 w-5 text-indigo-600 mr-2" />
                                                 {t('application.details')}
                                             </h4>
-                                            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                                            <div className="bg-[hsl(var(--secondary))] rounded-lg p-4 space-y-3">
                                                 <div className="flex justify-between">
-                                                    <span className="text-sm font-medium text-gray-700">{t('leads.applicationId')}:</span>
-                                                    <span className="text-sm text-gray-900">{businessData.application_id || t('leads.notSpecified')}</span>
+                                                    <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.applicationId')}:</span>
+                                                    <span className="text-sm text-[hsl(var(--foreground))]">{businessData.application_id || t('leads.notSpecified')}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-sm font-medium text-gray-700">{t('leads.submittedAt')}:</span>
-                                                    <span className="text-sm text-gray-900">
+                                                    <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.submittedAt')}:</span>
+                                                    <span className="text-sm text-[hsl(var(--foreground))]">
                                                         {businessData.submitted_at ? new Date(businessData.submitted_at).toLocaleString() : t('leads.notSpecified')}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-sm font-medium text-gray-700">{t('leads.status')}:</span>
-                                                    <span className="text-sm text-gray-900">{businessData.status || t('leads.notSpecified')}</span>
+                                                    <span className="text-sm font-medium text-[hsl(var(--ink-soft))]">{t('leads.status')}:</span>
+                                                    <span className="text-sm text-[hsl(var(--foreground))]">{businessData.status || t('leads.notSpecified')}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -342,22 +364,22 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                         {/* Uploaded Files */}
                                         {businessData.uploaded_filename && (
                                             <div className="mt-6 space-y-4">
-                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                                <h4 className="text-md font-medium text-[hsl(var(--foreground))] flex items-center">
                                                     <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                     </svg>
                                                     {t('application.uploadedDocuments')}
                                                 </h4>
-                                                <div className="bg-gray-50 rounded-lg p-4">
+                                                <div className="bg-[hsl(var(--secondary))] rounded-lg p-4">
                                                     <div className="flex items-center space-x-3">
                                                         <svg className="h-8 w-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                         </svg>
                                                         <div className="flex-1">
-                                                            <p className="text-sm font-medium text-gray-900">
+                                                            <p className="text-sm font-medium text-[hsl(var(--foreground))]">
                                                                 📎 {businessData.uploaded_filename}
                                                             </p>
-                                                            <p className="text-xs text-gray-500">
+                                                            <p className="text-xs text-[hsl(var(--muted-foreground))]">
                                                                 {t('leads.uploadedWithApplication')} • {businessData.uploaded_mimetype || t('leads.unknownType')}
                                                             </p>
                                                         </div>
@@ -380,7 +402,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                         {/* Offers Information */}
                                         {businessData.offers && businessData.offers.length > 0 && (
                                             <div className="mt-6 space-y-4">
-                                                <h4 className="text-md font-medium text-gray-900 flex items-center">
+                                                <h4 className="text-md font-medium text-[hsl(var(--foreground))] flex items-center">
                                                     <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                                     </svg>
@@ -390,9 +412,9 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                     {businessData.offers && Array.isArray(businessData.offers) ? businessData.offers.map((offer, index) => {
                                                         try {
                                                             return (
-                                                                <div key={offer.offer_id || index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                                                <div key={offer.offer_id || index} className="bg-[hsl(var(--secondary))] rounded-lg p-4 border border-[hsl(var(--border))]">
                                                                     <div className="flex items-center justify-between mb-2">
-                                                                        <h5 className="text-sm font-semibold text-gray-900">
+                                                                        <h5 className="text-sm font-semibold text-[hsl(var(--foreground))]">
                                                                             {t('leads.offer')} #{offer.offer_id || t('leads.notSpecified')} {t('leads.by')} {offer.bank_name || t('leads.unknownBank')}
                                                                         </h5>
                                                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -402,16 +424,16 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                                         </span>
                                                                     </div>
                                                                     {offer.offer_comment && (
-                                                                        <p className="text-sm text-gray-700 mb-2">
+                                                                        <p className="text-sm text-[hsl(var(--ink-soft))] mb-2">
                                                                             <strong>{t('leads.comment')}:</strong> {offer.offer_comment || t('leads.notSpecified')}
                                                                         </p>
                                                                     )}
                                                                     {offer.offer_terms && (
-                                                                        <p className="text-sm text-gray-700 mb-2">
+                                                                        <p className="text-sm text-[hsl(var(--ink-soft))] mb-2">
                                                                             <strong>{t('leads.terms')}:</strong> {offer.offer_terms || t('leads.notSpecified')}
                                                                         </p>
                                                                     )}
-                                                                    <p className="text-xs text-gray-500">
+                                                                    <p className="text-xs text-[hsl(var(--muted-foreground))]">
                                                                         {t('offers.submitted')}: {offer.submitted_at ? new Date(offer.submitted_at).toLocaleString() : t('leads.notSpecified')}
                                                                     </p>
                                                                 </div>
@@ -424,7 +446,7 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
                                                                 </div>
                                                             );
                                                         }
-                                                    }) : <span className="text-gray-500 italic">{t('offers.noOffersAvailable')}</span>}
+                                                    }) : <span className="text-[hsl(var(--muted-foreground))] italic">{t('offers.noOffersAvailable')}</span>}
                                                 </div>
                                             </div>
                                         )}

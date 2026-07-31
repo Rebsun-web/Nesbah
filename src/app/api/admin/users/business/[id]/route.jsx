@@ -80,7 +80,16 @@ export async function GET(req, { params }) {
                     pa.offers_count,
                     pa.financing_type,
                     pa.city_of_operation,
-                    pa.approximate_financing_amount
+                    pa.approximate_financing_amount,
+                    pa.city_code,
+                    pa.sector_code,
+                    pa.amount_range_code,
+                    pa.business_age_range_code,
+                    pa.annual_revenue_code,
+                    pa.is_pre_revenue,
+                    pa.own_pos_system,
+                    pa.lead_score,
+                    pa.lead_tier
                 FROM business_users bu
                 JOIN users u ON bu.user_id = u.user_id
                 LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id

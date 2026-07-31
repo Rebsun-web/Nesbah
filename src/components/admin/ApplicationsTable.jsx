@@ -18,6 +18,7 @@ import {
     ArrowDownTrayIcon
 } from '@heroicons/react/24/outline'
 import { calculateApplicationStatus, getStatusInfo, formatCountdown, safeTextFormat } from '@/lib/application-status'
+import { FINANCING_TYPES, FINANCING_ORDER, optionsFor, formatFinancingType } from '@/lib/apply-options'
 import { getCorrectStatus, needsSynchronization, checkStatusUpdates, synchronizeStatuses, getApplicationStatusInfo } from '@/lib/client-status-utils'
 import NewApplicationModal from './NewApplicationModal'
 import ViewApplicationModal from './ViewApplicationModal'
@@ -25,6 +26,13 @@ import EditApplicationModal from './EditApplicationModal'
 import DeleteApplicationModal from './DeleteApplicationModal'
 import BankLogo from '@/components/BankLogo'
 import { useLanguage } from '@/contexts/LanguageContext'
+
+// Filter list is built from the shared code vocabulary. 'general' is retired from
+// the form but still filterable so legacy rows remain reachable.
+const FINANCING_FILTER_OPTIONS = [
+    ...optionsFor(FINANCING_TYPES, FINANCING_ORDER, 'en'),
+    { value: 'general', label: 'Other (legacy)' },
+]
 
 // Build a compact, windowed list of page numbers (with '...' gaps) so the pager
 // stays usable even with many pages. Always includes first, last, and a window
@@ -339,13 +347,9 @@ export default function ApplicationsTable() {
                         className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
                         <option value="all">All Types</option>
-                        <option value="pos">POS</option>
-                        <option value="working_capital">Working Capital</option>
-                        <option value="equipment">Equipment</option>
-                        <option value="expansion">Expansion</option>
-                        <option value="project">Project</option>
-                        <option value="real_estate">Real Estate</option>
-                        <option value="general">General</option>
+                        {FINANCING_FILTER_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
                     </select>
                     <select
                         value={pageSize}
@@ -432,7 +436,7 @@ export default function ApplicationsTable() {
                                         <td className="px-6 py-4">
                                             {application.financing_type ? (
                                                 <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
-                                                    {application.financing_type.replace(/_/g, ' ')}
+                                                    {formatFinancingType(application.financing_type, 'en')}
                                                 </span>
                                             ) : (
                                                 <span className="text-xs text-gray-400">—</span>
@@ -514,7 +518,7 @@ export default function ApplicationsTable() {
                                         )}
                                         {application.financing_type && (
                                             <span className="inline-block mt-0.5 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
-                                                {application.financing_type.replace('_', ' ')}
+                                                {formatFinancingType(application.financing_type, 'en')}
                                             </span>
                                         )}
                                     </div>
@@ -543,7 +547,7 @@ export default function ApplicationsTable() {
                                     <div className="text-sm font-medium text-gray-900">
                                         {application.financing_type ? (
                                             <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
-                                                {application.financing_type.replace(/_/g, ' ')}
+                                                {formatFinancingType(application.financing_type, 'en')}
                                             </span>
                                         ) : '—'}
                                     </div>

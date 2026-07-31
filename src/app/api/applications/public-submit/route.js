@@ -4,22 +4,25 @@ import wathiqAPIService from '@/lib/wathiq-api-service';
 import { sendSubmissionConfirmationEmail, sendAdminNewLeadEmail, sendBankNewLeadNotifications } from '@/lib/email/serverEmailNotifications';
 import { auctionConfig } from '@/lib/config/auction-config';
 import { CR_NATIONAL_NUMBER_RE, SAUDI_MOBILE_RE, EMAIL_RE } from '@/lib/validators';
+import {
+    VALID_FINANCING_CODES,
+    VALID_AMOUNT_CODES,
+    VALID_AGE_CODES,
+    VALID_REVENUE_CODES,
+    VALID_SECTOR_CODES,
+    VALID_CITY_CODES,
+    CONSENT_VERSION,
+    representativeAmount,
+    formatAmountRange,
+    formatCity,
+    formatSector,
+} from '@/lib/apply-options';
+import { computeLeadScore } from '@/lib/lead-score';
 
 // Generous but bounded — this is a public, unauthenticated endpoint, so free-text
 // fields need a size cap before they reach the DB.
 const MAX_SHORT_FIELD_LEN = 255;
 const MAX_NOTES_LEN = 2000;
-
-const VALID_FINANCING_TYPES = [
-    'pos',
-    'working_capital',
-    'equipment',
-    'expansion',
-    'project',
-    'real_estate',
-    'general',
-    'business',
-];
 
 function generateReferenceNumber() {
     const rand = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -75,14 +78,22 @@ async function performSubmit(reqId, elapsed, log, req) {
         cr_national_number,
         contact_person,
         contact_person_number,
-        city_of_operation,
         financing_type,
         notes,
         preferred_repayment_period_months,
         business_name,
         email,
-        sector,
-        approximate_financing_amount,
+        // Stable codes — see src/lib/apply-options.js. The form sends codes only;
+        // the human-readable label is derived for display and for the legacy
+        // free-text columns kept as a fallback for historical rows.
+        city_code,
+        sector_code,
+        amount_range_code,
+        business_age_range_code,
+        annual_revenue_code,
+        is_pre_revenue,
+        has_pos,
+        consent,
     } = body;
 
     log(`START cr=****${String(cr_national_number || '').slice(-4)} type=${financing_type} pool=${JSON.stringify(poolSnap())}`);
@@ -120,15 +131,72 @@ async function performSubmit(reqId, elapsed, log, req) {
         );
     }
 
-    if (!VALID_FINANCING_TYPES.includes(financing_type)) {
+    if (!VALID_FINANCING_CODES.includes(financing_type)) {
         log(`VALIDATION_FAIL financing_type=${financing_type}`);
         return NextResponse.json(
-            { success: false, error: `Invalid financing_type. Must be one of: ${VALID_FINANCING_TYPES.join(', ')}` },
+            { success: false, error: `Invalid financing_type. Must be one of: ${VALID_FINANCING_CODES.join(', ')}` },
             { status: 400 }
         );
     }
 
-    const shortFields = { business_name, contact_person, city_of_operation, sector };
+    // Enumerated answers: every one is required and must be a known code. Codes
+    // are validated here, before any DB call, so a bad payload never reaches the
+    // CHECK constraints.
+    const codeChecks = [
+        ['city_code', city_code, VALID_CITY_CODES],
+        ['sector_code', sector_code, VALID_SECTOR_CODES],
+        ['amount_range_code', amount_range_code, VALID_AMOUNT_CODES],
+        ['business_age_range_code', business_age_range_code, VALID_AGE_CODES],
+    ];
+    for (const [fieldName, value, validCodes] of codeChecks) {
+        if (!value || !validCodes.includes(value)) {
+            log(`VALIDATION_FAIL ${fieldName}=${value}`);
+            return NextResponse.json(
+                { success: false, error: `Invalid ${fieldName}. Must be one of: ${validCodes.join(', ')}` },
+                { status: 400 }
+            );
+        }
+    }
+
+    // Annual revenue and the pre-revenue flag are mutually exclusive, and exactly
+    // one of them must be answered.
+    const isPreRevenue = is_pre_revenue === true;
+    if (isPreRevenue && annual_revenue_code) {
+        log('VALIDATION_FAIL revenue_and_pre_revenue_both_set');
+        return NextResponse.json(
+            { success: false, error: 'annual_revenue_code must be null when is_pre_revenue is true' },
+            { status: 400 }
+        );
+    }
+    if (!isPreRevenue && !VALID_REVENUE_CODES.includes(annual_revenue_code)) {
+        log(`VALIDATION_FAIL annual_revenue_code=${annual_revenue_code}`);
+        return NextResponse.json(
+            { success: false, error: 'اختر الإيراد السنوي / Select annual revenue' },
+            { status: 400 }
+        );
+    }
+
+    // POS question: required, no default. Stored in the existing own_pos_system
+    // boolean rather than a second near-identical column.
+    if (typeof has_pos !== 'boolean') {
+        log(`VALIDATION_FAIL has_pos=${has_pos}`);
+        return NextResponse.json(
+            { success: false, error: 'الإجابة مطلوبة / This answer is required' },
+            { status: 400 }
+        );
+    }
+
+    // Consent to share the application with financing partners is required, and
+    // the accepted version is recorded on the row.
+    if (consent !== true) {
+        log('VALIDATION_FAIL consent_not_given');
+        return NextResponse.json(
+            { success: false, error: 'الموافقة على مشاركة البيانات مطلوبة / Consent to share your data is required' },
+            { status: 400 }
+        );
+    }
+
+    const shortFields = { business_name, contact_person };
     for (const [fieldName, value] of Object.entries(shortFields)) {
         if (value && value.toString().length > MAX_SHORT_FIELD_LEN) {
             log(`VALIDATION_FAIL field_too_long field=${fieldName}`);
@@ -176,6 +244,25 @@ async function performSubmit(reqId, elapsed, log, req) {
     const reference_number = generateReferenceNumber();
     const submitted_at = new Date();
     const auction_end_time = new Date(submitted_at.getTime() + auctionConfig.durationMilliseconds);
+
+    // Codes are authoritative. The Arabic labels below are written to the legacy
+    // free-text columns purely as a display fallback, so portal surfaces that
+    // have not yet been migrated to the code formatters keep rendering correctly.
+    const city_of_operation = formatCity(city_code, 'ar');
+    const sector = formatSector(sector_code, 'ar');
+    const approximate_financing_amount = formatAmountRange(amount_range_code, 'ar');
+    // Legacy numeric column used by the older POS flow and by admin reporting.
+    const requested_financing_amount = representativeAmount(amount_range_code);
+
+    // Internal prioritization indicator — admins and financing partners only.
+    // Never returned to the applicant. lead_tier is derived by a DB trigger.
+    const lead_score = computeLeadScore({
+        amountCode: amount_range_code,
+        ageCode: business_age_range_code,
+        hasPos: has_pos,
+        isPreRevenue,
+    });
+    log(`LEAD_SCORE score=${lead_score}`);
 
     log(`POOL_CONNECT pool=${JSON.stringify(poolSnap())}`);
     const client = await pool.connectWithRetry(2, 1000, 'public-submit');
@@ -304,13 +391,26 @@ async function performSubmit(reqId, elapsed, log, req) {
                 purchased_by,
                 sector,
                 business_contact_email,
-                approximate_financing_amount
+                approximate_financing_amount,
+                requested_financing_amount,
+                city_code,
+                sector_code,
+                amount_range_code,
+                business_age_range_code,
+                annual_revenue_code,
+                is_pre_revenue,
+                own_pos_system,
+                consent_at,
+                consent_version,
+                lead_score
             ) VALUES (
                 NULL,
                 $1, $2, 'live_auction', $3, $4, $5, $6,
                 $7, $8, $9, $10, $11, $12,
                 '{}', '{}',
-                $13, $14, $15
+                $13, $14, $15, $16,
+                $17, $18, $19, $20, $21, $22, $23,
+                $24, $25, $26
             )
             RETURNING application_id`,
             [
@@ -329,6 +429,17 @@ async function performSubmit(reqId, elapsed, log, req) {
                 sector || wathiqData?.sector || null,
                 email || null,
                 approximate_financing_amount || null,
+                requested_financing_amount,
+                city_code,
+                sector_code,
+                amount_range_code,
+                business_age_range_code,
+                isPreRevenue ? null : annual_revenue_code,
+                isPreRevenue,
+                has_pos,
+                submitted_at,
+                CONSENT_VERSION,
+                lead_score,
             ]
         );
 

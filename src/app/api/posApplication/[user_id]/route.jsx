@@ -51,8 +51,53 @@ export async function GET(req, { params }) {
         const client = await pool.connectWithRetry(2, 1000, 'app_api_posApplication_[user_id]_route.jsx_route');
     
         try {
+            // APPLICANT-FACING endpoint: explicit column list, never SELECT *.
+            // `lead_score` / `lead_tier` are deliberately excluded — the internal
+            // prioritization indicator is for admins and financing partners only and
+            // must not reach the applicant, not even in an unrendered JSON field.
             const result = await client.query(
-                'SELECT * FROM pos_application WHERE user_id = $1 AND status IN ($2, $3) ORDER BY submitted_at DESC',
+                `SELECT
+                    application_id,
+                    user_id,
+                    status,
+                    current_application_status,
+                    submitted_at,
+                    updated_at,
+                    reference_number,
+                    notes,
+                    admin_notes,
+                    financing_type,
+                    approximate_financing_amount,
+                    amount_range_code,
+                    requested_financing_amount,
+                    preferred_repayment_period_months,
+                    business_age_range_code,
+                    annual_revenue_code,
+                    is_pre_revenue,
+                    own_pos_system,
+                    number_of_pos_devices,
+                    city_of_operation,
+                    city_code,
+                    sector,
+                    sector_code,
+                    cr_national_number,
+                    contact_person,
+                    contact_person_number,
+                    business_contact_email,
+                    verification_status,
+                    auction_end_time,
+                    offer_selection_end_time,
+                    offers_count,
+                    opened_by,
+                    purchased_by,
+                    uploaded_document,
+                    uploaded_filename,
+                    uploaded_mimetype,
+                    consent_at,
+                    consent_version
+                 FROM pos_application
+                 WHERE user_id = $1 AND status IN ($2, $3)
+                 ORDER BY submitted_at DESC`,
                 [userIdInt, 'live_auction', 'completed']
             );
 

@@ -100,6 +100,11 @@ export async function GET(req) {
                     pa.notes,
                     pa.business_contact_email,
                     pa.approximate_financing_amount,
+                    pa.amount_range_code,
+                    pa.business_age_range_code,
+                    pa.annual_revenue_code,
+                    pa.is_pre_revenue,
+                    pa.own_pos_system,
                     -- Check if bank has already viewed this application
                     CASE WHEN $1 = ANY(pa.opened_by) THEN true ELSE false END as has_viewed,
                     -- Check if bank has already purchased this application

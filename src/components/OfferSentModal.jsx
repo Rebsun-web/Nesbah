@@ -11,7 +11,7 @@ export default function Example() {
         <Dialog open={open} onClose={setOpen} className="relative z-10">
             <DialogBackdrop
                 transition
-                className="fixed inset-0 bg-gray-500/75 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
+                className="fixed inset-0 bg-[hsl(var(--foreground)/0.6)] transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
             />
 
             <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
@@ -25,11 +25,11 @@ export default function Example() {
                                 <CheckIcon aria-hidden="true" className="size-6 text-green-600" />
                             </div>
                             <div className="mt-3 text-center sm:mt-5">
-                                <DialogTitle as="h3" className="text-base font-semibold text-gray-900">
+                                <DialogTitle as="h3" className="text-base font-semibold text-[hsl(var(--foreground))]">
                                     Offer Sent
                                 </DialogTitle>
                                 <div className="mt-2">
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-sm text-[hsl(var(--muted-foreground))]">
                                         Your offer has been successfuly sent to applicant
                                     </p>
                                 </div>

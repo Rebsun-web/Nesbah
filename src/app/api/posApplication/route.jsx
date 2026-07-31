@@ -5,6 +5,7 @@ import {
     sendNewApplicationNotificationToBanks 
 } from '@/lib/email/emailNotifications';
 import { auctionConfig } from '@/lib/config/auction-config';
+import { VALID_AMOUNT_CODES, representativeAmount, formatAmountRange } from '@/lib/apply-options'
 
 export async function POST(req) {
     try {
@@ -28,9 +29,24 @@ export async function POST(req) {
             pos_provider_name,
             pos_age_duration_months,
             avg_monthly_pos_sales,
-            approximate_financing_amount,
+            amount_range_code,
             preferred_repayment_period_months
         } = body;
+
+        // Stable code, same vocabulary as the public form. Validated before any DB
+        // call so this path can never write a retired bucket.
+        if (amount_range_code && !VALID_AMOUNT_CODES.includes(amount_range_code)) {
+            return NextResponse.json(
+                { success: false, error: `Invalid amount_range_code. Must be one of: ${VALID_AMOUNT_CODES.join(', ')}` },
+                { status: 400 }
+            );
+        }
+        // Codes are authoritative; the label and numeric columns are derived for the
+        // portal surfaces that still read them.
+        const approximate_financing_amount = amount_range_code
+            ? formatAmountRange(amount_range_code, 'ar')
+            : null;
+        const requested_financing_amount = representativeAmount(amount_range_code);
 
         const submitted_at = new Date(); // capture submit time
         const auction_end_time = new Date(submitted_at.getTime() + auctionConfig.durationMilliseconds); // Configured duration from submission time
@@ -100,13 +116,14 @@ export async function POST(req) {
                      contact_person, contact_person_number, number_of_pos_devices,
                      city_of_operation, auction_end_time, opened_by, purchased_by,
                      pos_provider_name, pos_age_duration_months, avg_monthly_pos_sales,
-                     approximate_financing_amount, preferred_repayment_period_months)
+                     approximate_financing_amount, preferred_repayment_period_months,
+                     amount_range_code, requested_financing_amount)
                 VALUES
                     ($1, 'live_auction', $2, $3, $4, $5, $6, $7,
                      $8, $9,
                      $10, $11, $12,
                      $13, $14, '{}', '{}',
-                     $15, $16, $17, $18, $19)
+                     $15, $16, $17, $18, $19, $20, $21)
                 RETURNING application_id`,
                 [
                     user_id,                                          // $1
@@ -126,8 +143,10 @@ export async function POST(req) {
                     pos_provider_name || null,                        // $15
                     pos_age_duration_months || null,                  // $16
                     avg_monthly_pos_sales || null,                    // $17
-                    approximate_financing_amount || null,             // $18
+                    approximate_financing_amount,                     // $18
                     preferred_repayment_period_months || null,        // $19
+                    amount_range_code || null,                        // $20
+                    requested_financing_amount,                       // $21
                 ]
             );
 

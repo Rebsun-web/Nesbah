@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { PhotoIcon } from '@heroicons/react/24/solid'
 import emailjs from '@emailjs/browser'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { AMOUNT_RANGES, AMOUNT_ORDER } from '@/lib/apply-options'
 
 export function PosApplication({ user, onSuccess}) {
   const { t } = useLanguage()
@@ -126,7 +127,7 @@ export function PosApplication({ user, onSuccess}) {
       pos_provider_name: posProviderName,
       pos_age_duration_months: parseInt(posAgeDuration) || 0,
       avg_monthly_pos_sales: parseFloat(avgMonthlyPosSales) || 0,
-      approximate_financing_amount: approximateFinancingAmount,
+      amount_range_code: approximateFinancingAmount,
       preferred_repayment_period_months: preferredRepaymentPeriod ? parseInt(preferredRepaymentPeriod) : null
     };
 
@@ -379,10 +380,11 @@ export function PosApplication({ user, onSuccess}) {
                   className="block w-full rounded-md bg-white px-3 py-2 sm:py-1.5 text-xs sm:text-sm text-gray-900 outline outline-1 outline-gray-300 focus:outline-indigo-600"
                 >
                   <option value="">Select range</option>
-                  <option value="Less than 250K SAR">Less than 250K SAR</option>
-                  <option value="250K – 1M SAR">250K – 1M SAR</option>
-                  <option value="1M – 5M SAR">1M – 5M SAR</option>
-                  <option value="More than 5M SAR">More than 5M SAR</option>
+                  {/* Shared code vocabulary — the old free-text labels here wrote a
+                      retired bucket set that no longer matches the public form. */}
+                  {AMOUNT_ORDER.map((code) => (
+                    <option key={code} value={code}>{AMOUNT_RANGES[code].en}</option>
+                  ))}
                 </select>
               </div>
             </div>

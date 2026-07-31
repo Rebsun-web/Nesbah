@@ -1,166 +1,126 @@
 'use client'
 
-import { useState } from 'react'
+// Site header, ported from the nesbah.net reference implementation's Header()
+// (src/routes/index.tsx). Same labels and layout; the links point at OUR routes —
+// see `headerLinks` in src/content/home.js for the mapping (Customer Sign in →
+// /login rather than their /customer/login, Apply Now → /onboarding rather than
+// /apply). Financing Guide and Deposits are the reverse-proxied surface.
+//
+// Their two per-language route files collapse into one component via useLang(), so
+// the language switch toggles in place instead of navigating to an /en/* twin.
+
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useLang, translations } from '@/contexts/PublicLanguageContext'
-import {
-  GlobeAltIcon,
-  Bars3Icon,
-  XMarkIcon,
-  ChevronDownIcon,
-} from '@heroicons/react/24/outline'
-
-const WHATSAPP_NUMBER = '966552799610'
-
-const financingLinks = [
-  { href: '/business-financing', label: { ar: 'تمويل الشركات', en: 'Business Financing' } },
-  { href: '/working-capital-financing', label: { ar: 'تمويل رأس المال العامل', en: 'Working Capital' } },
-  { href: '/expansion-financing', label: { ar: 'تمويل التوسع', en: 'Expansion Financing' } },
-  { href: '/equipment-financing', label: { ar: 'تمويل المعدات', en: 'Equipment Financing' } },
-  { href: '/project-financing', label: { ar: 'تمويل المشاريع', en: 'Project Financing' } },
-  { href: '/real-estate-project-financing', label: { ar: 'التمويل العقاري', en: 'Real Estate' } },
-  { href: '/pos-financing', label: { ar: 'تمويل نقاط البيع', en: 'POS Financing' } },
-]
+import { ArrowLeft, ArrowRight, Globe, Menu, X } from 'lucide-react'
+import { useLang } from '@/contexts/PublicLanguageContext'
+import { nav, headerLinks as h } from '@/content/home'
 
 export default function Navbar() {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [solutionsOpen, setSolutionsOpen] = useState(false)
-  const { t, toggleLang, lang } = useLang()
-  const n = translations.nav
+  const { t, isRTL, toggleLang } = useLang()
+  const [open, setOpen] = useState(false)
+  const triggerRef = useRef(null)
+  const panelRef = useRef(null)
+  const Arrow = isRTL ? ArrowLeft : ArrowRight
+
+  // Escape closes the panel and returns focus to the trigger; focus moves into the
+  // panel on open. Both behaviours come from the reference.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    panelRef.current?.querySelector('a, button, [tabindex]:not([tabindex="-1"])')?.focus()
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open])
+
+  const closeAndReturn = () => {
+    setOpen(false)
+    triggerRef.current?.focus()
+  }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-xl">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        {/* Logo */}
-        <Link href="/" className="flex items-center">
-          <Image src="/logo/NewNesbahLogo.png" alt="Nesbah" height={26} width={86} className="object-contain" />
+    <header className="sticky top-0 z-50 border-b border-hairline/60 bg-cream/85 backdrop-blur">
+      <div className="container flex h-16 items-center justify-between md:h-20">
+        <Link href="/" className="flex items-center gap-2">
+          <Image src="/logo/NewNesbahLogo.png" alt="Nesbah" height={30} width={100} className="h-8 w-auto object-contain md:h-9" priority />
         </Link>
 
-        {/* Desktop nav */}
-        <div className="hidden items-center gap-8 md:flex">
-          <a href="/#how" className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors">
-            {t(n.howItWorks)}
-          </a>
+        <nav className="hidden items-center gap-8 lg:flex" aria-label={t(h.primaryNav)}>
+          {nav.map((n) => (
+            <a key={n.href} href={n.href} className="text-sm font-medium text-ink/70 transition-colors hover:text-violet">
+              {t(n)}
+            </a>
+          ))}
+        </nav>
 
-          <div className="relative">
-            <button
-              onClick={() => setSolutionsOpen(!solutionsOpen)}
-              onBlur={() => setTimeout(() => setSolutionsOpen(false), 200)}
-              className="flex items-center gap-1 text-base font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {t(n.solutions)}
-              <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${solutionsOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {solutionsOpen && (
-              <div className="absolute top-full start-0 mt-2 w-56 rounded-xl border border-border bg-white p-2 shadow-lg">
-                {financingLinks.map((fl) => (
-                  <Link
-                    key={fl.href}
-                    href={fl.href}
-                    onClick={() => setSolutionsOpen(false)}
-                    className="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                  >
-                    {t(fl.label)}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <a href="/#why-nesbah" className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors">
-            {t(n.whyNesbah)}
-          </a>
-          <Link href="/knowledge" className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors">
-            {lang === 'ar' ? 'مركز المعرفة' : 'Knowledge Center'}
+        <div className="hidden items-center gap-3 lg:flex">
+          <Link href={h.guide.href} className="text-sm font-semibold text-ink/80 transition-colors hover:text-violet">
+            {t(h.guide)}
           </Link>
-          <a href="/#faq" className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors">
-            {t(n.faq)}
-          </a>
-        </div>
-
-        {/* Desktop actions */}
-        <div className="hidden items-center gap-3 md:flex">
+          <Link href={h.deposits.href} className="text-sm font-semibold text-ink/80 transition-colors hover:text-violet">
+            {t(h.deposits)}
+          </Link>
+          <Link href={h.signIn.href} className="text-sm font-semibold text-ink/80 transition-colors hover:text-violet">
+            {t(h.signIn)}
+          </Link>
           <button
+            type="button"
             onClick={toggleLang}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-white px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:border-violet"
+            aria-label={isRTL ? 'Switch to English' : 'التحويل إلى العربية'}
           >
-            <GlobeAltIcon className="h-4 w-4" />
-            {lang === 'ar' ? 'EN' : 'عربي'}
+            <Globe size={14} aria-hidden="true" /> {t(h.switchTo)}
           </button>
-          <Link
-            href="/onboarding"
-            className="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
-          >
-            {t(n.cta)}
+          <Link href={h.apply.href} className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet">
+            {t(h.apply)}
+            <Arrow size={16} aria-hidden="true" />
           </Link>
         </div>
 
-        {/* Mobile controls */}
-        <div className="flex items-center gap-2 md:hidden">
-          <button
-            onClick={toggleLang}
-            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-muted-foreground"
-          >
-            <GlobeAltIcon className="h-4 w-4" />
-            {lang === 'ar' ? 'EN' : 'عربي'}
-          </button>
-          <button onClick={() => setMobileOpen(!mobileOpen)}>
-            {mobileOpen
-              ? <XMarkIcon className="h-6 w-6 text-foreground" />
-              : <Bars3Icon className="h-6 w-6 text-foreground" />
-            }
-          </button>
-        </div>
+        <button
+          ref={triggerRef}
+          className="rounded-md p-2 text-ink lg:hidden"
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? t(h.closeMenu) : t(h.openMenu)}
+          aria-expanded={open}
+          aria-controls="site-nav-mobile"
+        >
+          {open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+        </button>
       </div>
 
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="border-t border-border bg-white px-4 py-4 md:hidden">
-          <div className="flex flex-col gap-1">
-            <a href="/#how" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">
-              {t(n.howItWorks)}
-            </a>
-            <button
-              onClick={() => setSolutionsOpen(!solutionsOpen)}
-              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
-            >
-              {t(n.solutions)}
-              <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${solutionsOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {solutionsOpen && (
-              <div className="ms-3 flex flex-col gap-1 border-s-2 border-border ps-3">
-                {financingLinks.map((fl) => (
-                  <Link
-                    key={fl.href}
-                    href={fl.href}
-                    onClick={() => { setMobileOpen(false); setSolutionsOpen(false) }}
-                    className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
-                  >
-                    {t(fl.label)}
-                  </Link>
-                ))}
-              </div>
-            )}
-            <a href="/#why-nesbah" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">
-              {t(n.whyNesbah)}
-            </a>
-            <Link href="/knowledge" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">
-              {lang === 'ar' ? 'مركز المعرفة' : 'Knowledge Center'}
-            </Link>
-            <a href="/#faq" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">
-              {t(n.faq)}
-            </a>
-            <Link
-              href="/onboarding"
-              className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-              onClick={() => setMobileOpen(false)}
-            >
-              {t(n.cta)}
-            </Link>
+      {open && (
+        <div id="site-nav-mobile" ref={panelRef} className="border-t border-hairline bg-card lg:hidden">
+          <div className="container flex flex-col gap-3 py-4">
+            {nav.map((n) => (
+              <a key={n.href} href={n.href} onClick={closeAndReturn} className="py-2 font-medium text-ink/80">
+                {t(n)}
+              </a>
+            ))}
+            <Link href={h.guide.href} onClick={closeAndReturn} className="py-2 font-medium text-ink/80">{t(h.guide)}</Link>
+            <Link href={h.deposits.href} onClick={closeAndReturn} className="py-2 font-medium text-ink/80">{t(h.deposits)}</Link>
+            <Link href={h.signIn.href} onClick={closeAndReturn} className="py-2 font-medium text-ink/80">{t(h.signIn)}</Link>
+            <div className="mt-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => { toggleLang(); closeAndReturn() }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-4 py-3 text-sm font-semibold text-ink"
+                aria-label={isRTL ? 'Switch to English' : 'التحويل إلى العربية'}
+              >
+                <Globe size={14} aria-hidden="true" /> {t(h.switchTo)}
+              </button>
+              <Link href={h.apply.href} onClick={closeAndReturn} className="inline-flex flex-1 justify-center rounded-full bg-ink px-5 py-3 font-semibold text-white">
+                {t(h.apply)}
+              </Link>
+            </div>
           </div>
         </div>
       )}
-    </nav>
+    </header>
   )
 }

@@ -106,7 +106,7 @@ export default function BankNavbar() {
 
     return (
         <>
-            <Disclosure as="nav" className="bg-[#1E1851]">
+            <Disclosure as="nav" className="bg-[hsl(var(--foreground))]">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 justify-between">
                     <div className="flex">
@@ -135,7 +135,7 @@ export default function BankNavbar() {
                                         aria-current={isActive ? 'page' : undefined}
                                         className={classNames(
                                             isActive
-                                                ? 'bg-purple-700 text-white'
+                                                ? 'bg-[hsl(var(--primary))] text-white'
                                                 : 'text-gray-300 hover:bg-white-200 hover:text-white',
                                             'rounded-md px-3 py-2 text-sm font-medium',
                                         )}
@@ -202,7 +202,7 @@ export default function BankNavbar() {
                                                     handleNavigation(item)
                                                     setDropdownOpen(false)
                                                 }}
-                                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                                className="block w-full text-left px-4 py-2 text-sm text-[hsl(var(--ink-soft))] hover:bg-[hsl(var(--muted))]"
                                             >
                                                 {item.name}
                                             </button>

@@ -2,6 +2,19 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import AdminAuth from '@/lib/auth/admin-auth';
 import { auctionConfig } from '@/lib/config/auction-config';
+import {
+    VALID_FINANCING_CODES,
+    VALID_AMOUNT_CODES,
+    VALID_AGE_CODES,
+    VALID_REVENUE_CODES,
+    VALID_SECTOR_CODES,
+    VALID_CITY_CODES,
+    formatAmountRange,
+    formatCity,
+    formatSector,
+    representativeAmount,
+} from '@/lib/apply-options';
+import { computeLeadScore } from '@/lib/lead-score';
 
 import { cascadeDeleteApplication } from '@/lib/cascade-deletion';
 
@@ -73,6 +86,14 @@ export async function GET(req, { params }) {
                     pa.sector,
                     pa.financing_type,
                     pa.approximate_financing_amount,
+                    pa.city_code,
+                    pa.sector_code,
+                    pa.amount_range_code,
+                    pa.business_age_range_code,
+                    pa.annual_revenue_code,
+                    pa.is_pre_revenue,
+                    pa.lead_score,
+                    pa.lead_tier,
                     pa.own_pos_system,
                     pa.pos_provider_name,
                     pa.pos_age_duration_months,
@@ -219,8 +240,15 @@ export async function PUT(req, { params }) {
             business_contact_email,
             notes,
             financing_type,
-            approximate_financing_amount,
             sector,
+            // Stable codes — see src/lib/apply-options.js
+            city_code,
+            sector_code,
+            amount_range_code,
+            business_age_range_code,
+            annual_revenue_code,
+            is_pre_revenue,
+            own_pos_system,
             pos_provider_name,
             pos_age_duration_months,
             avg_monthly_pos_sales,
@@ -265,10 +293,36 @@ export async function PUT(req, { params }) {
                 { status: 400 }
             );
         }
-        const VALID_FINANCING_TYPES = ['pos', 'working_capital', 'equipment', 'expansion', 'project', 'real_estate', 'general', 'business'];
-        if (financing_type !== undefined && !VALID_FINANCING_TYPES.includes(financing_type)) {
+        // 'general' is retired from the form but must stay editable on legacy rows.
+        const EDITABLE_FINANCING_TYPES = [...VALID_FINANCING_CODES, 'general'];
+        if (financing_type !== undefined && !EDITABLE_FINANCING_TYPES.includes(financing_type)) {
             return NextResponse.json(
-                { success: false, error: `Invalid financing_type. Must be one of: ${VALID_FINANCING_TYPES.join(', ')}` },
+                { success: false, error: `Invalid financing_type. Must be one of: ${EDITABLE_FINANCING_TYPES.join(', ')}` },
+                { status: 400 }
+            );
+        }
+
+        // Enumerated answers: an empty string clears the value, anything else must
+        // be a known code. Checked before any DB call.
+        const codeFields = [
+            ['city_code', city_code, VALID_CITY_CODES],
+            ['sector_code', sector_code, VALID_SECTOR_CODES],
+            ['amount_range_code', amount_range_code, VALID_AMOUNT_CODES],
+            ['business_age_range_code', business_age_range_code, VALID_AGE_CODES],
+            ['annual_revenue_code', annual_revenue_code, VALID_REVENUE_CODES],
+        ];
+        for (const [fieldName, value, validCodes] of codeFields) {
+            if (value !== undefined && value !== null && value !== '' && !validCodes.includes(value)) {
+                return NextResponse.json(
+                    { success: false, error: `Invalid ${fieldName}. Must be one of: ${validCodes.join(', ')}` },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (is_pre_revenue === true && annual_revenue_code) {
+            return NextResponse.json(
+                { success: false, error: 'annual_revenue_code must be empty when is_pre_revenue is true' },
                 { status: 400 }
             );
         }
@@ -283,6 +337,36 @@ export async function PUT(req, { params }) {
             const updateValues = [];
             let paramCount = 1;
 
+            // The prioritization indicator is derived from four answers. If an admin
+            // edits any of them, recompute it from the merged (existing + incoming)
+            // values so the score never drifts out of sync with the row. lead_tier is
+            // derived from lead_score by a DB trigger.
+            const scoreInputsTouched =
+                amount_range_code !== undefined ||
+                business_age_range_code !== undefined ||
+                own_pos_system !== undefined ||
+                is_pre_revenue !== undefined;
+
+            if (scoreInputsTouched) {
+                const current = await client.query(
+                    `SELECT amount_range_code, business_age_range_code, own_pos_system, is_pre_revenue
+                       FROM pos_application WHERE application_id = $1`,
+                    [applicationId]
+                );
+                const row = current.rows[0] || {};
+                const merged = {
+                    amountCode: amount_range_code !== undefined ? amount_range_code : row.amount_range_code,
+                    ageCode: business_age_range_code !== undefined ? business_age_range_code : row.business_age_range_code,
+                    hasPos: own_pos_system !== undefined ? own_pos_system : row.own_pos_system,
+                    isPreRevenue: is_pre_revenue !== undefined ? is_pre_revenue === true : row.is_pre_revenue === true,
+                };
+                // No amount and no age means there is nothing meaningful to rank on —
+                // clear the score rather than storing a floor value that looks real.
+                const score = (merged.amountCode || merged.ageCode) ? computeLeadScore(merged) : null;
+                updateFields.push(`lead_score = $${paramCount++}`);
+                updateValues.push(score);
+            }
+
             if (status !== undefined) {
                 updateFields.push(`current_application_status = $${paramCount++}`);
                 updateValues.push(status);
@@ -296,21 +380,67 @@ export async function PUT(req, { params }) {
                 updateValues.push(validatedAssignedUserId);
             }
             // trade_name, cr_number, city are wathiq_data columns — not on pos_application
-            if (city_of_operation !== undefined) {
-                updateFields.push(`city_of_operation = $${paramCount++}`);
-                updateValues.push(city_of_operation);
-            }
             if (financing_type !== undefined) {
                 updateFields.push(`financing_type = $${paramCount++}`);
                 updateValues.push(financing_type);
             }
-            if (approximate_financing_amount !== undefined) {
-                updateFields.push(`approximate_financing_amount = $${paramCount++}`);
-                updateValues.push(approximate_financing_amount || null);
+            // Codes are authoritative; when a code is SET we also refresh the legacy
+            // free-text/label column so surfaces still reading it stay correct.
+            //
+            // Critically, clearing a code must NOT null the legacy column. The edit
+            // modal always sends every key, so a pre-migration application (no codes
+            // yet) arrives here with empty strings — nulling the legacy columns on
+            // that path would destroy the stored city/sector/amount text that is the
+            // only thing making those rows renderable. Clearing a code clears the
+            // code column and nothing else.
+            if (city_code) {
+                updateFields.push(`city_code = $${paramCount++}`);
+                updateValues.push(city_code);
+                updateFields.push(`city_of_operation = $${paramCount++}`);
+                updateValues.push(formatCity(city_code, 'ar'));
+            } else if (city_code === '' || city_code === null) {
+                updateFields.push(`city_code = NULL`);
+            } else if (city_of_operation !== undefined) {
+                updateFields.push(`city_of_operation = $${paramCount++}`);
+                updateValues.push(city_of_operation);
             }
-            if (sector !== undefined) {
+            if (sector_code) {
+                updateFields.push(`sector_code = $${paramCount++}`);
+                updateValues.push(sector_code);
+                updateFields.push(`sector = $${paramCount++}`);
+                updateValues.push(formatSector(sector_code, 'ar'));
+            } else if (sector_code === '' || sector_code === null) {
+                updateFields.push(`sector_code = NULL`);
+            } else if (sector !== undefined) {
                 updateFields.push(`sector = $${paramCount++}`);
                 updateValues.push(sector || null);
+            }
+            if (amount_range_code) {
+                updateFields.push(`amount_range_code = $${paramCount++}`);
+                updateValues.push(amount_range_code);
+                updateFields.push(`approximate_financing_amount = $${paramCount++}`);
+                updateValues.push(formatAmountRange(amount_range_code, 'ar'));
+                updateFields.push(`requested_financing_amount = $${paramCount++}`);
+                updateValues.push(representativeAmount(amount_range_code));
+            } else if (amount_range_code === '' || amount_range_code === null) {
+                updateFields.push(`amount_range_code = NULL`);
+            }
+            if (business_age_range_code !== undefined) {
+                updateFields.push(`business_age_range_code = $${paramCount++}`);
+                updateValues.push(business_age_range_code || null);
+            }
+            if (annual_revenue_code !== undefined || is_pre_revenue === true) {
+                // Enforce the XOR at the write layer too: pre-revenue always wins.
+                updateFields.push(`annual_revenue_code = $${paramCount++}`);
+                updateValues.push(is_pre_revenue === true ? null : (annual_revenue_code || null));
+            }
+            if (is_pre_revenue !== undefined) {
+                updateFields.push(`is_pre_revenue = $${paramCount++}`);
+                updateValues.push(is_pre_revenue === true);
+            }
+            if (own_pos_system !== undefined) {
+                updateFields.push(`own_pos_system = $${paramCount++}`);
+                updateValues.push(typeof own_pos_system === 'boolean' ? own_pos_system : null);
             }
             if (contact_person !== undefined) {
                 updateFields.push(`contact_person = $${paramCount++}`);

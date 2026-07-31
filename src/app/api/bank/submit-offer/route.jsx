@@ -36,11 +36,17 @@ export async function POST(req) {
         // Reject non-numeric and negative values before they reach the DB —
         // parseFloat/parseInt on garbage input silently produce NaN otherwise.
         const { valid: offerValid, firstError: offerError } = collectErrors({
-            approvedAmount: () => checkNumber(approvedAmount, { min: 0, label: 'Approved amount' }),
-            repaymentPeriod: () => checkNumber(repaymentPeriod, { min: 1, integer: true, label: 'Repayment period' }),
-            interestRate: () => checkNumber(interestRate, { min: 0, label: 'Interest rate' }),
-            monthlyInstallment: () => checkNumber(monthlyInstallment, { min: 0, label: 'Monthly installment' }),
-            gracePeriod: () => (gracePeriod ? checkNumber(gracePeriod, { min: 0, integer: true, label: 'Grace period' }) : null),
+            // Upper bounds mirror the DB column precisions. Without them a large
+            // value passes validation and Postgres raises "numeric field overflow",
+            // which surfaces to the bank as an opaque 500.
+            //   approved_financing_amount  numeric(15,2) → < 10^13
+            //   monthly_installment_amount numeric(15,2) → < 10^13
+            //   interest_rate              numeric(5,2)  → <= 999.99
+            approvedAmount: () => checkNumber(approvedAmount, { min: 0, max: 9999999999999, label: 'Approved amount' }),
+            repaymentPeriod: () => checkNumber(repaymentPeriod, { min: 1, max: 600, integer: true, label: 'Repayment period' }),
+            interestRate: () => checkNumber(interestRate, { min: 0, max: 999.99, label: 'Interest rate (%)' }),
+            monthlyInstallment: () => checkNumber(monthlyInstallment, { min: 0, max: 9999999999999, label: 'Monthly installment' }),
+            gracePeriod: () => (gracePeriod ? checkNumber(gracePeriod, { min: 0, max: 600, integer: true, label: 'Grace period' }) : null),
             relationshipManagerContact: () => (relationshipManagerContact ? checkLength(relationshipManagerContact, { max: 255, label: 'Relationship manager contact' }) : null),
             comment: () => (comment ? checkLength(comment, { max: 2000, label: 'Comment' }) : null),
         });

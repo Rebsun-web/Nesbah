@@ -3,6 +3,16 @@ import pool from '@/lib/db';
 import ExcelJS from 'exceljs';
 import AdminAuth from '@/lib/auth/admin-auth';
 import { STATUS_CALCULATION_SQL, STATUS_FILTER_SQL } from '@/lib/application-status';
+import {
+    formatFinancingType,
+    formatAmountRange,
+    formatAgeRange,
+    formatRevenueRange,
+    formatCity,
+    formatSector,
+    formatHasPos,
+} from '@/lib/apply-options';
+import { TIER_LABELS } from '@/lib/lead-score';
 
 // GET - Export the application record for every application (respecting the
 // same search/status/financing_type filters as the list view) as an .xlsx file.
@@ -61,6 +71,18 @@ export async function GET(req) {
                     pa.offers_count,
                     pa.financing_type,
                     pa.requested_financing_amount,
+                    pa.approximate_financing_amount,
+                    pa.amount_range_code,
+                    pa.business_age_range_code,
+                    pa.annual_revenue_code,
+                    pa.is_pre_revenue,
+                    pa.own_pos_system,
+                    pa.lead_score,
+                    pa.lead_tier,
+                    pa.city_code,
+                    pa.sector_code,
+                    pa.consent_at,
+                    pa.consent_version,
                     pa.contact_person,
                     pa.contact_person_number,
                     pa.cr_national_number,
@@ -102,7 +124,11 @@ export async function GET(req) {
                 { header: 'Views', key: 'opened_count', width: 10 },
                 { header: 'Offers Received', key: 'offers_count', width: 15 },
                 { header: 'Financing Category / Type', key: 'financing_type', width: 22 },
-                { header: 'Requested Amount', key: 'requested_financing_amount', width: 20 },
+                { header: 'Requested Amount (range)', key: 'amount_range', width: 22 },
+                { header: 'Requested Amount (value)', key: 'requested_financing_amount', width: 22 },
+                { header: 'Annual Revenue', key: 'annual_revenue', width: 22 },
+                { header: 'Business Age', key: 'business_age', width: 20 },
+                { header: 'Sales via POS Devices', key: 'has_pos', width: 20 },
                 { header: 'Business Name', key: 'trade_name', width: 30 },
                 { header: 'CR Number', key: 'cr_number', width: 20 },
                 { header: 'City', key: 'city', width: 20 },
@@ -119,7 +145,13 @@ export async function GET(req) {
                 { header: 'Notes', key: 'notes', width: 40 },
                 { header: 'Uploaded Filename', key: 'uploaded_filename', width: 30 },
                 // "Any internal fields available in the admin dashboard"
-                { header: 'Admin Notes', key: 'admin_notes', width: 40 }
+                { header: 'Admin Notes', key: 'admin_notes', width: 40 },
+                { header: 'Consent Given At', key: 'consent_at', width: 20 },
+                { header: 'Consent Version', key: 'consent_version', width: 16 },
+                // Internal prioritization indicator — admins and financing partners
+                // only. Not a credit or affordability assessment.
+                { header: 'Lead Priority', key: 'lead_tier', width: 18 },
+                { header: 'Lead Score (0-100)', key: 'lead_score', width: 18 }
             ];
 
             const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB') : '');
@@ -135,12 +167,17 @@ export async function GET(req) {
                     auction_end_time: fmtDateTime(row.auction_end_time),
                     opened_count: row.opened_count || 0,
                     offers_count: row.offers_count || 0,
-                    financing_type: row.financing_type || '',
+                    financing_type: formatFinancingType(row.financing_type, 'en'),
+                    // Historical rows have no code — fall back to the stored label.
+                    amount_range: formatAmountRange(row.amount_range_code, 'en', row.approximate_financing_amount),
                     requested_financing_amount: fmtMoney(row.requested_financing_amount),
+                    annual_revenue: formatRevenueRange(row.annual_revenue_code, 'en', { isPreRevenue: row.is_pre_revenue === true }),
+                    business_age: formatAgeRange(row.business_age_range_code, 'en'),
+                    has_pos: formatHasPos(row.own_pos_system, 'en'),
                     trade_name: row.trade_name || '',
                     cr_number: row.cr_number || '',
-                    city: row.city || '',
-                    sector: row.sector || '',
+                    city: formatCity(row.city_code, 'en', row.city),
+                    sector: formatSector(row.sector_code, 'en', row.sector),
                     contact_person: row.contact_person || '',
                     contact_person_number: row.contact_person_number || '',
                     email: row.email || '',
@@ -151,7 +188,11 @@ export async function GET(req) {
                     confirmation_date_gregorian: fmtDate(row.confirmation_date_gregorian),
                     notes: row.notes || '',
                     uploaded_filename: row.uploaded_filename || '',
-                    admin_notes: row.admin_notes || ''
+                    admin_notes: row.admin_notes || '',
+                    consent_at: fmtDateTime(row.consent_at),
+                    consent_version: row.consent_version || '',
+                    lead_tier: row.lead_tier ? TIER_LABELS[row.lead_tier].en : '',
+                    lead_score: row.lead_score != null ? row.lead_score : ''
                 });
             });
 

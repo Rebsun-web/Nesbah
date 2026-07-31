@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import ExcelJS from 'exceljs';
 import { authenticateAPIRequest } from '@/lib/auth/api-auth';
+import {
+    formatAmountRange, formatAgeRange, formatRevenueRange, formatHasPos,
+} from '@/lib/apply-options'
 
 export async function GET(req) {
     // Authenticate the request
@@ -53,6 +56,10 @@ export async function GET(req) {
                 pa.pos_age_duration_months,
                 pa.avg_monthly_pos_sales,
                 pa.approximate_financing_amount,
+                pa.amount_range_code,
+                pa.business_age_range_code,
+                pa.annual_revenue_code,
+                pa.is_pre_revenue,
                 pa.preferred_repayment_period_months,
                 
                 -- Business Contact Information (NOT from Wathiq)
@@ -179,7 +186,9 @@ export async function GET(req) {
             { header: 'Approximate Financing Amount', key: 'approximate_financing_amount', width: 30 },
             { header: 'Preferred Repayment Period (months)', key: 'preferred_repayment_period_months', width: 30 },
             { header: 'Number of POS Devices', key: 'number_of_pos_devices', width: 20 },
-            { header: 'Own POS System', key: 'own_pos_system', width: 15 },
+            { header: 'Sales via POS Devices', key: 'own_pos_system', width: 22 },
+            { header: 'Annual Revenue', key: 'annual_revenue', width: 22 },
+            { header: 'Business Age', key: 'business_age', width: 20 },
             { header: 'City of Operation', key: 'city_of_operation', width: 20 },
             { header: 'Notes', key: 'notes', width: 40 },
             { header: 'Uploaded Filename', key: 'uploaded_filename', width: 30 },
@@ -246,10 +255,12 @@ export async function GET(req) {
                 pos_provider_name: row.pos_provider_name || 'Not specified',
                 pos_age_duration_months: row.pos_age_duration_months || 'Not specified',
                 avg_monthly_pos_sales: row.avg_monthly_pos_sales ? `SAR ${parseFloat(row.avg_monthly_pos_sales).toFixed(2)}` : 'Not specified',
-                approximate_financing_amount: row.approximate_financing_amount || 'Not specified',
+                approximate_financing_amount: formatAmountRange(row.amount_range_code, 'en', row.approximate_financing_amount),
                 preferred_repayment_period_months: row.preferred_repayment_period_months ? `${row.preferred_repayment_period_months} months` : 'Not specified',
                 number_of_pos_devices: row.number_of_pos_devices || '',
-                own_pos_system: row.own_pos_system ? 'Yes' : 'No',
+                own_pos_system: formatHasPos(row.own_pos_system, 'en'),
+                annual_revenue: formatRevenueRange(row.annual_revenue_code, 'en', { isPreRevenue: row.is_pre_revenue === true }),
+                business_age: formatAgeRange(row.business_age_range_code, 'en'),
                 city_of_operation: row.city_of_operation || '',
                 notes: row.notes || '',
                 uploaded_filename: row.uploaded_filename || '',

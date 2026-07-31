@@ -20,7 +20,7 @@ export default function LeadsHistoryTable({ data }) {
     if (!data) {
         return (
             <div className="text-center py-8">
-                <p className="text-gray-500">Loading purchased leads...</p>
+                <p className="text-[hsl(var(--muted-foreground))]">Loading purchased leads...</p>
             </div>
         );
     }
@@ -28,7 +28,7 @@ export default function LeadsHistoryTable({ data }) {
     if (data.length === 0) {
         return (
             <div className="text-center py-8">
-                <p className="text-gray-500">No purchased leads found.</p>
+                <p className="text-[hsl(var(--muted-foreground))]">No purchased leads found.</p>
                 <p className="text-sm text-gray-400 mt-2">Submit offers on available leads to see them here.</p>
             </div>
         );
@@ -39,16 +39,16 @@ export default function LeadsHistoryTable({ data }) {
             <Table>
                 <thead>
                 <tr>
-                    <th className="bg-gray-100 px-3 py-3 text-center text-sm font-semibold text-gray-700 w-24">
+                    <th className="bg-[hsl(var(--muted))] px-3 py-3 text-center text-sm font-semibold text-[hsl(var(--ink-soft))] w-24">
                         App ID
                     </th>
-                    <th className="bg-gray-100 px-3 py-3 text-center text-sm font-semibold text-gray-700 w-32">
+                    <th className="bg-[hsl(var(--muted))] px-3 py-3 text-center text-sm font-semibold text-[hsl(var(--ink-soft))] w-32">
                         Business Name
                     </th>
-                    <th className="bg-gray-100 px-3 py-3 text-center text-sm font-semibold text-gray-700 w-24">
+                    <th className="bg-[hsl(var(--muted))] px-3 py-3 text-center text-sm font-semibold text-[hsl(var(--ink-soft))] w-24">
                         Offer Date
                     </th>
-                    <th className="bg-gray-100 px-3 py-3 text-center text-sm font-semibold text-gray-700 w-24">
+                    <th className="bg-[hsl(var(--muted))] px-3 py-3 text-center text-sm font-semibold text-[hsl(var(--ink-soft))] w-24">
                         Status
                     </th>
                 </tr>
@@ -57,7 +57,7 @@ export default function LeadsHistoryTable({ data }) {
                     {data.map((lead) => (
                         <TableRow
                             key={lead.application_id}
-                            className="cursor-pointer hover:bg-gray-100"
+                            className="cursor-pointer hover:bg-[hsl(var(--muted))]"
                             onClick={() => handleRowClick(lead.application_id)}
                         >
                             <TableCell className="text-start text-xs">{lead.application_id}</TableCell>

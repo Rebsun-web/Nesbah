@@ -16,6 +16,7 @@ import {
 
 // Import auction configuration
 import { AUCTION_DURATION_MILLISECONDS } from '@/lib/config/auction-config';
+import { formatAmountRange } from '@/lib/apply-options'
 
 function formatDuration(seconds) {
   const hrs = Math.floor(seconds / 3600);
@@ -249,7 +250,7 @@ export default function YourApplication({ user }) {
                           <span className="text-xs sm:text-sm font-medium text-gray-700">Requested Financing Amount</span>
                         </div>
                         <span className="text-xs sm:text-sm text-gray-900 font-semibold ml-9 sm:ml-0">
-                          {app.approximate_financing_amount}
+                          {formatAmountRange(app.amount_range_code, 'en', app.approximate_financing_amount)}
                         </span>
                       </div>
                     )}

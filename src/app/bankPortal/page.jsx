@@ -135,7 +135,7 @@ function BankPortal() {
             {leads && leads.length > 0 && (
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-6 sm:pb-8">
                     <div className="mx-auto max-w-7xl">
-                        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 mb-4 sm:mb-6">
+                        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[hsl(var(--foreground))] mb-4 sm:mb-6">
                             {t('leads.incoming')}
                         </h1>
                         <BankLeadsTable data={leads} onLeadSubmitSuccess={refreshLeads} />

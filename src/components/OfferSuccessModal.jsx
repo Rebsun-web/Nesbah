@@ -12,7 +12,7 @@ export default function OfferSuccessModal({ isOpen, onClose, onViewLeads }) {
         <Dialog open={isOpen} onClose={onClose} className="relative z-50">
             <DialogBackdrop
                 transition
-                className="fixed inset-0 bg-gray-500/75 transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"
+                className="fixed inset-0 bg-[hsl(var(--foreground)/0.6)] transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"
             />
 
             <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
@@ -26,11 +26,11 @@ export default function OfferSuccessModal({ isOpen, onClose, onViewLeads }) {
                                 <CheckCircleIcon aria-hidden="true" className="size-6 text-green-600" />
                             </div>
                             <div className="mt-3 text-center sm:mt-5">
-                                <DialogTitle as="h3" className="text-base font-semibold text-gray-900">
+                                <DialogTitle as="h3" className="text-base font-semibold text-[hsl(var(--foreground))]">
                                     {t('offers.offerSubmittedSuccessfully')}
                                 </DialogTitle>
                                 <div className="mt-2">
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-sm text-[hsl(var(--muted-foreground))]">
                                         {t('offers.offerSuccessMessage')}
                                     </p>
                                 </div>
@@ -40,7 +40,7 @@ export default function OfferSuccessModal({ isOpen, onClose, onViewLeads }) {
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="inline-flex w-full justify-center rounded-md bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600"
+                                className="inline-flex w-full justify-center rounded-md bg-[hsl(var(--muted))] px-3 py-2 text-sm font-semibold text-[hsl(var(--foreground))] shadow-sm hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600"
                             >
                                 {t('common.close')}
                             </button>

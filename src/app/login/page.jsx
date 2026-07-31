@@ -148,33 +148,33 @@ export default function Login() {
 
 
   return (
-    <main className="overflow-hidden bg-white">
+    <main className="overflow-hidden bg-[hsl(var(--background))]">
       <Container className="relative">
         <Navbar />
       </Container>
       <div className="isolate flex min-h-dvh items-start justify-center p-6 lg:p-8 pt-20 lg:pt-32">
-        <div className="w-full max-w-xl rounded-xl bg-gray-50 shadow-md ring-1 ring-black/5">
+        <div className="w-full max-w-xl rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-card">
           <form onSubmit={handleLogin} className="p-7">
-            <h1 className="pt-4 text-base/6 font-medium">{t('auth.welcome')}</h1>
-            <p className="mt-1 text-sm/5 text-gray-600">{t('auth.loginToContinue')}</p>
+            <h1 className="pt-4 text-xl font-bold text-[hsl(var(--foreground))]">{t('auth.welcome')}</h1>
+            <p className="mt-1 text-sm text-[hsl(var(--ink-soft))]">{t('auth.loginToContinue')}</p>
             
             {requiresMFA && (
-              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                <span className="text-sm font-medium text-green-800">
+              <div className="mt-4 rounded-2xl border border-[hsl(var(--success)/0.35)] bg-[hsl(var(--success)/0.08)] p-3 text-center">
+                <span className="text-sm font-semibold text-[hsl(var(--foreground))]">
                   ✓ Credentials verified. Complete login with MFA token.
                 </span>
               </div>
             )}
 
             <Field className="mt-8 space-y-3">
-              <Label className="text-sm/5 font-medium">{t('auth.email')}</Label>
+              <Label className="text-sm font-semibold text-[hsl(var(--foreground))]">{t('auth.email')}</Label>
               <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder={t('auth.email')}
-                  className={`block w-full rounded-lg border shadow ring-1 ring-black/10 px-4 py-2 ${requiresMFA ? 'bg-gray-100 text-gray-500' : ''}`}
+                  className={`block w-full rounded-2xl border border-[hsl(var(--border))] bg-white px-4 py-3 text-sm outline-none transition-all focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.15)] ${requiresMFA ? 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]' : ''}`}
                   disabled={requiresMFA}
               />
             </Field>
@@ -188,13 +188,13 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     placeholder={t('auth.password')}
-                    className={`block w-full rounded-lg border px-4 py-2 pr-12 shadow ring-1 ring-black/10 ${requiresMFA ? 'bg-gray-100 text-gray-500' : ''}`}
+                    className={`block w-full rounded-2xl border border-[hsl(var(--border))] bg-white px-4 py-3 pr-12 text-sm outline-none transition-all focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.15)] ${requiresMFA ? 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]' : ''}`}
                     disabled={requiresMFA}
                 />
                 <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
                 >
                   {showPassword ? (
                       <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
@@ -208,9 +208,9 @@ export default function Login() {
             {requiresMFA && (
               <Field className="pt-4 space-y-3">
                 <Label className="text-sm/5 font-medium">MFA Token</Label>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="rounded-2xl border border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.06)] p-4">
                   <div className="flex items-center mb-3">
-                    <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                    <div className="mr-2 h-3 w-3 rounded-full bg-[hsl(var(--primary))]"></div>
                     <span className="text-sm font-medium text-purple-800">
                       Two-Factor Authentication Required
                     </span>
@@ -221,7 +221,7 @@ export default function Login() {
                     onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     required
                     placeholder="000000"
-                    className="block w-full rounded-lg border px-4 py-2 shadow ring-1 ring-black/10 text-center text-lg font-mono"
+                    className="block w-full rounded-2xl border border-[hsl(var(--border))] bg-white px-4 py-3 text-center font-mono text-lg outline-none transition-all focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.15)]"
                     maxLength={6}
                     autoFocus
                   />
@@ -238,7 +238,7 @@ export default function Login() {
                     name="remember-me"
                     className={clsx(
                         'group block size-4 rounded border shadow ring-1 ring-black/10 focus:outline-none',
-                        'data-[checked]:bg-black data-[checked]:ring-black',
+                        'data-[checked]:bg-[hsl(var(--primary))] data-[checked]:ring-[hsl(var(--primary))]',
                         'data-[focus]:outline data-[focus]:outline-2 data-[focus]:outline-offset-2 data-[focus]:outline-black'
                     )}
                 >
@@ -246,7 +246,7 @@ export default function Login() {
                 </Checkbox>
                 <Label>{t('auth.rememberMe')}</Label>
               </Field>
-              <Link href="/forgotPassword" className="font-medium hover:text-gray-600">
+              <Link href="/forgotPassword" className="font-semibold text-[hsl(var(--primary))] hover:underline">
                 {t('auth.forgotPassword')}
               </Link>
             </div>
@@ -255,19 +255,15 @@ export default function Login() {
               <button
                   type="submit"
                   disabled={isLoading}
-                  className="mt-4 w-full rounded-full bg-gradient-to-r from-[#1E1851] to-[#4436B7] px-6 py-3 text-white transition duration-200 ease-in-out hover:bg-opacity-50 hover:shadow-lg hover:shadow-gray-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="mt-4 w-full rounded-full bg-[hsl(var(--primary))] px-6 py-3 font-bold text-white shadow-glow transition-all hover:bg-[hsl(var(--foreground))] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
                 {isLoading ? t('auth.loggingIn') : (requiresMFA ? 'Verify MFA' : t('auth.login'))}
               </button>
             </div>
           </form>
-
-          <div className="m-1.5 rounded-lg bg-gray-50 py-4 text-center text-sm/5 ring-1 ring-black/5">
-            {t('auth.noAccount')}{' '}
-            <Link href="/register" className="font-medium hover:text-gray-600">
-              {t('auth.createAccount')}
-            </Link>
-          </div>
+          {/* No self-service account creation. Public users submit an anonymous
+              application via /onboarding; there is no merchant account to create.
+              Bank and admin accounts are provisioned by an admin. */}
         </div>
       </div>
 
