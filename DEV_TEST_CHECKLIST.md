@@ -193,11 +193,11 @@ All of the following were confirmed to return **400 before any DB write**:
 
 ## 3. Bank portal
 
-- [ ] Leads list: financing badge shows a label, not a code
-- [ ] **Business Info modal** (the modal a bank opens on a lead): financing type, amount, **annual revenue, business age, sales via POS devices**, and the **Lead Priority** badge with disclaimer
-- [ ] Lead detail page: same fields, plus Lead Priority
-- [ ] Purchased-leads Excel export has `Sales via POS Devices`, `Annual Revenue`, `Business Age`
-- [ ] The old **"Own POS System"** label is gone everywhere — it now reads "Sales via POS Devices" in EN and "مبيعات عبر أجهزة نقاط البيع" in AR
+- [X] Leads list: financing badge shows a label, not a code
+- [X] **Business Info modal** (the modal a bank opens on a lead): financing type, amount, **annual revenue, business age, sales via POS devices**, and the **Lead Priority** badge with disclaimer
+- [X] Lead detail page: same fields, plus Lead Priority
+- [X] Purchased-leads Excel export has `Sales via POS Devices`, `Annual Revenue`, `Business Age`
+- [X] The old **"Own POS System"** label is gone everywhere — it now reads "Sales via POS Devices" in EN and "مبيعات عبر أجهزة نقاط البيع" in AR
 
 > **Why the rename matters:** the POS question reuses the existing `own_pos_system` column. Rows created before this release answered a *different* question ("does the business own a POS system"). The score treats `NULL` and legacy values as *unknown* rather than "no", but the historical values themselves are not strictly comparable to new ones. Worth remembering if you analyse this field over time.
 
@@ -220,11 +220,11 @@ That endpoint used `SELECT *`, which would have shipped both columns to the appl
 
 Already verified locally; re-verify on a deployed dev instance because the risk is environmental, not code.
 
-- [ ] `/deposits` loads **fully styled**, with bank logos and working filters
-- [ ] URL stays on your domain — no redirect to nesbah.net at any point
-- [ ] `/deposits/` (trailing slash) resolves to `/deposits` **on your domain**. Next's own normalisation handles this; confirm it still does
+- [X] `/deposits` loads **fully styled**, with bank logos and working filters
+- [X] URL stays on your domain — no redirect to nesbah.net at any point
+- [X] `/deposits/` (trailing slash) resolves to `/deposits` **on your domain**. Next's own normalisation handles this; confirm it still does
 - [ ] DevTools Console: no 404s, no CORS errors
-- [ ] `/en/deposits` loads
+- [X] `/en/deposits` loads
 - [ ] **The deposit request form actually submits.** This is the one most likely to break: the form POSTs to `/_serverFn/*`, which sits outside `/deposits` and needs its own rewrite rule. The page can look perfect while the form silently fails
 - [ ] `<html lang="ar" dir="rtl">` present, RTL layout correct
 - [ ] Mobile renders correctly
