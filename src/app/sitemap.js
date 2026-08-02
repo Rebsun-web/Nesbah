@@ -17,14 +17,10 @@ export default function sitemap() {
     '/working-capital-financing',
   ]
 
-  // /deposits is reverse-proxied from nesbah.net (see next.config.mjs). Until the
-  // nesbah.net side flips VITE_SITE_URL to https://nesbah.com.sa, the proxied page
-  // still emits <link rel="canonical" href="https://nesbah.net/deposits">, so
-  // listing our URL here would submit a page that canonicalises to another domain.
-  // Set DEPOSITS_IN_SITEMAP=true only after they confirm the flip is live.
-  if (process.env.DEPOSITS_IN_SITEMAP === 'true') {
-    routes.push('/deposits')
-  }
+  // /deposits and /financing-guide are reverse-proxied from nesbah.net (see
+  // next.config.mjs). The origin now emits canonicals pointing at nesbah.com.sa
+  // (verified 2026-08-02), so these are safe to submit as our own URLs.
+  routes.push('/deposits', '/financing-guide')
 
   return routes.map((route) => ({
     url: `${base}${route}`,

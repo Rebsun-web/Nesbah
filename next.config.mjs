@@ -70,12 +70,11 @@ const depositsRedirects = [
   // competing for the same queries on one domain — the exact problem the proxy exists
   // to solve. Consolidated onto the proxied guide.
   //
-  // Deliberately TEMPORARY (307) for now: /financing-guide still emits
-  // <link rel="canonical" href="https://nesbah.net/financing-guide"> until the
-  // nesbah.net side sets VITE_SITE_URL. A permanent redirect today would hand
-  // /knowledge's accumulated authority to nesbah.net rather than to us.
-  // FLIP THIS TO permanent: true once the canonical points at nesbah.com.sa.
-  { source: '/knowledge', destination: '/financing-guide', permanent: false },
+  // Permanent (308): the origin now emits
+  // <link rel="canonical" href="https://nesbah.com.sa/financing-guide">, verified
+  // 2026-08-02, so /knowledge's accumulated authority consolidates onto our domain
+  // rather than being handed to nesbah.net.
+  { source: '/knowledge', destination: '/financing-guide', permanent: true },
 ]
 
 const nextConfig = {
