@@ -229,8 +229,8 @@ const translations = {
   'offers.viewLeads': 'عرض العملاء المحتملين',
   
   // Login & Auth
-  'auth.welcome': 'مرحبا بك',
-  'auth.loginToContinue': 'تسجيل الدخول للحساب للمتابعة',
+  'auth.welcome': 'تسجيل الدخول',
+  'auth.loginToContinue': 'أدخل بريدك الإلكتروني وكلمة المرور للوصول إلى طلباتك.',
   'auth.email': 'البريد الإلكتروني',
   'auth.password': 'كلمة المرور',
   'auth.mfaToken': 'رمز التحقق الثنائي',

@@ -17,7 +17,10 @@ import { useLang } from '@/contexts/PublicLanguageContext'
 import { nav, headerLinks as h } from '@/content/home'
 
 export default function Navbar() {
-  const { t, isRTL, toggleLang } = useLang()
+  const { t, lang, isRTL, toggleLang } = useLang()
+  // The proxied surface has separate Arabic and English routes. Without this the
+  // English header sent visitors to the Arabic guide and deposits pages.
+  const localised = (href) => (lang === 'en' ? `/en${href}` : href)
   const [open, setOpen] = useState(false)
   const triggerRef = useRef(null)
   const panelRef = useRef(null)
@@ -59,10 +62,10 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <Link href={h.guide.href} className="text-sm font-semibold text-ink/80 transition-colors hover:text-violet">
+          <Link href={localised(h.guide.href)} className="text-sm font-semibold text-ink/80 transition-colors hover:text-violet">
             {t(h.guide)}
           </Link>
-          <Link href={h.deposits.href} className="text-sm font-semibold text-ink/80 transition-colors hover:text-violet">
+          <Link href={localised(h.deposits.href)} className="text-sm font-semibold text-ink/80 transition-colors hover:text-violet">
             {t(h.deposits)}
           </Link>
           <Link href={h.signIn.href} className="text-sm font-semibold text-ink/80 transition-colors hover:text-violet">
@@ -102,8 +105,8 @@ export default function Navbar() {
                 {t(n)}
               </a>
             ))}
-            <Link href={h.guide.href} onClick={closeAndReturn} className="py-2 font-medium text-ink/80">{t(h.guide)}</Link>
-            <Link href={h.deposits.href} onClick={closeAndReturn} className="py-2 font-medium text-ink/80">{t(h.deposits)}</Link>
+            <Link href={localised(h.guide.href)} onClick={closeAndReturn} className="py-2 font-medium text-ink/80">{t(h.guide)}</Link>
+            <Link href={localised(h.deposits.href)} onClick={closeAndReturn} className="py-2 font-medium text-ink/80">{t(h.deposits)}</Link>
             <Link href={h.signIn.href} onClick={closeAndReturn} className="py-2 font-medium text-ink/80">{t(h.signIn)}</Link>
             <div className="mt-2 flex items-center gap-3">
               <button

@@ -2,24 +2,18 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/button';
-import { GradientBackground } from '@/components/gradient';
+import Image from 'next/image';
 import { Link } from '@/components/link';
 import LoginStatusModal from '@/components/LoginStatusModal';
-import { Checkbox, Field, Input, Label } from '@headlessui/react';
-import { CheckIcon } from '@heroicons/react/16/solid';
-import { clsx } from 'clsx';
-import { Mark } from '@/components/logo';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { Navbar } from '@/components/navbar';
-import { Container } from '@/components/container';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { EMAIL_RE } from '@/lib/validators';
 
 export default function Login() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, currentLanguage, changeLanguage } = useLanguage();
+  const isRTL = currentLanguage === 'ar';
+  const toggleLang = () => changeLanguage(isRTL ? 'en' : 'ar');
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -148,123 +142,127 @@ export default function Login() {
 
 
   return (
-    <main className="overflow-hidden bg-[hsl(var(--background))]">
-      <Container className="relative">
-        <Navbar />
-      </Container>
-      <div className="isolate flex min-h-dvh items-start justify-center p-6 lg:p-8 pt-20 lg:pt-32">
-        <div className="w-full max-w-xl rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-card">
-          <form onSubmit={handleLogin} className="p-7">
-            <h1 className="pt-4 text-xl font-bold text-[hsl(var(--foreground))]">{t('auth.welcome')}</h1>
-            <p className="mt-1 text-sm text-[hsl(var(--ink-soft))]">{t('auth.loginToContinue')}</p>
-            
-            {requiresMFA && (
-              <div className="mt-4 rounded-2xl border border-[hsl(var(--success)/0.35)] bg-[hsl(var(--success)/0.08)] p-3 text-center">
-                <span className="text-sm font-semibold text-[hsl(var(--foreground))]">
-                  ✓ Credentials verified. Complete login with MFA token.
-                </span>
-              </div>
-            )}
+    // Layout ported 1:1 from the reference implementation's CustomerAuthShell
+    // (src/components/customer-auth-shell.tsx): minimal header with logo + language
+    // link, centred card on cream with the % watermark behind it, "NESBAH" eyebrow,
+    // violet rule under the subtitle, ink pill button.
+    //
+    // Deliberate omission: no "Create one" link. There is no self-service account in
+    // this product — public users submit an anonymous application via /onboarding, and
+    // bank/admin accounts are provisioned by an admin.
+    <div className="min-h-screen bg-cream">
+      <div className="flex min-h-screen flex-col">
+        <header className="border-b border-hairline/60 bg-cream/70 backdrop-blur">
+          <div className="container flex h-16 items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/logo/NewNesbahLogo.png" alt="Nesbah" height={26} width={86} className="h-8 w-auto object-contain" />
+            </Link>
+            <button
+              type="button"
+              onClick={toggleLang}
+              className="text-xs font-semibold text-ink/70 transition-colors hover:text-violet"
+            >
+              {isRTL ? 'English' : 'العربية'}
+            </button>
+          </div>
+        </header>
 
-            <Field className="mt-8 space-y-3">
-              <Label className="text-sm font-semibold text-[hsl(var(--foreground))]">{t('auth.email')}</Label>
-              <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder={t('auth.email')}
-                  className={`block w-full rounded-2xl border border-[hsl(var(--border))] bg-white px-4 py-3 text-sm outline-none transition-all focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.15)] ${requiresMFA ? 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]' : ''}`}
-                  disabled={requiresMFA}
-              />
-            </Field>
+        <main id="main-content" tabIndex={-1} className="pct-motif flex flex-1 items-center justify-center px-4 py-10">
+          <div className="relative w-full max-w-md">
+            <div className="rounded-3xl border border-hairline bg-white p-6 shadow-[0_30px_80px_-40px_rgba(30,24,81,0.35)] md:p-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-violet">
+                {isRTL ? 'نسبة' : 'Nesbah'}
+              </p>
+              <h1 className="mt-2 font-display text-2xl font-bold text-ink">{t('auth.welcome')}</h1>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{t('auth.loginToContinue')}</p>
+              <div className="mt-5 h-px w-12 bg-violet" aria-hidden="true" />
 
-            <Field className="relative pt-4 space-y-3">
-              <Label className="text-sm/5 font-medium">{t('auth.password')}</Label>
-              <div className="relative">
-                <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    placeholder={t('auth.password')}
-                    className={`block w-full rounded-2xl border border-[hsl(var(--border))] bg-white px-4 py-3 pr-12 text-sm outline-none transition-all focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.15)] ${requiresMFA ? 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]' : ''}`}
-                    disabled={requiresMFA}
-                />
-                <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-                >
-                  {showPassword ? (
-                      <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
-                  ) : (
-                      <EyeIcon className="h-5 w-5" aria-hidden="true" />
-                  )}
-                </button>
-              </div>
-            </Field>
-
-            {requiresMFA && (
-              <Field className="pt-4 space-y-3">
-                <Label className="text-sm/5 font-medium">MFA Token</Label>
-                <div className="rounded-2xl border border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.06)] p-4">
-                  <div className="flex items-center mb-3">
-                    <div className="mr-2 h-3 w-3 rounded-full bg-[hsl(var(--primary))]"></div>
-                    <span className="text-sm font-medium text-purple-800">
-                      Two-Factor Authentication Required
+              <form onSubmit={handleLogin} className="mt-6 space-y-5">
+                {requiresMFA && (
+                  <div className="rounded-xl border border-[hsl(var(--success)/0.35)] bg-[hsl(var(--success)/0.08)] p-3 text-center">
+                    <span className="text-sm font-semibold text-ink">
+                      ✓ Credentials verified. Complete login with MFA token.
                     </span>
                   </div>
+                )}
+
+                <div>
+                  <label htmlFor="login-email" className="mb-1.5 block text-sm font-semibold text-ink">{t('auth.email')}</label>
                   <input
-                    type="text"
-                    value={mfaToken}
-                    onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    id="login-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
-                    placeholder="000000"
-                    className="block w-full rounded-2xl border border-[hsl(var(--border))] bg-white px-4 py-3 text-center font-mono text-lg outline-none transition-all focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.15)]"
-                    maxLength={6}
-                    autoFocus
+                    disabled={requiresMFA}
+                    className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-sm text-ink transition placeholder:text-ink-soft/50 focus:border-violet focus:outline-none focus:ring-2 focus:ring-violet/20 disabled:bg-[hsl(var(--muted))]"
                   />
-                  <p className="text-xs text-purple-600 mt-1 text-center">
-                    Enter the 6-digit code from your authenticator app
-                  </p>
                 </div>
-              </Field>
-            )}
 
-            <div className="mt-8 flex items-center justify-between text-sm/5">
-              <Field className="flex items-center gap-3">
-                <Checkbox
-                    name="remember-me"
-                    className={clsx(
-                        'group block size-4 rounded border shadow ring-1 ring-black/10 focus:outline-none',
-                        'data-[checked]:bg-[hsl(var(--primary))] data-[checked]:ring-[hsl(var(--primary))]',
-                        'data-[focus]:outline data-[focus]:outline-2 data-[focus]:outline-offset-2 data-[focus]:outline-black'
-                    )}
-                >
-                  <CheckIcon className="fill-white opacity-0 group-data-[checked]:opacity-100" />
-                </Checkbox>
-                <Label>{t('auth.rememberMe')}</Label>
-              </Field>
-              <Link href="/forgotPassword" className="font-semibold text-[hsl(var(--primary))] hover:underline">
-                {t('auth.forgotPassword')}
-              </Link>
-            </div>
+                <div>
+                  <label htmlFor="login-password" className="mb-1.5 block text-sm font-semibold text-ink">{t('auth.password')}</label>
+                  <div className="relative">
+                    <input
+                      id="login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={requiresMFA}
+                      className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 pe-11 text-sm text-ink transition placeholder:text-ink-soft/50 focus:border-violet focus:outline-none focus:ring-2 focus:ring-violet/20 disabled:bg-[hsl(var(--muted))]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-pressed={showPassword}
+                      aria-controls="login-password"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute inset-y-0 end-2 my-auto grid h-8 w-8 place-items-center rounded-md text-ink-soft transition-colors hover:text-violet focus:outline-none focus:ring-2 focus:ring-violet/30"
+                    >
+                      {showPassword
+                        ? <EyeSlashIcon className="h-4 w-4" aria-hidden="true" />
+                        : <EyeIcon className="h-4 w-4" aria-hidden="true" />}
+                    </button>
+                  </div>
+                </div>
 
-            <div className="mt-8">
-              <button
+                {requiresMFA && (
+                  <div>
+                    <label htmlFor="login-mfa" className="mb-1.5 block text-sm font-semibold text-ink">MFA Token</label>
+                    <input
+                      id="login-mfa"
+                      type="text"
+                      value={mfaToken}
+                      onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      required
+                      maxLength={6}
+                      autoFocus
+                      placeholder="000000"
+                      className="w-full rounded-xl border border-hairline bg-white px-3.5 py-2.5 text-center font-mono text-lg text-ink transition focus:border-violet focus:outline-none focus:ring-2 focus:ring-violet/20"
+                    />
+                    <p className="mt-1.5 text-center text-xs text-ink-soft">
+                      Enter the 6-digit code from your authenticator app
+                    </p>
+                  </div>
+                )}
+
+                <button
                   type="submit"
                   disabled={isLoading}
-                  className="mt-4 w-full rounded-full bg-[hsl(var(--primary))] px-6 py-3 font-bold text-white shadow-glow transition-all hover:bg-[hsl(var(--foreground))] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-              >
-                {isLoading ? t('auth.loggingIn') : (requiresMFA ? 'Verify MFA' : t('auth.login'))}
-              </button>
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLoading ? t('auth.loggingIn') : (requiresMFA ? 'Verify MFA' : t('auth.login'))}
+                </button>
+
+                <div className="text-center">
+                  <Link href="/forgotPassword" className="text-sm font-semibold text-violet hover:underline">
+                    {t('auth.forgotPassword')}
+                  </Link>
+                </div>
+              </form>
             </div>
-          </form>
-          {/* No self-service account creation. Public users submit an anonymous
-              application via /onboarding; there is no merchant account to create.
-              Bank and admin accounts are provisioned by an admin. */}
-        </div>
+          </div>
+        </main>
       </div>
 
       {isModalOpen && (
@@ -274,6 +272,6 @@ export default function Login() {
               message={modalMessage}
           />
       )}
-    </main>
+    </div>
   );
 }

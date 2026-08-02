@@ -43,7 +43,8 @@ function SectionHeading({ eyebrow, title, sub }) {
 // ─── Hero ────────────────────────────────────────────────────────────────────
 
 export function Hero() {
-    const { t, lang } = useLang()
+    const { t, lang, isRTL } = useLang()
+    const guideHref = lang === 'en' ? '/en/financing-guide' : '/financing-guide'
     const rows = hero.cardRows[lang] || hero.cardRows.ar
 
     return (
@@ -54,7 +55,7 @@ export function Hero() {
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-soft">
                             {t(hero.eyebrow)}
                         </p>
-                        <h1 className="mt-5 font-display text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl xl:text-6xl 2xl:text-7xl">
+                        <h1 className={`mt-5 font-display text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl ${isRTL ? 'leading-[1.3]' : 'leading-[1.05] xl:text-6xl 2xl:text-7xl'}`}>
                             {t(hero.titleLine1)}
                             <br />
                             <span className="text-gradient-violet">{t(hero.titleLine2)}</span>
@@ -67,7 +68,7 @@ export function Hero() {
                                 {t(hero.ctaPrimary)}
                                 <Arrow />
                             </Link>
-                            <Link href="/financing-guide" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/25 px-7 py-3.5 font-semibold text-white transition-colors hover:bg-white/5">
+                            <Link href={guideHref} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/25 px-7 py-3.5 font-semibold text-white transition-colors hover:bg-white/5">
                                 {t(hero.ctaSecondary)}
                             </Link>
                         </div>
@@ -143,6 +144,7 @@ export function Hero() {
 
 export function DepositsPromo() {
     const { t, lang } = useLang()
+    const depositsHref = lang === 'en' ? '/en/deposits' : '/deposits'
     const rows = depositsPromo.rows[lang] || depositsPromo.rows.ar
 
     return (
@@ -184,7 +186,7 @@ export function DepositsPromo() {
                                 </div>
                             </div>
 
-                            <Link href="/deposits" className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-violet px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-violet-soft">
+                            <Link href={depositsHref} className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-violet px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-violet-soft">
                                 {t(depositsPromo.cta)}
                                 <Arrow size={15} />
                             </Link>

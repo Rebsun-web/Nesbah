@@ -226,14 +226,14 @@ const translations = {
   'offers.viewLeads': 'View Leads',
   
   // Login & Auth
-  'auth.welcome': 'Welcome',
-  'auth.loginToContinue': 'Sign in to your account to continue',
+  'auth.welcome': 'Sign in',
+  'auth.loginToContinue': 'Enter your email and password to access your applications.',
   'auth.email': 'Email',
   'auth.password': 'Password',
   'auth.mfaToken': 'Two-Factor Authentication Code',
   'auth.rememberMe': 'Remember me',
-  'auth.forgotPassword': 'Forgot your password?',
-  'auth.login': 'Sign In',
+  'auth.forgotPassword': 'Forgot password?',
+  'auth.login': 'Sign in',
   'auth.loggingIn': 'Signing in...',
   'auth.verifyCode': 'Verify Code',
   'auth.backToLogin': 'Back to Sign In',
