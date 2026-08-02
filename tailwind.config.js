@@ -6,9 +6,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["IBM Plex Sans Arabic", "sans-serif"],
-        // `font-display` in the reference implementation's markup.
-        display: ["IBM Plex Sans Arabic", "Cairo", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-plex-arabic)", "var(--font-inter)", "sans-serif"],
+        // `font-display` in the reference implementation's markup. Same face as
+        // body text there; it must resolve to the loaded webfont, not a literal
+        // family name the browser has never heard of.
+        display: ["var(--font-plex-arabic)", "Cairo", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       borderRadius: {
         '4xl': '2rem',

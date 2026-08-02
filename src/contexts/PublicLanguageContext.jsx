@@ -218,6 +218,17 @@ export function PublicLanguageProvider({ children }) {
 
   const isRTL = lang === 'ar'
 
+  // Write the direction onto <html>, not just a wrapper div. The reference
+  // implementation does the same (its useEnLtr hook sets documentElement.lang/dir).
+  // It matters for layout, not only text: with dir on an inner div the hero grid
+  // resolved its column order the opposite way to nesbah.net, so the whole hero
+  // rendered mirrored.
+  useEffect(() => {
+    const html = document.documentElement
+    html.lang = lang
+    html.dir = isRTL ? 'rtl' : 'ltr'
+  }, [lang, isRTL])
+
   const t = useCallback(
     (obj) => (obj && typeof obj === 'object' ? obj[lang] || obj['ar'] || '' : ''),
     [lang]
@@ -225,7 +236,7 @@ export function PublicLanguageProvider({ children }) {
 
   return (
     <PublicLanguageContext.Provider value={{ lang, toggleLang, isRTL, t }}>
-      <div dir={isRTL ? 'rtl' : 'ltr'} lang={lang} className="min-h-screen">
+      <div className="min-h-screen">
         {children}
       </div>
     </PublicLanguageContext.Provider>

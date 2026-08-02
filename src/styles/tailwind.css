@@ -139,9 +139,10 @@
   }
 }*/
 
-html {
-  direction: ltr;
-}
+/* Document direction is set from the active language — see PublicLanguageContext,
+   which mirrors the reference implementation's approach of writing
+   document.documentElement.dir. The admin and bank portals opt out by wrapping
+   their subtree in dir="ltr"; they were built against LTR layouts. */
 
 /* ─── Deposits comparison promo card ──────────────────────────────────────────
    Copied verbatim from the client's published embed at

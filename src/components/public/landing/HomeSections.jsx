@@ -55,7 +55,7 @@ export function Hero() {
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-soft">
                             {t(hero.eyebrow)}
                         </p>
-                        <h1 className={`mt-5 font-display text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl ${isRTL ? 'leading-[1.3]' : 'leading-[1.05] xl:text-6xl 2xl:text-7xl'}`}>
+                        <h1 className={`mt-5 font-display text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl ${isRTL ? '' : 'xl:text-6xl 2xl:text-7xl'}`}>
                             {t(hero.titleLine1)}
                             <br />
                             <span className="text-gradient-violet">{t(hero.titleLine2)}</span>
@@ -93,7 +93,7 @@ export function Hero() {
                             </div>
 
                             {/* Central illustrative comparison card */}
-                            <div className="mx-auto w-full max-w-[440px] overflow-hidden rounded-2xl border border-white/10 bg-white text-ink shadow-elevated lg:mr-auto xl:mx-0 xl:w-[350px] xl:max-w-[350px]">
+                            <div dir={isRTL ? 'rtl' : 'ltr'} className={`mx-auto w-full max-w-[440px] overflow-hidden rounded-2xl border border-white/10 bg-white text-ink shadow-elevated xl:mx-0 xl:w-[350px] xl:max-w-[350px] ${isRTL ? 'lg:mr-auto' : 'lg:ml-auto'}`}>
                                 <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
                                     <span className="inline-flex items-center gap-2 text-xs font-semibold text-ink/60">
                                         <Sparkles size={14} aria-hidden="true" className="text-violet" /> {t(hero.cardTitle)}

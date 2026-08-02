@@ -14,7 +14,19 @@ export const LANGUAGES = {
 // Default language
 const DEFAULT_LANGUAGE = LANGUAGES.AR
 
-// Use standard LTR layout for all languages
+// This provider sits in the ROOT layout, so anything it writes to
+// document.documentElement applies to the whole site. It therefore must NOT own
+// the document direction: the customer-facing pages are RTL in Arabic (matching
+// nesbah.net), and a global 'ltr' here silently mirrored their layouts.
+//
+// Direction ownership after this change:
+//   public pages  -> PublicLanguageContext writes <html dir> from the language
+//   admin/bank/business portals -> opt out with dir="ltr" on their own subtree,
+//                                  because they were built against LTR layouts
+// This provider now only supplies translations.
+
+// Still exposed on the context: portal components read `direction` to lay
+// themselves out, and they remain LTR.
 const STANDARD_LTR_DIRECTION = 'ltr'
 
 // Lazy load translations
@@ -55,10 +67,8 @@ export function LanguageProvider({ children }) {
     if (initialLanguage !== DEFAULT_LANGUAGE) {
       setCurrentLanguage(initialLanguage)
       
-      // Update document attributes - use standard LTR layout
       if (document.documentElement) {
         document.documentElement.lang = initialLanguage
-        document.documentElement.dir = STANDARD_LTR_DIRECTION
       }
     }
     
@@ -87,10 +97,6 @@ export function LanguageProvider({ children }) {
   // Update document attributes when language changes (only on client)
   useEffect(() => {
     if (mounted && currentLanguage) {
-      // Use standard LTR layout for all languages
-      if (document.documentElement.dir !== STANDARD_LTR_DIRECTION) {
-        document.documentElement.dir = STANDARD_LTR_DIRECTION
-      }
       if (document.documentElement.lang !== currentLanguage) {
         document.documentElement.lang = currentLanguage
       }

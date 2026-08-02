@@ -150,7 +150,10 @@ export default function Login() {
     // Deliberate omission: no "Create one" link. There is no self-service account in
     // this product — public users submit an anonymous application via /onboarding, and
     // bank/admin accounts are provisioned by an admin.
-    <div className="min-h-screen bg-cream">
+    // Direction is pinned per-language here, mirroring the reference
+    // CustomerAuthShell: this page uses LanguageContext, which no longer
+    // writes <html dir>, so it cannot inherit the right direction.
+    <div className="min-h-screen bg-cream" dir={currentLanguage === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex min-h-screen flex-col">
         <header className="border-b border-hairline/60 bg-cream/70 backdrop-blur">
           <div className="container flex h-16 items-center justify-between">

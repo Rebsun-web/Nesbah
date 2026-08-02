@@ -96,9 +96,14 @@ function AuthCheck({ children }) {
 }
 
 export default function BankPortalLayout({ children }) {
+    // The document is RTL for Arabic (see PublicLanguageContext). The bank portal
+    // was built against LTR layouts, so it opts out for its whole subtree
+    // rather than inheriting the customer-facing direction.
     return (
-        <AuthCheck>
-            {children}
-        </AuthCheck>
+        <div dir="ltr">
+            <AuthCheck>
+                {children}
+            </AuthCheck>
+        </div>
     )
 }

@@ -7,8 +7,12 @@ import HydrationHandler from '@/components/HydrationHandler'
 // Auto-start background tasks when the server starts
 import '@/lib/auto-start-background-tasks'
 
-const inter = Inter({ subsets: ['latin'] })
-const ibmPlexArabic = IBM_Plex_Sans_Arabic({ subsets: ['arabic', 'latin'], weight: ['400', '500', '600', '700'] })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const ibmPlexArabic = IBM_Plex_Sans_Arabic({
+  subsets: ['arabic', 'latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-plex-arabic',
+})
 
 export const metadata = {
   title: {
@@ -40,7 +44,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ar" dir="ltr">
+    <html lang="ar" dir="rtl" className={`${inter.variable} ${ibmPlexArabic.variable}`}>
       <head>
         <link
           rel="stylesheet"
@@ -58,23 +62,32 @@ export default function RootLayout({ children }) {
                 opacity: 1;
               }
               
-              /* FORCE MODERN FONTS - OVERRIDE ALL EXISTING STYLES */
+              /* Reference the next/font-generated family names, not the literal
+                 'IBM Plex Sans Arabic' — next/font registers the face under a
+                 hashed name, so the literal never matched and Arabic silently
+                 fell back to the system font. Its taller vertical metrics made
+                 the hero headline's lines collide at leading-[1.05]. */
               :root {
-                --font-sans: 'IBM Plex Sans Arabic', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                --font-sans: var(--font-plex-arabic), var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
               }
 
-              /* Base font + rendering */
-              *, *::before, *::after {
+              /* Set on body, not `*`: a universal !important font-family also
+                 overrode Tailwind's font-display utility, so the display face
+                 could never apply. Descendants inherit from body instead. */
+              body {
                 font-family: var(--font-sans) !important;
-                text-rendering: optimizeLegibility !important;
-                -webkit-font-smoothing: antialiased !important;
-                -moz-osx-font-smoothing: grayscale !important;
+              }
+
+              *, *::before, *::after {
+                text-rendering: optimizeLegibility;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
               }
             `,
           }}
         />
       </head>
-      <body className={`${inter.className} ${ibmPlexArabic.className} text-gray-950 antialiased`}>
+      <body className="font-sans text-gray-950 antialiased">
         <LanguageProvider>
           {children}
         </LanguageProvider>
