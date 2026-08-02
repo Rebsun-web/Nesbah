@@ -84,8 +84,9 @@
   -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 /* Their layout wrapper: centred with a responsive gutter. */
-.container { width: 100%; margin-inline: auto; padding-inline: 1rem; max-width: 1280px; }
-@media (min-width: 768px) { .container { padding-inline: 2rem; } }
+/* Exact values from the reference implementation's `@utility container`:
+   a single max-width and gutter at every breakpoint, no responsive step. */
+.container { width: 100%; margin-inline: auto; padding-inline: 1.25rem; max-width: 1240px; }
 .gradient-hero { background: var(--gradient-hero); }
 /* The reference implementation's class name for the same thing. */
 .bg-hero-gradient { background: var(--gradient-hero); }
