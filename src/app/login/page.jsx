@@ -153,7 +153,7 @@ export default function Login() {
     // Direction is pinned per-language here, mirroring the reference
     // CustomerAuthShell: this page uses LanguageContext, which no longer
     // writes <html dir>, so it cannot inherit the right direction.
-    <div className="min-h-screen bg-cream" dir={currentLanguage === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="surface-public min-h-screen bg-cream" dir={currentLanguage === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex min-h-screen flex-col">
         <header className="border-b border-hairline/60 bg-cream/70 backdrop-blur">
           <div className="container flex h-16 items-center justify-between">

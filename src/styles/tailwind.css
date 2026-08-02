@@ -87,6 +87,24 @@
 /* Exact values from the reference implementation's `@utility container`:
    a single max-width and gutter at every breakpoint, no responsive step. */
 .container { width: 100%; margin-inline: auto; padding-inline: 1.25rem; max-width: 1240px; }
+
+/* ─── Large-display scaling ───────────────────────────────────────────────────
+   The reference design caps its container at 1240px, which on a >1600px monitor
+   leaves the content occupying barely half the screen. This scales the whole
+   public surface up so it fills more of the display while keeping every
+   proportion — type, spacing, card widths — exactly as the reference sets them.
+   A wider container alone would not do this: it stretches the layout without
+   enlarging anything in it.
+
+   Scoped to .surface-public deliberately. The admin and bank portals are dense
+   data views that were not designed for this and are left untouched.
+
+   `zoom` (rather than a root font-size change) because it also scales the
+   hand-tuned pixel values in the hero card, and because a root font-size rule
+   cannot be scoped to a subtree.                                              */
+@media (min-width: 1600px) { .surface-public { zoom: 1.12; } }
+@media (min-width: 1900px) { .surface-public { zoom: 1.30; } }
+@media (min-width: 2300px) { .surface-public { zoom: 1.45; } }
 .gradient-hero { background: var(--gradient-hero); }
 /* The reference implementation's class name for the same thing. */
 .bg-hero-gradient { background: var(--gradient-hero); }

@@ -236,7 +236,7 @@ export function PublicLanguageProvider({ children }) {
 
   return (
     <PublicLanguageContext.Provider value={{ lang, toggleLang, isRTL, t }}>
-      <div className="min-h-screen">
+      <div className="surface-public min-h-screen">
         {children}
       </div>
     </PublicLanguageContext.Provider>
