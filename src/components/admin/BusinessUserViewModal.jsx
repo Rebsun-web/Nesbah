@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import {
+    formatFinancingType, formatAmountRange, formatAgeRange,
+    formatRevenueRange, formatCity, formatHasPos,
+} from '@/lib/apply-options'
+import { TIER_LABELS, TIER_BADGE_CLASSES, SCORE_DISCLAIMER } from '@/lib/lead-score'
 
 export default function BusinessUserViewModal({ user, isOpen, onClose }) {
     const [detailedUser, setDetailedUser] = useState(null);
@@ -118,21 +123,54 @@ export default function BusinessUserViewModal({ user, isOpen, onClose }) {
                                         {d.financing_type && (
                                             <div>
                                                 <label className="block text-xs font-medium text-gray-600">Financing Type</label>
-                                                <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
-                                                    {d.financing_type.replace(/_/g, ' ')}
+                                                <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                                                    {formatFinancingType(d.financing_type, 'en')}
                                                 </span>
                                             </div>
                                         )}
-                                        {d.city_of_operation && (
+                                        {(d.city_code || d.city_of_operation) && (
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-600">City of Operation</label>
-                                                <p className="text-sm text-gray-900">{d.city_of_operation}</p>
+                                                <label className="block text-xs font-medium text-gray-600">City</label>
+                                                <p className="text-sm text-gray-900">{formatCity(d.city_code, 'en', d.city_of_operation)}</p>
                                             </div>
                                         )}
-                                        {d.approximate_financing_amount && (
+                                        {(d.amount_range_code || d.approximate_financing_amount) && (
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-600">Approximate Amount</label>
-                                                <p className="text-sm text-gray-900">{d.approximate_financing_amount}</p>
+                                                <label className="block text-xs font-medium text-gray-600">Requested Amount</label>
+                                                <p className="text-sm text-gray-900">{formatAmountRange(d.amount_range_code, 'en', d.approximate_financing_amount)}</p>
+                                            </div>
+                                        )}
+                                        {(d.annual_revenue_code || d.is_pre_revenue) && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600">Annual Revenue</label>
+                                                <p className="text-sm text-gray-900">{formatRevenueRange(d.annual_revenue_code, 'en', { isPreRevenue: d.is_pre_revenue === true })}</p>
+                                            </div>
+                                        )}
+                                        {d.business_age_range_code && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600">Business Age</label>
+                                                <p className="text-sm text-gray-900">{formatAgeRange(d.business_age_range_code, 'en')}</p>
+                                            </div>
+                                        )}
+                                        {typeof d.own_pos_system === 'boolean' && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600">Sales via POS Devices</label>
+                                                <p className="text-sm text-gray-900">{formatHasPos(d.own_pos_system, 'en')}</p>
+                                            </div>
+                                        )}
+                                        {/* Internal prioritization indicator — admin/partner only. */}
+                                        {d.lead_tier && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600">Lead Priority</label>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full border ${TIER_BADGE_CLASSES[d.lead_tier]}`}>
+                                                        {TIER_LABELS[d.lead_tier].en}
+                                                    </span>
+                                                    {d.lead_score != null && (
+                                                        <span className="text-xs text-gray-500 font-mono">{d.lead_score}/100</span>
+                                                    )}
+                                                </div>
+                                                <p className="mt-1 text-xs text-gray-400">{SCORE_DISCLAIMER.en}</p>
                                             </div>
                                         )}
                                         {d.application_submitted_at && (

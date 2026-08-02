@@ -179,7 +179,9 @@ export default function LeadPage({ params }) {
 
                     <DescriptionTerm>{t('leads.ownPosSystem')}</DescriptionTerm>
                     <DescriptionDetails>
-                        {application.own_pos_system ? t('common.yes') : t('common.no')}
+                        {typeof application.own_pos_system === 'boolean'
+                            ? (application.own_pos_system ? t('common.yes') : t('common.no'))
+                            : notProvided}
                     </DescriptionDetails>
 
                     <DescriptionTerm>{t('leads.numberOfPosDevice')}</DescriptionTerm>

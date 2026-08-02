@@ -1,12 +1,9 @@
 import { PublicLanguageProvider } from '@/contexts/PublicLanguageContext'
 import Navbar from '@/components/public/landing/Navbar'
-import HeroSection from '@/components/public/landing/HeroSection'
-import HowItWorks from '@/components/public/landing/HowItWorks'
-import FinancingTypes from '@/components/public/landing/FinancingTypes'
-import WhyNesbahSection from '@/components/public/landing/WhyNesbahSection'
-import AudienceSection from '@/components/public/landing/AudienceSection'
-import FAQSection from '@/components/public/landing/FAQSection'
-import CTASection from '@/components/public/landing/CTASection'
+import {
+  Hero, DepositsPromo, MarketSize, HowItWorks, WhyNesbah,
+  FinancingTypes, Audience, FAQ, FinalCTA,
+} from '@/components/public/landing/HomeSections'
 import Footer from '@/components/public/landing/Footer'
 import WhatsAppButton from '@/components/public/landing/WhatsAppButton'
 
@@ -110,14 +107,16 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
       />
       <Navbar />
-      <main>
-        <HeroSection />
+      <main id="main-content" tabIndex={-1}>
+        <Hero />
+        <DepositsPromo />
+        <MarketSize />
         <HowItWorks />
+        <WhyNesbah />
         <FinancingTypes />
-        <WhyNesbahSection />
-        <AudienceSection />
-        <FAQSection />
-        <CTASection />
+        <Audience />
+        <FAQ />
+        <FinalCTA />
       </main>
       <Footer />
       <WhatsAppButton />

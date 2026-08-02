@@ -3,34 +3,125 @@
 @tailwind utilities;
 
 /* =====================================================
-   Public landing page design tokens (ported from Lovable)
-   These variables are ONLY used by new public pages.
+   Public design tokens — retargeted to the nesbah.net design language.
+   These variables are used ONLY by the public pages (homepage, onboarding,
+   product pages, static pages). The admin and bank portals use raw Tailwind
+   colours and are deliberately untouched.
+
+   WHY these exact values: the deposits comparison tool is now served under
+   nesbah.com.sa/deposits via a reverse proxy (see next.config.mjs), so its
+   design sits one click from our homepage. nesbah.net is the agreed design
+   standard, so our public surface adopts its palette rather than the reverse.
+
+   Source: the :root block of https://nesbah.net/assets/styles-*.css, which
+   defines these in oklch. High-chroma brand colours (ink, violet) are outside
+   the sRGB gamut, so they are taken from the hexes documented in the reference
+   source's own comments rather than a naive oklch→sRGB conversion, which shifts
+   hue when it clips. Low-chroma neutrals are converted directly.
    ===================================================== */
 :root {
-  --background: 210 20% 98%;
-  --foreground: 247 54% 21%;
+  /* Warm off-white "cream" page, deep navy ink — the two changes that define
+     the look versus the previous cool-grey/purple-gradient scheme. */
+  --background: 40 69% 97%;         /* cream    #FDFAF4 */
+  --paper: 42 56% 96%;              /* paper    #FBF8F1 — slightly deeper bands */
+  --foreground: 248 55% 22%;        /* ink      #211957 */
+  --ink-soft: 246 36% 29%;          /* ink-soft #342F64 — body copy, subtitles */
   --card: 0 0% 100%;
-  --card-foreground: 247 54% 21%;
-  --primary: 263 90% 59%;
+  --card-foreground: 248 55% 22%;
+  --primary: 259 100% 59%;          /* violet      #6E2CFF */
   --primary-foreground: 0 0% 100%;
-  --muted: 210 15% 94%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 263 90% 96%;
-  --accent-foreground: 263 90% 40%;
-  --success: 142 70% 45%;
+  --primary-soft: 254 85% 71%;      /* violet-soft #9577F4 — hover, accents */
+  --secondary: 240 100% 97%;        /* #F0F0FF — tinted near-white surfaces */
+  --muted: 240 33% 96%;             /* #F1F1F8 */
+  --muted-foreground: 232 10% 42%;  /* #5F6275 */
+  /* Their --accent is mint, used sparingly. Our components use --accent for
+     subtle tinted backgrounds, so that role maps to their --secondary; mint is
+     exposed separately for deliberate use. */
+  --accent: 240 100% 97%;
+  --accent-foreground: 248 55% 22%;
+  --mint: 157 76% 65%;              /* #64EAB7 */
+  --success: 157 76% 45%;
   --success-foreground: 0 0% 100%;
-  --border: 210 10% 90%;
-  --radius: 1rem;
-  --shadow-card: 0 0 0 1px rgba(30,24,81,0.05), 0 2px 4px rgba(0,0,0,0.05);
-  --shadow-card-hover: 0 0 0 1px rgba(30,24,81,0.08), 0 8px 16px rgba(0,0,0,0.08);
-  --gradient-hero: linear-gradient(170deg, hsl(244,58%,16%) 0%, hsl(263,78%,50%) 100%);
+  --border: 240 15% 88%;            /* hairline #DDDDE6 */
+  /* Their token is oklch(60% .24 25) ≈ #E5484D, which only reaches 3.76:1 against
+     the cream background — below WCAG AA for the small text we use it on (inline
+     field errors, required marks). Darkened to 51% lightness for 4.52:1. */
+  --destructive: 358 75% 51%;       /* #E0242B */
+  --radius: 0.875rem;               /* was 1rem */
+  --shadow-card: 0 0 0 1px hsl(248 55% 22% / 0.05), 0 2px 4px hsl(248 55% 22% / 0.05);
+  --shadow-card-hover: 0 0 0 1px hsl(248 55% 22% / 0.08), 0 8px 16px hsl(248 55% 22% / 0.08);
+  /* Hero: ink base with a violet radial bloom at top-right, and WHITE text on it.
+     Ported verbatim from nesbah.net's .bg-hero-gradient. An earlier pass here wrongly
+     made the hero cream — that was inferred from the deposits tool, which uses the
+     cream surface. Their marketing pages keep a dark hero and alternate white/cream
+     body bands beneath it. */
+  --gradient-hero:
+    radial-gradient(900px 500px at 88% -10%, hsl(var(--primary)) 0%, transparent 60%),
+    hsl(var(--foreground));
 }
 
 .text-balance { text-wrap: balance; }
 .shadow-card { box-shadow: var(--shadow-card); }
 .shadow-card-hover { box-shadow: var(--shadow-card-hover); }
-.shadow-elevated { box-shadow: 0 4px 12px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1); }
+/* Ink-tinted rather than neutral black, matching the reference implementation. */
+.shadow-elevated { box-shadow: 0 24px 48px -28px hsl(var(--foreground) / 0.35); }
+/* Primary-CTA glow. */
+.shadow-glow { box-shadow: 0 16px 60px -24px hsl(var(--primary) / 0.40); }
+.bg-paper { background-color: hsl(var(--paper)); }
+/* Frosted panel used by the reference implementation's hero satellites. */
+/* Gradient headline accent from the reference implementation
+   (linear-gradient(90deg, violet-soft, blue) clipped to the text). */
+.text-gradient-violet {
+  background: linear-gradient(90deg, hsl(var(--primary-soft)), hsl(199 98% 49%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.glass {
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+/* Their layout wrapper: centred with a responsive gutter. */
+.container { width: 100%; margin-inline: auto; padding-inline: 1rem; max-width: 1280px; }
+@media (min-width: 768px) { .container { padding-inline: 2rem; } }
 .gradient-hero { background: var(--gradient-hero); }
+/* The reference implementation's class name for the same thing. */
+.bg-hero-gradient { background: var(--gradient-hero); }
+
+/* ─── Nesbah "%" watermark motif ──────────────────────────────────────────────
+   Ported from nesbah.net's .pct-motif. A large outlined percent mark (two circles
+   plus a diagonal) bleeding off the bottom-inline-end corner of a section, at very
+   low opacity. `.pct-motif-light` is the cream-stroked variant for dark surfaces
+   (the hero); the base violet-stroked variant is for light surfaces.
+   Hidden below 640px, as in the reference.                                      */
+.pct-motif { position: relative; overflow: hidden; isolation: isolate; }
+.pct-motif::before {
+  content: "";
+  position: absolute;
+  inset: auto -12% -30% auto;
+  width: min(720px, 70%);
+  aspect-ratio: 1;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.10;
+  background-repeat: no-repeat;
+  background-position: 100% 100%;
+  background-size: contain;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%236E2CFF' stroke-width='14' stroke-linecap='round'><circle cx='55' cy='55' r='24'/><circle cx='145' cy='145' r='24'/><line x1='160' y1='40' x2='40' y2='160'/></svg>");
+}
+.pct-motif.pct-motif-light::before {
+  opacity: 0.08;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%23FCFAF5' stroke-width='14' stroke-linecap='round'><circle cx='55' cy='55' r='24'/><circle cx='145' cy='145' r='24'/><line x1='160' y1='40' x2='40' y2='160'/></svg>");
+}
+.pct-motif.pct-motif-start::before {
+  inset: auto auto -30% -12%;
+  background-position: 0 100%;
+}
+@media (max-width: 640px) {
+  .pct-motif::before { display: none; }
+}
 .transition-lift { transition: all 200ms cubic-bezier(0.4,0,0.2,1); }
 
 @keyframes fade-in {
@@ -51,3 +142,166 @@
 html {
   direction: ltr;
 }
+
+/* ─── Deposits comparison promo card ──────────────────────────────────────────
+   Copied verbatim from the client's published embed at
+   https://nesbah.net/embed/deposits-card.html. All class names are `nsb-`
+   prefixed so they cannot collide with existing site styles, and the spec
+   forbids renaming them. Dimensions (max-width 480px) are as provided.
+   Rendered by src/components/public/landing/DepositsPromoCard.jsx.            */
+
+.nsb-deposits-card {
+  --nsb-ink: #0b1020;
+  --nsb-violet: #6d4bff;
+  --nsb-violet-soft: #a08bff;
+  --nsb-hairline: rgba(11, 16, 32, 0.08);
+  --nsb-muted: rgba(11, 16, 32, 0.55);
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  margin: 0;
+  padding: 22px;
+  border-radius: 18px;
+  border: 1px solid var(--nsb-hairline);
+  background:
+    linear-gradient(135deg,
+      rgba(109, 75, 255, 0.10) 0%,
+      #ffffff 55%,
+      rgba(160, 139, 255, 0.10) 100%);
+  box-shadow: 0 12px 30px -18px rgba(11, 16, 32, 0.25);
+  color: var(--nsb-ink);
+  text-decoration: none;
+  overflow: hidden;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.nsb-deposits-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px -18px rgba(11, 16, 32, 0.28);
+}
+.nsb-deposits-card__glow {
+  position: absolute;
+  top: -48px;
+  inset-inline-end: -48px;
+  width: 160px;
+  height: 160px;
+  border-radius: 9999px;
+  background: rgba(109, 75, 255, 0.14);
+  filter: blur(36px);
+  pointer-events: none;
+}
+.nsb-deposits-card__inner { position: relative; }
+
+.nsb-deposits-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(109, 75, 255, 0.12);
+  color: var(--nsb-violet);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+.nsb-deposits-card__title {
+  margin: 10px 0 0;
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 800;
+  color: var(--nsb-ink);
+}
+
+.nsb-deposits-card__preview {
+  margin-top: 16px;
+  background: #ffffff;
+  border: 1px solid var(--nsb-hairline);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.nsb-deposits-card__preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--nsb-hairline);
+}
+.nsb-deposits-card__preview-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--nsb-muted);
+}
+.nsb-deposits-card__preview-meta {
+  font-size: 10px;
+  color: var(--nsb-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.nsb-deposits-card__rows { list-style: none; margin: 0; padding: 0; }
+.nsb-deposits-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: 1px solid var(--nsb-hairline);
+}
+.nsb-deposits-card__row:first-child { border-top: 0; }
+.nsb-deposits-card__row--hi { background: rgba(109, 75, 255, 0.05); }
+.nsb-deposits-card__row-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.nsb-deposits-card__mono {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 6px;
+  background: #eef0f4;
+  color: var(--nsb-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.nsb-deposits-card__mono--hi {
+  background: rgba(109, 75, 255, 0.15);
+  color: var(--nsb-violet);
+}
+.nsb-deposits-card__bank {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nsb-ink);
+}
+.nsb-deposits-card__rate {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(11, 16, 32, 0.8);
+}
+.nsb-deposits-card__rate--hi {
+  font-size: 14px;
+  color: var(--nsb-violet);
+}
+.nsb-deposits-card__preview-foot {
+  padding: 6px 12px;
+  font-size: 9px;
+  color: var(--nsb-muted);
+  border-top: 1px solid var(--nsb-hairline);
+}
+
+.nsb-deposits-card__cta {
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  background: var(--nsb-violet);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background 180ms ease;
+}
+.nsb-deposits-card:hover .nsb-deposits-card__cta {
+  background: var(--nsb-violet-soft);
+}
+.nsb-deposits-card__arrow { font-size: 15px; line-height: 1; }

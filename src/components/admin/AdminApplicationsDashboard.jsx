@@ -22,6 +22,14 @@ import NewApplicationModal from './NewApplicationModal'
 import ViewApplicationModal from './ViewApplicationModal'
 import EditApplicationModal from './EditApplicationModal'
 import DeleteApplicationModal from './DeleteApplicationModal'
+import { FINANCING_TYPES, FINANCING_ORDER, optionsFor, formatFinancingType } from '@/lib/apply-options'
+
+// Shared code vocabulary — 'general' is retired from the form but kept filterable
+// so legacy rows stay reachable.
+const FINANCING_FILTER_OPTIONS = [
+    ...optionsFor(FINANCING_TYPES, FINANCING_ORDER, 'en'),
+    { value: 'general', label: 'Other (legacy)' },
+]
 
 // Build a compact, windowed list of page numbers (with '...' gaps) so the pager
 // stays usable even with many pages. Always includes first, last, and a window
@@ -345,14 +353,9 @@ export default function AdminApplicationsDashboard() {
                         className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
                         <option value="all">All Types</option>
-                        <option value="business">Business</option>
-                        <option value="working_capital">Working Capital</option>
-                        <option value="expansion">Expansion</option>
-                        <option value="equipment">Equipment</option>
-                        <option value="project">Project</option>
-                        <option value="real_estate">Real Estate</option>
-                        <option value="pos">POS</option>
-                        <option value="general">General</option>
+                        {FINANCING_FILTER_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
                     </select>
                     
                     <select
@@ -453,7 +456,7 @@ export default function AdminApplicationsDashboard() {
                                         <td className="px-6 py-4">
                                             {application.financing_type ? (
                                                 <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
-                                                    {application.financing_type.replace(/_/g, ' ')}
+                                                    {formatFinancingType(application.financing_type, 'en')}
                                                 </span>
                                             ) : (
                                                 <span className="text-xs text-gray-400">—</span>

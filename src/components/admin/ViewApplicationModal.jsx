@@ -15,6 +15,11 @@ import {
     MapPinIcon,
     DocumentTextIcon
 } from '@heroicons/react/24/outline'
+import {
+    formatFinancingType, formatAmountRange, formatAgeRange,
+    formatRevenueRange, formatCity, formatSector, formatHasPos,
+} from '@/lib/apply-options'
+import { TIER_LABELS, TIER_BADGE_CLASSES, SCORE_DISCLAIMER } from '@/lib/lead-score'
 
 export default function ViewApplicationModal({ isOpen, onClose, application, onRefresh }) {
     const [timeRemaining, setTimeRemaining] = useState(null)
@@ -416,18 +421,65 @@ export default function ViewApplicationModal({ isOpen, onClose, application, onR
                             {application.financing_type && (
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">Financing Type</label>
-                                    <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
-                                        {application.financing_type.replace(/_/g, ' ')}
+                                    <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                                        {formatFinancingType(application.financing_type, 'en')}
                                     </span>
                                 </div>
                             )}
                             <div>
                                 <label className="text-sm font-medium text-gray-700">Requested Amount</label>
                                 <p className="text-sm text-gray-900">
-                                    {application.approximate_financing_amount || 'Not specified'}
+                                    {formatAmountRange(application.amount_range_code, 'en', application.approximate_financing_amount)}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Annual Revenue</label>
+                                <p className="text-sm text-gray-900">
+                                    {formatRevenueRange(application.annual_revenue_code, 'en', { isPreRevenue: application.is_pre_revenue === true })}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Business Age</label>
+                                <p className="text-sm text-gray-900">
+                                    {formatAgeRange(application.business_age_range_code, 'en')}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Sales via POS Devices</label>
+                                <p className="text-sm text-gray-900">
+                                    {formatHasPos(application.own_pos_system, 'en')}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">City</label>
+                                <p className="text-sm text-gray-900">
+                                    {formatCity(application.city_code, 'en', application.city_of_operation)}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Sector</label>
+                                <p className="text-sm text-gray-900">
+                                    {formatSector(application.sector_code, 'en', application.sector)}
                                 </p>
                             </div>
                         </div>
+
+                        {/* Internal prioritization indicator — admin/partner only. Never
+                            shown to the applicant, and explicitly not a credit decision. */}
+                        {application.lead_tier && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                                <label className="text-sm font-medium text-gray-700">Lead Priority</label>
+                                <div className="mt-1 flex items-center gap-2">
+                                    <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full border ${TIER_BADGE_CLASSES[application.lead_tier]}`}>
+                                        {TIER_LABELS[application.lead_tier].en}
+                                    </span>
+                                    {application.lead_score != null && (
+                                        <span className="text-xs text-gray-500 font-mono">{application.lead_score}/100</span>
+                                    )}
+                                </div>
+                                <p className="mt-1 text-xs text-gray-400">{SCORE_DISCLAIMER.en}</p>
+                            </div>
+                        )}
                         {application.notes && (
                             <div className="mt-4">
                                 <label className="text-sm font-medium text-gray-700">Purpose of Financing</label>

@@ -19,6 +19,19 @@ import BankLogo from '@/components/BankLogo'
 import { calculateApplicationStatus } from '@/lib/application-status'
 import { getCorrectStatus } from '@/lib/client-status-utils'
 import { auctionConfig } from '@/lib/config/auction-config'
+import {
+    FINANCING_TYPES, FINANCING_ORDER,
+    AMOUNT_RANGES, AMOUNT_ORDER,
+    AGE_RANGES, AGE_ORDER,
+    REVENUE_RANGES, REVENUE_ORDER,
+    SECTORS, CITIES,
+    optionsFor,
+} from '@/lib/apply-options'
+
+const FINANCING_OPTIONS = optionsFor(FINANCING_TYPES, FINANCING_ORDER, 'en')
+const AMOUNT_OPTIONS = optionsFor(AMOUNT_RANGES, AMOUNT_ORDER, 'en')
+const AGE_OPTIONS = optionsFor(AGE_RANGES, AGE_ORDER, 'en')
+const REVENUE_OPTIONS = optionsFor(REVENUE_RANGES, REVENUE_ORDER, 'en')
 
 export default function EditApplicationModal({ isOpen, onClose, application, onSuccess }) {
     const [fullApplication, setFullApplication] = useState(null)
@@ -26,10 +39,14 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
     const [formData, setFormData] = useState({
         status: '',
         admin_notes: '',
-        city_of_operation: '',
-        sector: '',
+        city_code: '',
+        sector_code: '',
         financing_type: '',
-        approximate_financing_amount: '',
+        amount_range_code: '',
+        business_age_range_code: '',
+        annual_revenue_code: '',
+        is_pre_revenue: false,
+        own_pos_system: null,
         contact_person: '',
         contact_person_number: '',
         business_contact_email: '',
@@ -87,10 +104,14 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                     setFormData({
                         status: correctStatus || '',
                         admin_notes: fullApp.admin_notes || '',
-                        city_of_operation: fullApp.city_of_operation || '',
-                        sector: fullApp.sector || '',
+                        city_code: fullApp.city_code || '',
+                        sector_code: fullApp.sector_code || '',
                         financing_type: fullApp.financing_type || '',
-                        approximate_financing_amount: fullApp.approximate_financing_amount || '',
+                        amount_range_code: fullApp.amount_range_code || '',
+                        business_age_range_code: fullApp.business_age_range_code || '',
+                        annual_revenue_code: fullApp.annual_revenue_code || '',
+                        is_pre_revenue: fullApp.is_pre_revenue === true,
+                        own_pos_system: typeof fullApp.own_pos_system === 'boolean' ? fullApp.own_pos_system : null,
                         contact_person: fullApp.contact_person || '',
                         contact_person_number: fullApp.contact_person_number || '',
                         business_contact_email: fullApp.business_contact_email || '',
@@ -123,10 +144,14 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
             setFormData({
                 status: '',
                 admin_notes: '',
-                city_of_operation: '',
-                sector: '',
+                city_code: '',
+                sector_code: '',
                 financing_type: '',
-                approximate_financing_amount: '',
+                amount_range_code: '',
+                business_age_range_code: '',
+                annual_revenue_code: '',
+                is_pre_revenue: false,
+                own_pos_system: null,
                 contact_person: '',
                 contact_person_number: '',
                 business_contact_email: '',
@@ -539,24 +564,90 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                             </h5>
                             <div className="space-y-3">
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">City of Operation</label>
-                                    <input
-                                        type="text"
-                                        name="city_of_operation"
-                                        value={formData.city_of_operation}
+                                    <label className="text-sm font-medium text-gray-700">City</label>
+                                    <select
+                                        name="city_code"
+                                        value={formData.city_code}
                                         onChange={handleInputChange}
                                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                    />
+                                    >
+                                        <option value="">Select city</option>
+                                        {CITIES.map((c) => (
+                                            <option key={c.code} value={c.code}>{c.en}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700">Sector</label>
-                                    <input
-                                        type="text"
-                                        name="sector"
-                                        value={formData.sector}
+                                    <select
+                                        name="sector_code"
+                                        value={formData.sector_code}
                                         onChange={handleInputChange}
                                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                    />
+                                    >
+                                        <option value="">Select sector</option>
+                                        {SECTORS.map((sec) => (
+                                            <option key={sec.code} value={sec.code}>{sec.en}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">Annual Revenue</label>
+                                    <select
+                                        name="annual_revenue_code"
+                                        value={formData.annual_revenue_code}
+                                        onChange={handleInputChange}
+                                        disabled={formData.is_pre_revenue}
+                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                    >
+                                        <option value="">Select annual revenue</option>
+                                        {REVENUE_OPTIONS.map((o) => (
+                                            <option key={o.value} value={o.value}>{o.label}</option>
+                                        ))}
+                                    </select>
+                                    <label className="mt-2 flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.is_pre_revenue}
+                                            onChange={(e) => setFormData(prev => ({
+                                                ...prev,
+                                                is_pre_revenue: e.target.checked,
+                                                annual_revenue_code: e.target.checked ? '' : prev.annual_revenue_code,
+                                            }))}
+                                            className="h-4 w-4 rounded border-gray-300"
+                                        />
+                                        No sales yet / not operating
+                                    </label>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">Business Age</label>
+                                    <select
+                                        name="business_age_range_code"
+                                        value={formData.business_age_range_code}
+                                        onChange={handleInputChange}
+                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                    >
+                                        <option value="">Select operating age</option>
+                                        {AGE_OPTIONS.map((o) => (
+                                            <option key={o.value} value={o.value}>{o.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">Sales via POS devices?</label>
+                                    <select
+                                        name="own_pos_system"
+                                        value={formData.own_pos_system === null ? '' : String(formData.own_pos_system)}
+                                        onChange={(e) => setFormData(prev => ({
+                                            ...prev,
+                                            own_pos_system: e.target.value === '' ? null : e.target.value === 'true',
+                                        }))}
+                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                    >
+                                        <option value="">Not specified</option>
+                                        <option value="true">Yes</option>
+                                        <option value="false">No</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -617,29 +708,23 @@ export default function EditApplicationModal({ isOpen, onClose, application, onS
                                     className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                                 >
                                     <option value="">Select type</option>
-                                    <option value="business">Business Financing</option>
-                                    <option value="working_capital">Working Capital</option>
-                                    <option value="expansion">Expansion Financing</option>
-                                    <option value="equipment">Equipment Financing</option>
-                                    <option value="project">Project Financing</option>
-                                    <option value="real_estate">Real Estate</option>
-                                    <option value="pos">POS Financing</option>
-                                    <option value="general">General / Other</option>
+                                    {FINANCING_OPTIONS.map((o) => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-sm font-medium text-gray-700">Approximate Amount Needed</label>
+                                <label className="text-sm font-medium text-gray-700">Requested Amount</label>
                                 <select
-                                    name="approximate_financing_amount"
-                                    value={formData.approximate_financing_amount}
+                                    name="amount_range_code"
+                                    value={formData.amount_range_code}
                                     onChange={handleInputChange}
                                     className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                                 >
                                     <option value="">Select range</option>
-                                    <option value="Less than 250K SAR">Less than 250K SAR</option>
-                                    <option value="250K – 1M SAR">250K – 1M SAR</option>
-                                    <option value="1M – 5M SAR">1M – 5M SAR</option>
-                                    <option value="More than 5M SAR">More than 5M SAR</option>
+                                    {AMOUNT_OPTIONS.map((o) => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>

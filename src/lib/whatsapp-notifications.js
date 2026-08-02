@@ -10,6 +10,8 @@
  * Rate limit: ~100 messages/day on the free tier.
  */
 
+import { formatFinancingType } from '@/lib/apply-options';
+
 /**
  * Send a WhatsApp message to the admin when a new lead is submitted.
  * Fire-and-forget — never throws, never blocks the request.
@@ -23,7 +25,7 @@ export async function sendAdminWhatsAppAlert(applicationData) {
     const text = [
         `🔔 New Nesbah Lead`,
         `Ref: ${applicationData.reference_number}`,
-        `Type: ${applicationData.financing_type}`,
+        `Type: ${formatFinancingType(applicationData.financing_type, 'ar')}`,
         `Business: ${applicationData.business_name || 'Unknown'}`,
         `Contact: ${applicationData.contact_person} — ${applicationData.contact_person_number}`,
         `City: ${applicationData.city_of_operation || 'Not specified'}`,

@@ -46,3 +46,6 @@ lovable-reference/
 
 # Files with credentials — never commit
 DEPLOYMENT_COMMANDS.md
+
+# Reference copy of the nesbah.net app (design/content source, not shipped)
+Nesbah Enhanced/

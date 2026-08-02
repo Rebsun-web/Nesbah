@@ -70,6 +70,12 @@ export async function GET(req) {
                 pa.pos_age_duration_months,
                 pa.avg_monthly_pos_sales,
                 pa.approximate_financing_amount,
+                pa.city_code,
+                pa.sector_code,
+                pa.amount_range_code,
+                pa.business_age_range_code,
+                pa.annual_revenue_code,
+                pa.is_pre_revenue,
                 pa.preferred_repayment_period_months,
                 
                 -- Business Owner Personal Details (NOT from Wathiq API)

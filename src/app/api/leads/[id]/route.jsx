@@ -69,6 +69,12 @@ export async function GET(req, { params }) {
                 pa.contact_person_number,
                 pa.financing_type,
                 pa.approximate_financing_amount,
+                pa.city_code,
+                pa.sector_code,
+                pa.amount_range_code,
+                pa.business_age_range_code,
+                pa.annual_revenue_code,
+                pa.is_pre_revenue,
                 pa.reference_number,
 
                 -- Business Information

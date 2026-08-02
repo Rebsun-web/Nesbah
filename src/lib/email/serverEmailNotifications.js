@@ -1,5 +1,7 @@
 // Server-side email via EmailJS REST API (no SDK — avoids @emailjs/nodejs v5 auth bugs)
 
+import { formatFinancingType } from '@/lib/apply-options';
+
 const isEmailDisabled = process.env.DISABLE_EMAIL_NOTIFICATIONS === 'true';
 
 /**
@@ -166,7 +168,8 @@ export async function sendAdminNewLeadEmail(adminEmail, {
             email:                adminEmail,
             reference_number,
             business_name:        business_name || '',
-            financing_type:       financing_type || '',
+            // Readable label, not the stored code — this goes to a human.
+            financing_type:       financing_type ? formatFinancingType(financing_type, 'ar') : '',
             cr_national_number:   cr_national_number || '',
             contact_person:       contact_person || '',
             contact_person_number: contact_person_number || '',

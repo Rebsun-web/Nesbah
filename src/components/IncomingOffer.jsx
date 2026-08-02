@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 
 // Import auction configuration
 import { AUCTION_DURATION_SECONDS } from '@/lib/config/auction-config';
+import { formatHasPos } from '@/lib/apply-options'
 
 function formatDuration(seconds) {
   const hrs = Math.floor(seconds / 3600);
@@ -46,7 +47,7 @@ export default function IncomingOffer({ user }) {
 
     return (
         <div className="mx-auto max-w-7xl">
-            <h1 className="text-2xl pt-6 pb-4 font-semibold tracking-tight text-gray-900">
+            <h1 className="text-2xl pt-6 pb-4 font-semibold tracking-tight text-[hsl(var(--foreground))]">
                 Your current application
             </h1>
             <div className="space-y-4">
@@ -86,16 +87,16 @@ export default function IncomingOffer({ user }) {
                             })()}
                         </div>
 
-                        <div className="bg-gray-50 px-4 py-5 sm:p-6 space-y-2">
-                            <p className="text-sm text-gray-600"><strong>Bank:</strong> {app.notes}</p>
-                            <p className="text-sm text-gray-600"><strong>Submitted
+                        <div className="bg-[hsl(var(--secondary))] px-4 py-5 sm:p-6 space-y-2">
+                            <p className="text-sm text-[hsl(var(--muted-foreground))]"><strong>Bank:</strong> {app.notes}</p>
+                            <p className="text-sm text-[hsl(var(--muted-foreground))]"><strong>Submitted
                                 At:</strong> {new Date(app.submitted_at).toLocaleString()}</p>
-                            <p className="text-sm text-gray-600"><strong>Own POS
-                                System:</strong> {app.own_pos_system ? 'Yes' : 'No'}</p>
+                            <p className="text-sm text-[hsl(var(--muted-foreground))]"><strong>Sales via POS
+                                Devices:</strong> {formatHasPos(app.own_pos_system, 'en')}</p>
 
                             {app.uploaded_document && (
                                 <div>
-                                    <p className="text-sm font-medium text-gray-900">Uploaded Document:</p>
+                                    <p className="text-sm font-medium text-[hsl(var(--foreground))]">Uploaded Document:</p>
                                     <a
                                         href={`/api/download/${app.application_id}`}
                                         target="_blank"

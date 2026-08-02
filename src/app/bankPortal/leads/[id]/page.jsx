@@ -20,6 +20,10 @@ import {
 import OfferSentModal from '@/components/OfferSentModal';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import AuthGuard from '@/components/auth/AuthGuard';
+import {
+    formatAmountRange, formatAgeRange, formatRevenueRange,
+    formatCity, formatHasPos,
+} from '@/lib/apply-options'
 
 
 function LeadPageContent({ params }) {
@@ -321,7 +325,17 @@ function LeadPageContent({ params }) {
 
           <DescriptionTerm>Financing Amount</DescriptionTerm>
           <DescriptionDetails>
-            {application.approximate_financing_amount || 'Not specified'}
+            {formatAmountRange(application.amount_range_code, 'en', application.approximate_financing_amount)}
+          </DescriptionDetails>
+
+          <DescriptionTerm>Annual Revenue</DescriptionTerm>
+          <DescriptionDetails>
+            {formatRevenueRange(application.annual_revenue_code, 'en', { isPreRevenue: application.is_pre_revenue === true })}
+          </DescriptionDetails>
+
+          <DescriptionTerm>Business Age</DescriptionTerm>
+          <DescriptionDetails>
+            {formatAgeRange(application.business_age_range_code, 'en')}
           </DescriptionDetails>
 
           <DescriptionTerm>Repayment Period</DescriptionTerm>
@@ -329,18 +343,18 @@ function LeadPageContent({ params }) {
             {application.preferred_repayment_period_months ? `${application.preferred_repayment_period_months} months` : 'Not specified'}
           </DescriptionDetails>
 
-          <DescriptionTerm>Own POS System</DescriptionTerm>
+          {/* Reuses own_pos_system: the applicant answers "do your sales go through
+              POS devices?". Legacy rows answered a slightly different question. */}
+          <DescriptionTerm>Sales via POS Devices</DescriptionTerm>
           <DescriptionDetails>
-            {application.own_pos_system === null || application.own_pos_system === undefined
-              ? 'Not specified'
-              : application.own_pos_system ? 'Yes' : 'No'}
+            {formatHasPos(application.own_pos_system, 'en')}
           </DescriptionDetails>
 
           <DescriptionTerm>Number of POS Devices</DescriptionTerm>
           <DescriptionDetails>{application.number_of_pos_devices || 'Not specified'}</DescriptionDetails>
 
           <DescriptionTerm>City of Operations</DescriptionTerm>
-          <DescriptionDetails>{application.city_of_operation || 'Not specified'}</DescriptionDetails>
+          <DescriptionDetails>{formatCity(application.city_code, 'en', application.city_of_operation)}</DescriptionDetails>
 
           <DescriptionTerm>Has E-commerce</DescriptionTerm>
           <DescriptionDetails>
@@ -563,9 +577,9 @@ function LeadPageContent({ params }) {
             {application.offers.map((offer, index) => {
               try {
                 return (
-                  <div key={offer.offer_id || index} className="border border-gray-200 rounded-lg p-4">
+                  <div key={offer.offer_id || index} className="border border-[hsl(var(--border))] rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-lg font-semibold text-gray-900">
+                      <h4 className="text-lg font-semibold text-[hsl(var(--foreground))]">
                         Offer #{offer.offer_id || 'Not specified'} by {offer.bank_name || 'Unknown Bank'}
                       </h4>
                       <Badge color={offer.status === 'live_auction' ? 'blue' : 'green'}>
@@ -631,10 +645,10 @@ function LeadPageContent({ params }) {
           <form onSubmit={handleSubmitOffer}>
             <div className="space-y-12 sm:space-y-16">
               <div className="py-12">
-                <h2 className="text-base/7 font-semibold text-gray-900">
+                <h2 className="text-base/7 font-semibold text-[hsl(var(--foreground))]">
                   Submit an offer
                 </h2>
-                <p className="mt-1 max-w-2xl text-sm/6 text-gray-600">
+                <p className="mt-1 max-w-2xl text-sm/6 text-[hsl(var(--muted-foreground))]">
                   This information will be displayed publicly so be careful what
                   you share.
                 </p>
@@ -644,7 +658,7 @@ function LeadPageContent({ params }) {
                   <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
                     <label
                       htmlFor="offer_device_setup_fee"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
+                      className="block text-sm/6 font-medium text-[hsl(var(--foreground))] sm:pt-1.5"
                     >
                       Device & Setup fees
                     </label>
@@ -656,7 +670,7 @@ function LeadPageContent({ params }) {
                           name="offer_device_setup_fee"
                           type="text"
                           placeholder="Device & Setup fees"
-                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
+                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-[hsl(var(--foreground))] placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
                           value={offerForm.offer_device_setup_fee}
                           onChange={handleOfferChange}
                         />
@@ -666,7 +680,7 @@ function LeadPageContent({ params }) {
                   <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
                     <label
                       htmlFor="offer_transaction_fee_mada"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
+                      className="block text-sm/6 font-medium text-[hsl(var(--foreground))] sm:pt-1.5"
                     >
                       Transaction fees MADA
                     </label>
@@ -678,7 +692,7 @@ function LeadPageContent({ params }) {
                           name="offer_transaction_fee_mada"
                           type="text"
                           placeholder="Transaction fees MADA"
-                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
+                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-[hsl(var(--foreground))] placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
                           value={offerForm.offer_transaction_fee_mada}
                           onChange={handleOfferChange}
                         />
@@ -688,7 +702,7 @@ function LeadPageContent({ params }) {
                   <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
                     <label
                       htmlFor="offer_transaction_fee_visa_mc"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
+                      className="block text-sm/6 font-medium text-[hsl(var(--foreground))] sm:pt-1.5"
                     >
                       Transaction fees Visa/Mastercard
                     </label>
@@ -700,7 +714,7 @@ function LeadPageContent({ params }) {
                           name="offer_transaction_fee_visa_mc"
                           type="text"
                           placeholder="Transaction fees Visa/Mastercard"
-                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
+                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-[hsl(var(--foreground))] placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
                           value={offerForm.offer_transaction_fee_visa_mc}
                           onChange={handleOfferChange}
                         />
@@ -710,7 +724,7 @@ function LeadPageContent({ params }) {
                   <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
                     <label
                       htmlFor="offer_settlement_time_mada"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
+                      className="block text-sm/6 font-medium text-[hsl(var(--foreground))] sm:pt-1.5"
                     >
                       Settlement time MADA
                     </label>
@@ -722,7 +736,7 @@ function LeadPageContent({ params }) {
                           name="offer_settlement_time_mada"
                           type="text"
                           placeholder="Settlement time MADA"
-                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
+                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-[hsl(var(--foreground))] placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
                           value={offerForm.offer_settlement_time_mada}
                           onChange={handleOfferChange}
                         />
@@ -732,7 +746,7 @@ function LeadPageContent({ params }) {
                   <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
                     <label
                       htmlFor="offer_settlement_time_visa_mc"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
+                      className="block text-sm/6 font-medium text-[hsl(var(--foreground))] sm:pt-1.5"
                     >
                       Settlement time Visa/MC
                     </label>
@@ -744,7 +758,7 @@ function LeadPageContent({ params }) {
                           name="offer_settlement_time_visa_mc"
                           type="text"
                           placeholder="Settlement time Visa/MC"
-                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
+                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-[hsl(var(--foreground))] placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
                           value={offerForm.offer_settlement_time_visa_mc}
                           onChange={handleOfferChange}
                         />
@@ -754,7 +768,7 @@ function LeadPageContent({ params }) {
                   <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
                     <label
                       htmlFor="settlement_time"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
+                      className="block text-sm/6 font-medium text-[hsl(var(--foreground))] sm:pt-1.5"
                     >
                       General Settlement Time
                     </label>
@@ -766,7 +780,7 @@ function LeadPageContent({ params }) {
                           name="settlement_time"
                           type="text"
                           placeholder="24-48 hours"
-                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
+                          className="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-[hsl(var(--foreground))] placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6"
                           value={offerForm.settlement_time}
                           onChange={handleOfferChange}
                         />
@@ -785,7 +799,7 @@ function LeadPageContent({ params }) {
                   <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
                     <label
                       htmlFor="offer_terms"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
+                      className="block text-sm/6 font-medium text-[hsl(var(--foreground))] sm:pt-1.5"
                     >
                       Offer Terms & Conditions
                     </label>
@@ -797,7 +811,7 @@ function LeadPageContent({ params }) {
                           name="offer_terms"
                           placeholder="Detailed terms and conditions of this offer..."
                           rows={4}
-                          className="block w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-base text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
+                          className="block w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-base text-[hsl(var(--foreground))] shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
                           value={offerForm.offer_terms}
                           onChange={handleOfferChange}
                         />
@@ -807,7 +821,7 @@ function LeadPageContent({ params }) {
                   <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
                     <label
                       htmlFor="offer_comment"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
+                      className="block text-sm/6 font-medium text-[hsl(var(--foreground))] sm:pt-1.5"
                     >
                       Comment (optional)
                     </label>
@@ -819,7 +833,7 @@ function LeadPageContent({ params }) {
                           name="offer_comment"
                           placeholder="Add comment (optional)"
                           rows={4}
-                          className="block w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-base text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
+                          className="block w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-base text-[hsl(var(--foreground))] shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
                           value={offerForm.offer_comment}
                           onChange={handleOfferChange}
                         />
@@ -829,7 +843,7 @@ function LeadPageContent({ params }) {
                   <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
                     <label
                       htmlFor="cover-photo"
-                      className="block text-sm/6 font-medium text-gray-900 sm:pt-1.5"
+                      className="block text-sm/6 font-medium text-[hsl(var(--foreground))] sm:pt-1.5"
                     >
                       Upload file
                     </label>
@@ -837,7 +851,7 @@ function LeadPageContent({ params }) {
                       <div
                         className="flex max-w-2xl justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
                         <div className="text-center">
-                          <div className="mt-4 flex text-sm/6 text-gray-600">
+                          <div className="mt-4 flex text-sm/6 text-[hsl(var(--muted-foreground))]">
                             <label
                               htmlFor="file-upload"
                               className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
@@ -853,11 +867,11 @@ function LeadPageContent({ params }) {
                             </label>
                             <p className="pl-1">or drag and drop</p>
                           </div>
-                          <p className="text-xs/5 text-gray-600">
+                          <p className="text-xs/5 text-[hsl(var(--muted-foreground))]">
                             PNG, JPG, GIF up to 10MB
                           </p>
                           {(selectedFile || offerForm.file) && (
-                            <div className="mt-4 text-sm text-gray-700">
+                            <div className="mt-4 text-sm text-[hsl(var(--ink-soft))]">
                               <p><strong>Selected file:</strong> {(selectedFile?.name || offerForm.file?.name) ?? 'Not specified'}</p>
                             </div>
                           )}
@@ -872,7 +886,7 @@ function LeadPageContent({ params }) {
             <div className="flex items-center justify-end gap-x-6">
               <button
                 type="button"
-                className="text-sm/6 font-semibold text-gray-900"
+                className="text-sm/6 font-semibold text-[hsl(var(--foreground))]"
               >
                 Cancel
               </button>
@@ -900,12 +914,12 @@ function LeadPageContent({ params }) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                   </svg>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-gray-900">Important Fee Notice</h3>
-                <div className="mt-2 text-sm text-gray-600">
+                <h3 className="mt-4 text-lg font-semibold text-[hsl(var(--foreground))]">Important Fee Notice</h3>
+                <div className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
                   <p className="mb-3">
                     <strong>We charge a 3% fee from the total deal value</strong> when you submit an offer and it gets accepted.
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">
                     This fee covers our platform services, lead verification, and business facilitation.
                   </p>
                 </div>
@@ -914,7 +928,7 @@ function LeadPageContent({ params }) {
                 <button
                   type="button"
                   onClick={handleDeclineFee}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="px-4 py-2 text-sm font-medium text-[hsl(var(--ink-soft))] bg-white border border-[hsl(var(--border))] rounded-md hover:bg-[hsl(var(--secondary))] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   Decline
                 </button>

@@ -20,7 +20,7 @@ export default function FormStatusModal({ isOpen, onClose, isSuccess, modalMessa
         <Dialog open={isOpen} onClose={onClose} className="relative z-10">
             <DialogBackdrop
                 transition
-                className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"
+                className="fixed inset-0 bg-[hsl(var(--foreground)/0.6)] transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"
             />
 
             <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
@@ -38,11 +38,11 @@ export default function FormStatusModal({ isOpen, onClose, isSuccess, modalMessa
                                 )}
                             </div>
                             <div className="mt-3 text-center sm:mt-5">
-                                <DialogTitle as="h3" className="text-base font-semibold leading-6 text-gray-900">
+                                <DialogTitle as="h3" className="text-base font-semibold leading-6 text-[hsl(var(--foreground))]">
                                     {isSuccess ? 'Rejection Successfully Submitted' : 'Failed to submit response'}
                                 </DialogTitle>
                                 <div className="mt-2">
-                                    <p className="text-sm text-gray-500">{modalMessage}</p>
+                                    <p className="text-sm text-[hsl(var(--muted-foreground))]">{modalMessage}</p>
                                 </div>
                             </div>
                         </div>

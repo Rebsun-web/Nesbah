@@ -10,6 +10,7 @@ import CreateBusinessUserForm from './CreateBusinessUserForm'
 import CreateBankUserForm from './CreateBankUserForm'
 import CreateBankEmployeeForm from './CreateBankEmployeeForm'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { formatFinancingType, formatAmountRange } from '@/lib/apply-options'
 
 export default function UserManagement() {
     const { t } = useLanguage()
@@ -501,13 +502,13 @@ export default function UserManagement() {
                                                 <td className="px-6 py-4">
                                                     {user.financing_type ? (
                                                         <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
-                                                            {user.financing_type.replace(/_/g, ' ')}
+                                                            {formatFinancingType(user.financing_type, 'en')}
                                                         </span>
                                                     ) : (
                                                         <span className="text-xs text-gray-400">—</span>
                                                     )}
                                                     {user.approximate_financing_amount && (
-                                                        <div className="text-xs text-gray-500 mt-1">{user.approximate_financing_amount}</div>
+                                                        <div className="text-xs text-gray-500 mt-1">{formatAmountRange(user.amount_range_code, 'en', user.approximate_financing_amount)}</div>
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -610,11 +611,11 @@ export default function UserManagement() {
                                             <div className="mb-3">
                                                 {user.financing_type && (
                                                     <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full capitalize">
-                                                        {user.financing_type.replace(/_/g, ' ')}
+                                                        {formatFinancingType(user.financing_type, 'en')}
                                                     </span>
                                                 )}
                                                 {user.approximate_financing_amount && (
-                                                    <div className="text-xs text-gray-500 mt-1">{user.approximate_financing_amount}</div>
+                                                    <div className="text-xs text-gray-500 mt-1">{formatAmountRange(user.amount_range_code, 'en', user.approximate_financing_amount)}</div>
                                                 )}
                                             </div>
                                         )}

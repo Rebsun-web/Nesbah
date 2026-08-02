@@ -64,12 +64,13 @@ export async function GET(req) {
                     u.entity_name,
                     -- Latest application onboarding fields
                     pa.financing_type,
-                    pa.approximate_financing_amount
+                    pa.approximate_financing_amount,
+                    pa.amount_range_code
                 FROM business_users bu
                 JOIN users u ON bu.user_id = u.user_id
                 LEFT JOIN wathiq_data wd ON bu.wathiq_data_id = wd.id
                 LEFT JOIN LATERAL (
-                    SELECT financing_type, approximate_financing_amount
+                    SELECT financing_type, approximate_financing_amount, amount_range_code
                     FROM pos_application
                     WHERE user_id = bu.user_id
                     ORDER BY submitted_at DESC
