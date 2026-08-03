@@ -31,19 +31,32 @@ service runs in. The domain move happens entirely inside Google.
 
 ## ⚠️ Do this in the right order: ship the pending release FIRST
 
-There is an unreleased branch (`feat/platform-enhancements-and-design-replication`)
-containing the new application form, the deposits proxy and the design replication.
-Migration `010` has already been applied to the production database, but **the code is
-not deployed yet**.
+**Status: the release has shipped.** ✅ Deployed to Europe on **2026-08-03**, commit
+`f569d17` (site-wide RTL document direction, font plumbing, reference container, large-
+display scaling). Migration `010` was already applied to the production database.
 
-**Deploy that to Europe and verify it, before starting this migration.** Two reasons:
+The rule this section exists to enforce still applies, though: **do not start Step 1 on
+the same day as a release.** If something breaks while both a release and a region move
+are in flight, you cannot tell which one caused it — they must stay separate,
+individually reversible changes.
 
-1. If you migrate first, you deploy the *old* image to Dammam and have to deploy again
-   straight after — and CI still points at Europe, so it would need rewiring twice.
-2. If something breaks while both a release and a region move are in flight, you cannot
-   tell which caused it. Keep them as separate, individually reversible changes.
+**Before Step 1, close out these two:**
 
-Order: **deploy to Europe → confirm healthy for a day or two → then Step 1 below.**
+1. **Log in and click through the admin and bank portals.** The `f569d17` release changed
+   the document direction site-wide to `dir="rtl"`. Those portals opt out via a
+   `dir="ltr"` wrapper on their own subtree. That opt-out is confirmed rendering on
+   `/admin/login` and `/find-templates`, but **the authenticated interiors have never been
+   seen by a human** — they redirect when unauthenticated, so no terminal check can reach
+   them. A direction regression in the admin tables would be the single most likely
+   fallout of that release, and you do not want to be diagnosing it mid-migration.
+2. **Remove the temporary admin IP from the production database allowlist:**
+   ```bash
+   gcloud sql instances patch production-eu \
+     --authorized-networks=176.125.231.86,143.178.144.140 --quiet
+   ```
+   This was added for the `010` migration and is still open.
+
+Order: **release shipped → verify portals → close the allowlist → then Step 1.**
 
 By the time you reach Step 4, the image tag you pick will already contain the new code.
 
