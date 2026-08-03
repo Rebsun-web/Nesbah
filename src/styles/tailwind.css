@@ -101,7 +101,8 @@
 
    `zoom` (rather than a root font-size change) because it also scales the
    hand-tuned pixel values in the hero card, and because a root font-size rule
-   cannot be scoped to a subtree.                                              */
+   cannot be scoped to a subtree.
+
    Viewport units are the one thing element-level zoom does NOT scale: 100vh
    resolves against the real viewport and is *then* multiplied by the zoom, so a
    min-h-screen box inside this wrapper renders taller than the screen. That
