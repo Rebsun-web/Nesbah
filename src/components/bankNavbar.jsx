@@ -106,7 +106,12 @@ export default function BankNavbar() {
 
     return (
         <>
-            <Disclosure as="nav" className="bg-[hsl(var(--foreground))]">
+            {/* Sticky so the nav — and the AR/EN toggle and account menu in it —
+                stay reachable while scrolling a long leads table. Safe here: the
+                only overflow-hidden container on this screen is inside BankPortal,
+                which is a sibling of this nav rather than an ancestor, so it does
+                not trap the sticky positioning. */}
+            <Disclosure as="nav" className="sticky top-0 z-40 bg-[hsl(var(--foreground))]">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 justify-between">
                     <div className="flex">
