@@ -157,12 +157,15 @@ function BankPortal() {
 
 export default function BankDashboardPage() {
     return (
-        <div className="min-h-screen flex flex-col">
-            <main className="flex-1 flex flex-col">
+        <div className="flex min-h-screen flex-col">
+            {/* min-h-screen on the content itself, not just the page: the dashboard is
+                sparse, and without this the marketing footer sat halfway up the
+                first screen. Bank users now scroll to reach it. */}
+            <main className="flex min-h-screen flex-1 flex-col">
                 <BankNavbar />
                 <BankPortal />
             </main>
-            <NewFooter className="mt-auto" />
+            <NewFooter compact className="mt-auto" />
         </div>
     )
 }

@@ -982,7 +982,7 @@ export default function BankLeadsPageWrapper() {
                 <BankNavbar />
                 <BankLeadsPage />
             </main>
-            <NewFooter />
+            <NewFooter compact />
         </div>
     )
 }

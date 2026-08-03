@@ -102,9 +102,29 @@
    `zoom` (rather than a root font-size change) because it also scales the
    hand-tuned pixel values in the hero card, and because a root font-size rule
    cannot be scoped to a subtree.                                              */
-@media (min-width: 1600px) { .surface-public { zoom: 1.12; } }
-@media (min-width: 1900px) { .surface-public { zoom: 1.30; } }
-@media (min-width: 2300px) { .surface-public { zoom: 1.45; } }
+   Viewport units are the one thing element-level zoom does NOT scale: 100vh
+   resolves against the real viewport and is *then* multiplied by the zoom, so a
+   min-h-screen box inside this wrapper renders taller than the screen. That
+   pushed the login card below centre and its motif off the bottom. Divide the
+   zoom back out of any viewport-height utility inside the wrapper.            */
+@media (min-width: 1600px) {
+    .surface-public { zoom: 1.12; }
+    .surface-public.min-h-screen { min-height: calc(100vh / 1.12); }
+    .surface-public .min-h-screen { min-height: calc(100vh / 1.12); }
+    .surface-public .h-screen     { height:     calc(100vh / 1.12); }
+}
+@media (min-width: 1900px) {
+    .surface-public { zoom: 1.30; }
+    .surface-public.min-h-screen { min-height: calc(100vh / 1.30); }
+    .surface-public .min-h-screen { min-height: calc(100vh / 1.30); }
+    .surface-public .h-screen     { height:     calc(100vh / 1.30); }
+}
+@media (min-width: 2300px) {
+    .surface-public { zoom: 1.45; }
+    .surface-public.min-h-screen { min-height: calc(100vh / 1.45); }
+    .surface-public .min-h-screen { min-height: calc(100vh / 1.45); }
+    .surface-public .h-screen     { height:     calc(100vh / 1.45); }
+}
 .gradient-hero { background: var(--gradient-hero); }
 /* The reference implementation's class name for the same thing. */
 .bg-hero-gradient { background: var(--gradient-hero); }

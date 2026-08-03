@@ -132,9 +132,46 @@ function SocialIconLinkedIn(props) {
   )
 }
 
-export function NewFooter() {
+export function NewFooter({ compact = false, className = '' }) {
+  // Logged-in portals get a slim bar instead of the marketing footer. The full
+  // version carries a newsletter form and Company/Blog/Jobs/Press links, which
+  // are prospect-facing chrome — irrelevant to a bank user who is already a
+  // customer, and tall enough to dominate a sparse dashboard.
+  if (compact) {
+    return (
+      <footer className={`border-t border-white/10 bg-[#1E1851] ${className}`}>
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-5 sm:flex-row">
+          <div className="flex items-center gap-4">
+            <img src="/logo/BnwLogo.png" alt="Nesbah" className="h-6" />
+            <p className="text-xs text-white/70">© 2025 نسبة</p>
+          </div>
+          <div className="flex items-center gap-x-5">
+            <Link href="/terms" className="text-xs text-white/70 hover:text-white">Terms</Link>
+            <Link href="/privacy" className="text-xs text-white/70 hover:text-white">Privacy</Link>
+            <Link
+              href="https://x.com/NesbahSA?t=oEpXel6Qda5YZfrLKn5VaQ&s=09"
+              target="_blank"
+              aria-label="Visit us on X"
+              className="text-white/70 hover:text-white"
+            >
+              <SocialIconX className="size-4" />
+            </Link>
+            <Link
+              href="https://www.linkedin.com/company/nesbah/"
+              target="_blank"
+              aria-label="Visit us on LinkedIn"
+              className="text-white/70 hover:text-white"
+            >
+              <SocialIconLinkedIn className="size-4" />
+            </Link>
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
   return (
-    <footer className="bg-[#1E1851]">
+    <footer className={`bg-[#1E1851] ${className}`}>
       <div className="mx-auto max-w-7xl px-6 pb-8 pt-20">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
 

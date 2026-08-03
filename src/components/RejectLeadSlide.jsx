@@ -14,8 +14,11 @@ export default function RejectLeadSlide({ open, onClose, userId }) {
     const [modalMessage, setModalMessage] = useState('');
    const params = useParams();
 
+    // Headless UI portals this Dialog to document.body, so it escapes the
+    // dir="ltr" wrapper its surface sets and would otherwise inherit
+    // <html dir="rtl">. The direction must be pinned on the Dialog itself.
     return (
-        <Dialog open={open} onClose={onClose} className="relative z-10">
+        <Dialog dir="ltr" open={open} onClose={onClose} className="relative z-10">
             <div className="fixed inset-0" />
 
             <div className="fixed inset-0 overflow-hidden">

@@ -7,8 +7,11 @@ import { CheckIcon } from '@heroicons/react/24/outline'
 export default function Example() {
     const [open, setOpen] = useState(true)
 
+    // Headless UI portals this Dialog to document.body, so it escapes the
+    // dir="ltr" wrapper its surface sets and would otherwise inherit
+    // <html dir="rtl">. The direction must be pinned on the Dialog itself.
     return (
-        <Dialog open={open} onClose={setOpen} className="relative z-10">
+        <Dialog dir="ltr" open={open} onClose={setOpen} className="relative z-10">
             <DialogBackdrop
                 transition
                 className="fixed inset-0 bg-[hsl(var(--foreground)/0.6)] transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"

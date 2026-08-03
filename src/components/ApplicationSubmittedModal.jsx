@@ -10,8 +10,11 @@ export default function ApplicationSubmittedModal() {
     const { t } = useLanguage()
     const [open, setOpen] = useState(true)
 
+    // Headless UI portals this Dialog to document.body, so it escapes the
+    // dir="ltr" wrapper its surface sets and would otherwise inherit
+    // <html dir="rtl">. The direction must be pinned on the Dialog itself.
     return (
-        <Dialog open={open} onClose={setOpen} className="relative z-10">
+        <Dialog dir="ltr" open={open} onClose={setOpen} className="relative z-10">
             <DialogBackdrop
                 transition
                 className="fixed inset-0 bg-gray-500/75 transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"

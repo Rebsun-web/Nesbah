@@ -83,7 +83,7 @@ export default function BusinessDashboardPage() {
                 <BankNavbar/>
                 <BankHistoryPage/>
             </main>
-            <NewFooter/>
+            <NewFooter compact />
         </div>
     )
 }

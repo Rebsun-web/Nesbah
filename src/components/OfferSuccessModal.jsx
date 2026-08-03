@@ -8,8 +8,11 @@ import { useLanguage } from '@/contexts/LanguageContext'
 export default function OfferSuccessModal({ isOpen, onClose, onViewLeads }) {
     const { t } = useLanguage()
 
+    // Headless UI portals this Dialog to document.body, so it escapes the
+    // dir="ltr" wrapper its surface sets and would otherwise inherit
+    // <html dir="rtl">. The direction must be pinned on the Dialog itself.
     return (
-        <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+        <Dialog dir="ltr" open={isOpen} onClose={onClose} className="relative z-50">
             <DialogBackdrop
                 transition
                 className="fixed inset-0 bg-[hsl(var(--foreground)/0.6)] transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"

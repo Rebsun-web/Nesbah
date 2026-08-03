@@ -2,10 +2,17 @@
 
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
 import { XCircleIcon } from '@heroicons/react/24/outline'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function LoginStatusModal({ isOpen, onClose, message = 'بيانات الاعتماد غير صحيحة' }) {
+    // Unlike the other modals this one is shared between /admin/login (always LTR)
+    // and /login, which follows the visitor's language — so it cannot be pinned
+    // to a fixed direction. Headless UI portals it to document.body, escaping
+    // whatever wrapper its surface sets, so the direction must be set here.
+    const { currentLanguage } = useLanguage()
+
     return (
-        <Dialog open={isOpen} onClose={onClose} className="relative z-10">
+        <Dialog dir={currentLanguage === 'ar' ? 'rtl' : 'ltr'} open={isOpen} onClose={onClose} className="relative z-10">
             <DialogBackdrop
                 transition
                 className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"
