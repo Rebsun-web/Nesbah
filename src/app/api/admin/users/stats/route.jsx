@@ -33,7 +33,7 @@ export async function GET(req) {
                     user_type,
                     COUNT(*) as count,
                     COUNT(CASE WHEN account_status = 'active' THEN 1 END) as active_count,
-                    COUNT(CASE WHEN account_status = 'inactive' THEN 1 END) as inactive_count,
+                    COUNT(CASE WHEN account_status = 'deactivated' THEN 1 END) as inactive_count,
                     COUNT(CASE WHEN account_status = 'suspended' THEN 1 END) as suspended_count
                 FROM users 
                 WHERE user_type IN ('business_user', 'individual_user', 'bank_user', 'admin_user')
@@ -81,7 +81,7 @@ export async function GET(req) {
                 SELECT 
                     COUNT(*) as total_bank_users,
                     COUNT(CASE WHEN u.account_status = 'active' THEN 1 END) as active_banks,
-                    COUNT(CASE WHEN u.account_status = 'inactive' THEN 1 END) as inactive_banks
+                    COUNT(CASE WHEN u.account_status = 'deactivated' THEN 1 END) as inactive_banks
                 FROM users u
                 WHERE u.user_type = 'bank_user'
             `;
