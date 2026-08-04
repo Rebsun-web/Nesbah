@@ -110,6 +110,38 @@ export async function sendSubmissionConfirmationEmail(toEmail, { reference_numbe
     }
 }
 
+// A structurally invalid recipient costs a wasted EmailJS call and a 422
+// ("The recipients address is corrupted"). Worse, addresses that merely LOOK valid
+// but are undeliverable produce a bounce that lands in the sending Workspace inbox
+// and counts against the domain's sending reputation — with DMARC p=quarantine set,
+// a sustained bounce stream can start affecting delivery to real banks.
+//
+// Requires at least one dot after the @, so `user@host` (no TLD) is rejected.
+const RECIPIENT_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
+
+// Case-insensitive de-duplication: `Btool.X@bank.sa` and `btool.x@bank.sa` are the
+// same mailbox in practice, and a plain Set treats them as two.
+function normaliseRecipients(emails) {
+    const seen = new Set();
+    const valid = [];
+    const invalid = [];
+
+    for (const raw of emails || []) {
+        if (!raw) continue;
+        const email = String(raw).trim();
+        if (!RECIPIENT_PATTERN.test(email)) {
+            invalid.push(email);
+            continue;
+        }
+        const key = email.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        valid.push(email);
+    }
+
+    return { valid, invalid };
+}
+
 /**
  * Send new-lead notification to all active bank users
  */
@@ -123,8 +155,19 @@ export async function sendBankNewLeadNotifications(bankEmails) {
         return;
     }
 
-    // De-duplicate to avoid sending the same partner multiple emails.
-    const uniqueEmails = [...new Set(bankEmails.filter(Boolean))];
+    // Screen recipients before spending an API call on them.
+    const { valid: uniqueEmails, invalid } = normaliseRecipients(bankEmails);
+
+    if (invalid.length > 0) {
+        console.warn(
+            `⚠️ Skipped ${invalid.length} bank recipient(s) with a malformed address — ` +
+            `correct these in bank_users: ${invalid.join(', ')}`
+        );
+    }
+    if (uniqueEmails.length === 0) {
+        console.warn('⚠️ No valid bank recipients — nothing sent');
+        return;
+    }
 
     for (let i = 0; i < uniqueEmails.length; i++) {
         const email = uniqueEmails[i];
