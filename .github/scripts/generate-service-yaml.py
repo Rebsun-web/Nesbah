@@ -16,7 +16,12 @@ if not image:
     print("ERROR: IMAGE_SHA env var is required", file=sys.stderr)
     sys.exit(1)
 
-cloudsql_instance = os.environ.get("CLOUDSQL_INSTANCE", "nesbahdev:europe-west1:production-eu").strip()
+cloudsql_instance = os.environ.get("CLOUDSQL_INSTANCE", "nesbahdev:me-central2:production-sa").strip()
+# Service name and region were hardcoded here, so retargeting env.SERVICE/env.REGION in the
+# workflow silently had no effect: `gcloud run services replace` created a brand-new
+# nesbah-portal-v2 in the new region instead of updating the intended service.
+SERVICE = os.environ.get("SERVICE", "nesbah-portal-sa").strip()
+REGION = os.environ.get("REGION", "me-central2").strip()
 
 env_vars = {
     "NODE_ENV": "production",
@@ -57,9 +62,9 @@ env_block = "\n".join(env_lines)
 service_yaml = f"""apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: nesbah-portal-v2
+  name: {SERVICE}
   labels:
-    cloud.googleapis.com/location: europe-west1
+    cloud.googleapis.com/location: {REGION}
 spec:
   template:
     metadata:
@@ -92,6 +97,8 @@ with open(out, "w") as f:
 
 print(f"=== Service YAML written to {out} ===")
 print(f"  image: {image}")
+print(f"  service: {SERVICE}")
+print(f"  region: {REGION}")
 print(f"  cloudsql-instances: {cloudsql_instance}")
 for key, value in env_vars.items():
     value = str(value).strip() if value else ""

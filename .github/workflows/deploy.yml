@@ -48,6 +48,8 @@ jobs:
         env:
           IMAGE_SHA: ${{ env.IMAGE }}:${{ github.sha }}
           CLOUDSQL_INSTANCE: ${{ env.CLOUDSQL_INSTANCE }}
+          SERVICE: ${{ env.SERVICE }}
+          REGION: ${{ env.REGION }}
           S_PGHOST: ${{ secrets.PGHOST }}
           S_PGPORT: ${{ secrets.PGPORT }}
           S_PGDATABASE: ${{ secrets.PGDATABASE }}
