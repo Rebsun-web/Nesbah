@@ -36,7 +36,9 @@ export async function GET(req, { params }) {
                 SELECT 
                     ao.*,
                     -- Bank information
-                    bu.entity_name as bank_entity_name,
+                    -- entity_name lives on the users table, not bank_users; the bu alias is
+                    -- the bank_users row, so it has to come from the joined users row.
+                    bank_u.entity_name as bank_entity_name,
                     bu.contact_person as bank_contact_person,
                     bu.contact_person_number as bank_contact_number,
                     bu.email as bank_email,
@@ -69,6 +71,7 @@ export async function GET(req, { params }) {
                     u.user_type as business_user_type
                 FROM application_offers ao
                 LEFT JOIN bank_users bu ON ao.bank_user_id = bu.user_id
+                LEFT JOIN users bank_u ON ao.bank_user_id = bank_u.user_id
                 LEFT JOIN pos_application pa ON ao.submitted_application_id = pa.application_id
                 LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
                 LEFT JOIN users u ON pa.user_id = u.user_id
