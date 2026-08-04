@@ -165,7 +165,10 @@ export default function BusinessInfoModal({ isOpen, onClose, businessData, onSub
 
                                     <div className="space-y-3">
                                         {/* ── 1. Submitted by the applicant in the onboarding form ── */}
-                                        <Section icon={BuildingOfficeIcon} title={t('business.businessInformation')}>
+                                        {/* Outer heading is the record as a whole; the inner groups name
+                                            the parts. Titling both "Business Information" duplicated
+                                            the label on screen. */}
+                                        <Section icon={BuildingOfficeIcon} title={t('application.details')}>
                                             <div className="grid grid-cols-1 gap-x-10 gap-y-4 md:grid-cols-2">
                                                 <Group icon={BuildingOfficeIcon} title={t('business.businessInformation')}>
                                                     <Field label={t('leads.businessName')} value={businessData.company_name || businessData.trade_name} />
