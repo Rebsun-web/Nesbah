@@ -75,7 +75,11 @@ class AuctionNotificationHandler {
                         pa.approximate_financing_amount,
                         pa.offers_count,
                         wd.trade_name,
-                        u.email as business_email
+                        -- The applicant's real address is the one they typed on the form.
+                        -- users.email is a generated login handle (business_<CR>@nesbah.com,
+                        -- derived from the Wathiq CR) and nesbah.com has no MX record, so mail
+                        -- there always soft-fails and Gmail retries it for 45 hours.
+                        COALESCE(NULLIF(pa.business_contact_email, ''), u.email) as business_email
                      FROM pos_application pa
                      JOIN users u ON pa.user_id = u.user_id
                      LEFT JOIN wathiq_data wd ON wd.cr_national_number = pa.cr_national_number
